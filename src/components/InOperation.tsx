@@ -1,6 +1,11 @@
-import { CheckCircle, PauseCircle } from '../icons/Icons.jsx'
+import { CheckCircle, PauseCircle } from '../icons/Icons'
+import type { LiveBatch } from '../data/mockData'
 
-export default function InOperation({ batches }) {
+interface InOperationProps {
+  batches: LiveBatch[]
+}
+
+export default function InOperation({ batches }: InOperationProps) {
   return (
     <section className="rounded-xl bg-card p-6 shadow-card">
       <h3 className="mb-5 text-xs font-semibold uppercase tracking-wide text-ink">In Operation</h3>
@@ -13,7 +18,7 @@ export default function InOperation({ batches }) {
   )
 }
 
-function BatchCard({ batch }) {
+function BatchCard({ batch }: { batch: LiveBatch }) {
   const running = batch.state === 'Running'
   return (
     <div className="rounded-xl border border-line bg-white p-5">
@@ -53,7 +58,7 @@ function BatchCard({ batch }) {
   )
 }
 
-function Field({ label, value }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] text-muted">{label}</p>

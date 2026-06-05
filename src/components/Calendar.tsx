@@ -1,22 +1,35 @@
 import { useState, useEffect } from 'react'
-import { ArrowUp, ArrowDown } from '../icons/Icons.jsx'
+import { ArrowUp, ArrowDown } from '../icons/Icons'
+import type { DayRollup } from '../lib/compute'
+import type { Period } from './Filters'
 
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 
+type Cell = number | null
+
 // Build a matrix of weeks; each slot is a day number or null (padding).
-function buildWeeks(year, month) {
+function buildWeeks(year: number, month: number): Cell[][] {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const firstWeekday = new Date(year, month, 1).getDay() // 0 = Sun
-  const cells = []
+  const cells: Cell[] = []
   for (let i = 0; i < firstWeekday; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
-  const weeks = []
+  const weeks: Cell[][] = []
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
   return weeks
 }
 
-export default function Calendar({ period, year, month, dayMap, avgMass, onDetails }) {
+interface CalendarProps {
+  period: Period
+  year: number
+  month: number
+  dayMap: Map<number, DayRollup>
+  avgMass: number
+  onDetails: (day: number, data: DayRollup) => void
+}
+
+export default function Calendar({ period, year, month, dayMap, avgMass, onDetails }: CalendarProps) {
   const weeks = buildWeeks(year, month)
   const [weekIdx, setWeekIdx] = useState(0)
 
@@ -25,7 +38,8 @@ export default function Calendar({ period, year, month, dayMap, avgMass, onDetai
     setWeekIdx(0)
   }, [year, month])
 
-  const visibleWeeks = period === 'weekly' ? [weeks[Math.min(weekIdx, weeks.length - 1)]] : weeks
+  const visibleWeeks =
+    period === 'weekly' ? [weeks[Math.min(weekIdx, weeks.length - 1)]] : weeks
 
   return (
     <section className="px-6 pb-6 pt-2">
@@ -38,7 +52,9 @@ export default function Calendar({ period, year, month, dayMap, avgMass, onDetai
           >
             ‹ Prev week
           </button>
-          <span className="text-muted">Week {Math.min(weekIdx, weeks.length - 1) + 1} of {weeks.length}</span>
+          <span className="text-muted">
+            Week {Math.min(weekIdx, weeks.length - 1) + 1} of {weeks.length}
+          </span>
           <button
             onClick={() => setWeekIdx((i) => Math.min(weeks.length - 1, i + 1))}
             disabled={weekIdx >= weeks.length - 1}
@@ -64,7 +80,7 @@ export default function Calendar({ period, year, month, dayMap, avgMass, onDetai
               <DayCell
                 key={di}
                 day={day}
-                data={day ? dayMap.get(day) : null}
+                data={day ? dayMap.get(day) ?? null : null}
                 avgMass={avgMass}
                 tall={period === 'weekly'}
                 onDetails={onDetails}
@@ -77,7 +93,15 @@ export default function Calendar({ period, year, month, dayMap, avgMass, onDetai
   )
 }
 
-function DayCell({ day, data, avgMass, tall, onDetails }) {
+interface DayCellProps {
+  day: Cell
+  data: DayRollup | null
+  avgMass: number
+  tall: boolean
+  onDetails: (day: number, data: DayRollup) => void
+}
+
+function DayCell({ day, data, avgMass, tall, onDetails }: DayCellProps) {
   const empty = !day || !data
   return (
     <div
@@ -110,7 +134,7 @@ function DayCell({ day, data, avgMass, tall, onDetails }) {
   )
 }
 
-function Metric({ up, label }) {
+function Metric({ up, label }: { up: boolean; label: string }) {
   return (
     <span className="flex items-center gap-1">
       <span className={up ? 'text-up' : 'text-down'}>

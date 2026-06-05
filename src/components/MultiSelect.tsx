@@ -1,25 +1,39 @@
 import { useEffect, useRef, useState } from 'react'
-import { Search, Close, ChevronDown } from '../icons/Icons.jsx'
+import { Search, Close } from '../icons/Icons'
+
+interface MultiSelectProps {
+  label: string
+  options: string[]
+  selected: string[]
+  onChange: (next: string[]) => void
+  placeholder?: string
+}
 
 // A filter field that shows selected values as removable chips and opens a
 // searchable list of the remaining options.
-export default function MultiSelect({ label, options, selected, onChange, placeholder }) {
+export default function MultiSelect({
+  label,
+  options,
+  selected,
+  onChange,
+  placeholder,
+}: MultiSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const ref = useRef(null)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function onDoc(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
 
-  const toggle = (opt) =>
+  const toggle = (opt: string) =>
     onChange(selected.includes(opt) ? selected.filter((o) => o !== opt) : [...selected, opt])
 
-  const remove = (opt) => onChange(selected.filter((o) => o !== opt))
+  const remove = (opt: string) => onChange(selected.filter((o) => o !== opt))
 
   const available = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
 

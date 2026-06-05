@@ -1,4 +1,15 @@
-export default function Tabs({ tabs, active, onChange }) {
+export interface TabDef {
+  key: string
+  label: string
+}
+
+interface TabsProps {
+  tabs: TabDef[]
+  active: string
+  onChange: (key: string) => void
+}
+
+export default function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
     <div className="flex items-center gap-1 border-b border-line px-2">
       {tabs.map((t) => {

@@ -1,6 +1,11 @@
-import { Menu, Calendar, Bell, Gear } from '../icons/Icons.jsx'
+import type { ReactNode } from 'react'
+import { Menu, Calendar, Bell, Gear } from '../icons/Icons'
 
-export default function AppHeader({ onToggleSidebar }) {
+interface AppHeaderProps {
+  onToggleSidebar: () => void
+}
+
+export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between bg-header px-4 text-white">
       <div className="flex items-center gap-3">
@@ -32,7 +37,7 @@ export default function AppHeader({ onToggleSidebar }) {
   )
 }
 
-function HeaderIcon({ children }) {
+function HeaderIcon({ children }: { children: ReactNode }) {
   return (
     <button className="grid h-9 w-9 place-items-center rounded-md text-white/80 hover:bg-white/10">
       {children}

@@ -1,7 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import MultiSelect from './MultiSelect.jsx'
-import { ChevronDown } from '../icons/Icons.jsx'
-import { MACHINES, RECIPES, MONTHS } from '../data/mockData.js'
+import MultiSelect from './MultiSelect'
+import { ChevronDown } from '../icons/Icons'
+import { MACHINES, RECIPES, MONTHS } from '../data/mockData'
+
+export type Period = 'monthly' | 'weekly'
+
+interface FiltersProps {
+  machines: string[]
+  recipes: string[]
+  setMachines: (next: string[]) => void
+  setRecipes: (next: string[]) => void
+  period: Period
+  setPeriod: (p: Period) => void
+  monthKey: string
+  setMonthKey: (key: string) => void
+  onClear: () => void
+}
 
 export default function Filters({
   machines,
@@ -13,7 +27,7 @@ export default function Filters({
   monthKey,
   setMonthKey,
   onClear,
-}) {
+}: FiltersProps) {
   return (
     <section className="px-6 py-5">
       <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink">Filter</h3>
@@ -59,7 +73,13 @@ export default function Filters({
   )
 }
 
-function Segmented({ value, onChange, options }) {
+interface SegmentedProps {
+  value: Period
+  onChange: (p: Period) => void
+  options: { key: Period; label: string }[]
+}
+
+function Segmented({ value, onChange, options }: SegmentedProps) {
   return (
     <div className="inline-flex rounded-lg bg-page p-1">
       {options.map((o) => (
@@ -77,14 +97,19 @@ function Segmented({ value, onChange, options }) {
   )
 }
 
-function MonthDropdown({ value, onChange }) {
+interface MonthDropdownProps {
+  value: string
+  onChange: (key: string) => void
+}
+
+function MonthDropdown({ value, onChange }: MonthDropdownProps) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const ref = useRef<HTMLDivElement>(null)
   const current = MONTHS.find((m) => m.key === value)
 
   useEffect(() => {
-    function onDoc(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)

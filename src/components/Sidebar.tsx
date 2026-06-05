@@ -1,13 +1,26 @@
-import { DashboardIcon, RegistryIcon, AnalysisIcon, Gear } from '../icons/Icons.jsx'
+import { DashboardIcon, RegistryIcon, AnalysisIcon, Gear, type IconProps } from '../icons/Icons'
+import type { ComponentType } from 'react'
 
-const NAV = [
+interface NavItem {
+  key: string
+  label: string
+  Icon: ComponentType<IconProps>
+}
+
+const NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { key: 'registry', label: 'Registry', Icon: RegistryIcon },
   { key: 'analysis', label: 'Analysis', Icon: AnalysisIcon },
   { key: 'settings', label: 'Settings', Icon: Gear },
 ]
 
-export default function Sidebar({ open, active, onSelect }) {
+interface SidebarProps {
+  open: boolean
+  active: string
+  onSelect: (key: string) => void
+}
+
+export default function Sidebar({ open, active, onSelect }: SidebarProps) {
   return (
     <aside
       className={`${

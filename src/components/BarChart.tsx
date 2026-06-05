@@ -1,3 +1,5 @@
+import type { RankItem } from '../lib/compute'
+
 // Horizontal ranking bar chart (CSS-driven) with a numeric x-axis.
 const PALETTE = [
   'var(--color-chart-1)',
@@ -7,7 +9,7 @@ const PALETTE = [
   'var(--color-chart-5)',
 ]
 
-function niceTicks(max, count = 5) {
+function niceTicks(max: number, count = 5): number[] {
   if (max <= 0) return [0]
   const rawStep = max / (count - 1)
   const mag = 10 ** Math.floor(Math.log10(rawStep))
@@ -15,14 +17,19 @@ function niceTicks(max, count = 5) {
   const stepMul = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10
   const step = stepMul * mag
   const top = Math.ceil(max / step) * step
-  const ticks = []
+  const ticks: number[] = []
   for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v)
   return ticks
 }
 
-const fmtTick = (v) => (v >= 1000 ? `${Math.round(v / 1000)}K` : `${Math.round(v)}`)
+const fmtTick = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}K` : `${Math.round(v)}`)
 
-export default function BarChart({ data, valueLabel }) {
+interface BarChartProps {
+  data: RankItem[]
+  valueLabel?: string
+}
+
+export default function BarChart({ data, valueLabel }: BarChartProps) {
   const ticks = niceTicks(Math.max(...data.map((d) => d.value), 0))
   const axisMax = ticks[ticks.length - 1] || 1
 

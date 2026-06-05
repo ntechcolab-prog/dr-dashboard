@@ -1,7 +1,16 @@
-import { Close } from '../icons/Icons.jsx'
+import { Close } from '../icons/Icons'
+import type { Batch } from '../data/mockData'
+
+interface DetailsDrawerProps {
+  open: boolean
+  title: string
+  subtitle?: string
+  batches: Batch[]
+  onClose: () => void
+}
 
 // Slide-over panel listing the batches behind a calendar day or KPI.
-export default function DetailsDrawer({ open, title, subtitle, batches, onClose }) {
+export default function DetailsDrawer({ open, title, subtitle, batches, onClose }: DetailsDrawerProps) {
   return (
     <>
       <div
@@ -30,11 +39,11 @@ export default function DetailsDrawer({ open, title, subtitle, batches, onClose 
         </div>
 
         <div className="flex-1 overflow-auto px-6 py-4">
-          {(!batches || batches.length === 0) && (
+          {batches.length === 0 && (
             <p className="py-10 text-center text-sm text-muted">No batches for this selection.</p>
           )}
           <div className="space-y-3">
-            {batches?.map((b) => (
+            {batches.map((b) => (
               <div key={b.id} className="rounded-lg border border-line p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-ink">Batch {b.id}</p>
@@ -60,7 +69,7 @@ export default function DetailsDrawer({ open, title, subtitle, batches, onClose 
   )
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] text-muted">{label}</p>
@@ -69,7 +78,7 @@ function Stat({ label, value }) {
   )
 }
 
-function StatusPill({ status }) {
+function StatusPill({ status }: { status: string }) {
   const tone =
     status === 'Cancelled'
       ? 'bg-red-50 text-down'

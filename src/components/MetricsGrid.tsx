@@ -1,7 +1,12 @@
-import { ArrowUp, ArrowDown } from '../icons/Icons.jsx'
-import { formatValue } from '../lib/compute.js'
+import { ArrowUp, ArrowDown } from '../icons/Icons'
+import { formatValue, type Kpi } from '../lib/compute'
 
-export default function MetricsGrid({ kpis, onDetails }) {
+interface MetricsGridProps {
+  kpis: Kpi[]
+  onDetails?: (kpi: Kpi) => void
+}
+
+export default function MetricsGrid({ kpis, onDetails }: MetricsGridProps) {
   return (
     <section className="px-6 pb-2">
       <div className="mb-3 flex items-center justify-between">
@@ -20,7 +25,12 @@ export default function MetricsGrid({ kpis, onDetails }) {
   )
 }
 
-function KpiCard({ kpi, onDetails }) {
+interface KpiCardProps {
+  kpi: Kpi
+  onDetails: () => void
+}
+
+function KpiCard({ kpi, onDetails }: KpiCardProps) {
   const up = kpi.delta >= 0
   const deltaColor = up ? 'text-up' : 'text-down'
   return (

@@ -1,7 +1,45 @@
 // Deterministic synthetic batch dataset for the Digital Reports dashboard.
 // Seeded PRNG so the numbers are stable across reloads.
 
-function mulberry32(seed) {
+export interface Batch {
+  id: string
+  date: Date
+  day: number
+  month: number
+  year: number
+  machine: string
+  recipe: string
+  productionLine: string
+  mass: number
+  energy: number
+  cooling: number
+  grindMin: number
+  setupMin: number
+  idleMin: number
+  alarmMin: number
+  status: string
+  interruption: string
+  co2: number
+}
+
+export interface LiveBatch {
+  id: string
+  recipe: string
+  machine: string
+  productionLine: string
+  energy: number
+  progress: number
+  state: 'Running' | 'Idle'
+}
+
+export interface MonthMeta {
+  key: string
+  label: string
+  year: number
+  month: number
+}
+
+function mulberry32(seed: number): () => number {
   return function () {
     seed |= 0
     seed = (seed + 0x6d2b79f5) | 0
@@ -40,13 +78,13 @@ export const INTERRUPTIONS = [
 
 const PRODUCTION_LINES = ['Production Line A', 'Production Line B', 'Production Line C']
 
-const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)]
-const round = (n, d = 1) => Math.round(n * 10 ** d) / 10 ** d
+const pick = <T>(rng: () => number, arr: T[]): T => arr[Math.floor(rng() * arr.length)]
+const round = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d
 
 // Build batches across three months so period-over-period deltas are real.
-function buildMonth(year, month /* 0-indexed */, seed) {
+function buildMonth(year: number, month: number /* 0-indexed */, seed: number): Batch[] {
   const rng = mulberry32(seed)
-  const batches = []
+  const batches: Batch[] = []
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   let serial = month * 1000 + 12000
 
@@ -57,17 +95,10 @@ function buildMonth(year, month /* 0-indexed */, seed) {
 
     const perDay = 1 + Math.floor(rng() * 2) // 1–2 batches
     for (let b = 0; b < perDay; b++) {
-      const machine = pick(rng, MACHINES)
-      const recipe = pick(rng, RECIPES)
       const mass = round(0.4 + rng() * 1.2, 2) // ton
-      const grindMin = Math.round(40 + rng() * 90) // active grinding minutes
-      const setupMin = Math.round(8 + rng() * 22)
-      const idleMin = Math.round(rng() * 30)
-      const alarmMin = Math.round(rng() * 12)
       const energy = round(28 + rng() * 34, 1) // kWh
-      const cooling = round(120 + rng() * 110, 0) // liters
       const statusRoll = rng()
-      let status
+      let status: string
       if (statusRoll > 0.94) status = 'Cancelled'
       else if (statusRoll > 0.82) status = 'Completed with target updates'
       else if (statusRoll > 0.62) status = 'Completed before target'
@@ -79,16 +110,16 @@ function buildMonth(year, month /* 0-indexed */, seed) {
         day,
         month,
         year,
-        machine,
-        recipe,
+        machine: pick(rng, MACHINES),
+        recipe: pick(rng, RECIPES),
         productionLine: pick(rng, PRODUCTION_LINES),
         mass,
         energy,
-        cooling,
-        grindMin,
-        setupMin,
-        idleMin,
-        alarmMin,
+        cooling: round(120 + rng() * 110, 0), // liters
+        grindMin: Math.round(40 + rng() * 90), // active grinding minutes
+        setupMin: Math.round(8 + rng() * 22),
+        idleMin: Math.round(rng() * 30),
+        alarmMin: Math.round(rng() * 12),
         status,
         interruption: pick(rng, INTERRUPTIONS),
         co2: round(mass * 4.2 + energy * 0.08, 3),
@@ -98,20 +129,20 @@ function buildMonth(year, month /* 0-indexed */, seed) {
   return batches
 }
 
-export const MONTHS = [
+export const MONTHS: MonthMeta[] = [
   { key: '2026-02', label: 'February 2026', year: 2026, month: 1 },
   { key: '2026-03', label: 'March 2026', year: 2026, month: 2 },
   { key: '2026-04', label: 'April 2026', year: 2026, month: 3 },
 ]
 
-export const ALL_BATCHES = [
+export const ALL_BATCHES: Batch[] = [
   ...buildMonth(2026, 1, 20260201),
   ...buildMonth(2026, 2, 20260301),
   ...buildMonth(2026, 3, 20260401),
 ]
 
 // Two live batches for the "In operation" strip.
-export const LIVE_BATCHES = [
+export const LIVE_BATCHES: LiveBatch[] = [
   {
     id: '#12003',
     recipe: 'Dark Red',

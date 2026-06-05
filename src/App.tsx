@@ -1,34 +1,46 @@
 import { useMemo, useState } from 'react'
-import AppHeader from './components/AppHeader.jsx'
-import Sidebar from './components/Sidebar.jsx'
-import Tabs from './components/Tabs.jsx'
-import Filters from './components/Filters.jsx'
-import MetricsGrid from './components/MetricsGrid.jsx'
-import Calendar from './components/Calendar.jsx'
-import Rankings from './components/Rankings.jsx'
-import InOperation from './components/InOperation.jsx'
-import DetailsDrawer from './components/DetailsDrawer.jsx'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from './data/mockData.js'
-import { filterBatches, buildKpis, byDay, buildRankings } from './lib/compute.js'
+import AppHeader from './components/AppHeader'
+import Sidebar from './components/Sidebar'
+import Tabs, { type TabDef } from './components/Tabs'
+import Filters, { type Period } from './components/Filters'
+import MetricsGrid from './components/MetricsGrid'
+import Calendar from './components/Calendar'
+import Rankings from './components/Rankings'
+import InOperation from './components/InOperation'
+import DetailsDrawer from './components/DetailsDrawer'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, type Batch } from './data/mockData'
+import { filterBatches, buildKpis, byDay, buildRankings, type Kpi, type DayRollup } from './lib/compute'
 
-const TABS = [
+const TABS: TabDef[] = [
   { key: 'batches', label: 'Batches' },
   { key: 'machine', label: 'Machine' },
 ]
+
+interface DrawerState {
+  open: boolean
+  title: string
+  subtitle: string
+  batches: Batch[]
+}
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeNav, setActiveNav] = useState('dashboard')
   const [tab, setTab] = useState('batches')
 
-  const [machines, setMachines] = useState(['Zeta 10', 'Zeta 60'])
-  const [recipes, setRecipes] = useState(['Dark Red'])
-  const [period, setPeriod] = useState('monthly')
+  const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
+  const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
+  const [period, setPeriod] = useState<Period>('monthly')
   const [monthKey, setMonthKey] = useState('2026-04')
 
-  const [drawer, setDrawer] = useState({ open: false, title: '', subtitle: '', batches: [] })
+  const [drawer, setDrawer] = useState<DrawerState>({
+    open: false,
+    title: '',
+    subtitle: '',
+    batches: [],
+  })
 
-  const monthMeta = MONTHS.find((m) => m.key === monthKey)
+  const monthMeta = MONTHS.find((m) => m.key === monthKey)!
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
   const prevMeta = monthIdx > 0 ? MONTHS[monthIdx - 1] : null
 
@@ -65,7 +77,7 @@ export default function App() {
     setRecipes([])
   }
 
-  const openDayDetails = (day, data) =>
+  const openDayDetails = (day: number, data: DayRollup) =>
     setDrawer({
       open: true,
       title: `${monthMeta.label.split(' ')[0]} ${String(day).padStart(2, '0')}`,
@@ -75,7 +87,7 @@ export default function App() {
       batches: data.batches,
     })
 
-  const openKpiDetails = (kpi) =>
+  const openKpiDetails = (kpi: Kpi) =>
     setDrawer({
       open: true,
       title: kpi.label,
