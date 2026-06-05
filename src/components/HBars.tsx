@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 // Horizontal bars with a left-side label (rank or value) and optional
 // per-bar colors. Used by the Machine tab (Downtime by group, Performance).
 export interface HBarItem {
@@ -16,34 +18,55 @@ interface HBarsProps {
 
 const DEFAULT_COLOR = 'var(--color-chart-1)'
 
+const barFill = (c: string) =>
+  `linear-gradient(180deg, color-mix(in oklab, ${c} 84%, white) 0%, ${c} 100%)`
+
 export default function HBars({ items, axisMax, axisTicks, labelInside = true }: HBarsProps) {
   const max = axisMax ?? Math.max(...items.map((i) => i.value), 1)
+  const [mounted, setMounted] = useState(false)
+  const [hover, setHover] = useState<number | null>(null)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   return (
     <div>
       <div className="space-y-2.5">
-        {items.map((it, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-muted">
-              {it.leftLabel ?? i + 1}
-            </span>
-            <div className="relative h-6 flex-1 overflow-hidden rounded-[3px] bg-page">
-              <div
-                className="flex h-full items-center rounded-[3px] px-2"
-                style={{
-                  width: `${Math.max((it.value / max) * 100, it.value > 0 ? 6 : 0)}%`,
-                  background: it.color ?? DEFAULT_COLOR,
-                  transition: 'width 0.5s ease',
-                }}
-                title={`${it.label}: ${it.value}`}
-              >
-                {labelInside && (
-                  <span className="truncate text-[11px] font-medium text-white">{it.label}</span>
-                )}
+        {items.map((it, i) => {
+          const w = Math.max((it.value / max) * 100, it.value > 0 ? 6 : 0)
+          const active = hover === i
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-2"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-muted">
+                {it.leftLabel ?? i + 1}
+              </span>
+              <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-page">
+                <div
+                  className="flex h-full items-center rounded-md px-2.5"
+                  style={{
+                    width: mounted ? `${w}%` : '0%',
+                    background: barFill(it.color ?? DEFAULT_COLOR),
+                    transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+                    transitionDelay: `${i * 45}ms`,
+                    filter: active ? 'saturate(1.15) brightness(1.04)' : undefined,
+                  }}
+                  title={`${it.label}: ${it.value}`}
+                >
+                  {labelInside && (
+                    <span className="truncate text-[11px] font-medium text-white drop-shadow-sm">{it.label}</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {axisTicks && (

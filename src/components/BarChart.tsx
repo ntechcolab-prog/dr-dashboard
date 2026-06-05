@@ -67,9 +67,9 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
                   style={{
                     width: mounted ? `${w}%` : '0%',
                     background: barFill(PALETTE[i % PALETTE.length]),
-                    transition: 'width 0.7s cubic-bezier(0.22,1,0.36,1)',
-                    transitionDelay: `${i * 55}ms`,
-                    filter: active ? 'saturate(1.15) brightness(1.03)' : undefined,
+                    transition: 'width 0.55s cubic-bezier(0.22,1,0.36,1)',
+                    transitionDelay: `${i * 40}ms`,
+                    filter: active ? 'saturate(1.18) brightness(1.05)' : undefined,
                   }}
                 >
                   <span className="truncate text-[11px] font-medium text-white drop-shadow-sm">{d.label}</span>

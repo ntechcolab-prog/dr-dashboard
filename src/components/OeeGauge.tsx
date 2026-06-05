@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
+
 // Concentric OEE gauge — three rings (Availability / Performance / Quality),
-// each a partial arc starting at 12 o'clock.
+// each a partial arc starting at 12 o'clock, animating in on mount.
 interface OeeGaugeProps {
   availability: number
   performance: number
@@ -17,12 +19,18 @@ export default function OeeGauge({ availability, performance, quality }: OeeGaug
   const stroke = 12
   const oee = Math.round((availability * performance * quality) / 10000)
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   return (
     <svg viewBox="0 0 200 200" className="mx-auto block" style={{ width: 200, height: 200 }}>
       <g transform="rotate(-90 100 100)">
-        {RINGS.map(({ key, color, r }) => {
+        {RINGS.map(({ key, color, r }, i) => {
           const c = 2 * Math.PI * r
-          const pct = Math.max(0, Math.min(100, values[key])) / 100
+          const pct = mounted ? Math.max(0, Math.min(100, values[key])) / 100 : 0
           return (
             <g key={key}>
               <circle cx="100" cy="100" r={r} fill="none" stroke="var(--color-page)" strokeWidth={stroke} />
@@ -35,7 +43,10 @@ export default function OeeGauge({ availability, performance, quality }: OeeGaug
                 strokeWidth={stroke}
                 strokeLinecap="round"
                 strokeDasharray={`${c * pct} ${c}`}
-                style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                style={{
+                  transition: 'stroke-dasharray 0.9s cubic-bezier(0.22,1,0.36,1)',
+                  transitionDelay: `${i * 120}ms`,
+                }}
               />
             </g>
           )
