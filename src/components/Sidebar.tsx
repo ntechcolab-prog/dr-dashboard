@@ -20,15 +20,20 @@ interface SidebarProps {
   onSelect: (key: string) => void
 }
 
+// Expanded (264px, icon + label) or collapsed to an icon rail (72px).
 export default function Sidebar({ open, active, onSelect }: SidebarProps) {
   return (
     <aside
       className={`${
-        open ? 'w-[264px]' : 'w-0'
+        open ? 'w-[264px]' : 'w-[72px]'
       } shrink-0 overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
     >
-      <nav className="flex w-[264px] flex-col gap-1 p-4">
-        <p className="px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-white/40">
+      <nav className="flex flex-col gap-1 p-3">
+        <p
+          className={`px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-white/40 transition-opacity ${
+            open ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
           Menu
         </p>
         {NAV.map(({ key, label, Icon }) => {
@@ -37,14 +42,17 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+              title={label}
+              className={`flex items-center gap-3 rounded-md py-2.5 text-sm font-medium transition-colors ${
+                open ? 'px-3' : 'justify-center px-0'
+              } ${
                 isActive
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <Icon size={20} />
-              {label}
+              <Icon size={20} className="shrink-0" />
+              {open && <span className="truncate">{label}</span>}
             </button>
           )
         })}
