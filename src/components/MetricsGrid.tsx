@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown } from '../icons/Icons'
 import { formatValue, type Kpi } from '../lib/compute'
 
@@ -10,8 +10,23 @@ interface MetricsGridProps {
 export default function MetricsGrid({ kpis, onDetails }: MetricsGridProps) {
   const [editing, setEditing] = useState(false)
   const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const [order, setOrder] = useState<string[]>(() => kpis.map((k) => k.key))
+  const [dragKey, setDragKey] = useState<string | null>(null)
 
-  const visible = kpis.filter((k) => !hidden.has(k.key))
+  // Keep the order list in sync if the set of metric keys ever changes.
+  useEffect(() => {
+    setOrder((prev) => {
+      const known = new Set(prev)
+      const extras = kpis.map((k) => k.key).filter((k) => !known.has(k))
+      const pruned = prev.filter((k) => kpis.some((kp) => kp.key === k))
+      return extras.length || pruned.length !== prev.length ? [...pruned, ...extras] : prev
+    })
+  }, [kpis])
+
+  const byKey = useMemo(() => new Map(kpis.map((k) => [k.key, k])), [kpis])
+  const orderedVisible = order
+    .filter((key) => byKey.has(key) && !hidden.has(key))
+    .map((key) => byKey.get(key)!)
   const hiddenKpis = kpis.filter((k) => hidden.has(k.key))
 
   const hide = (key: string) => setHidden((s) => new Set(s).add(key))
@@ -22,27 +37,47 @@ export default function MetricsGrid({ kpis, onDetails }: MetricsGridProps) {
       return n
     })
 
+  const reorder = (targetKey: string) => {
+    if (!dragKey || dragKey === targetKey) return
+    setOrder((prev) => {
+      const from = prev.indexOf(dragKey)
+      const to = prev.indexOf(targetKey)
+      if (from < 0 || to < 0) return prev
+      const next = [...prev]
+      next.splice(from, 1)
+      next.splice(to, 0, dragKey)
+      return next
+    })
+  }
+
   return (
     <section className="px-6 pb-2">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-ink">Metrics</h3>
-        <button
-          onClick={() => setEditing((v) => !v)}
-          className="text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
-        >
-          {editing ? 'Done' : 'Edit'}
-        </button>
+        <div className="flex items-center gap-3">
+          {editing && <span className="hidden text-xs text-muted sm:inline">Drag to reorder</span>}
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
+          >
+            {editing ? 'Done' : 'Edit'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((k, i) => (
+        {orderedVisible.map((k, i) => (
           <KpiCard
             key={k.key}
             kpi={k}
             editing={editing}
             jiggleAlt={i % 2 === 1}
+            dragging={dragKey === k.key}
             onRemove={() => hide(k.key)}
             onDetails={() => onDetails?.(k)}
+            onDragStart={() => setDragKey(k.key)}
+            onDragEnter={() => reorder(k.key)}
+            onDragEnd={() => setDragKey(null)}
           />
         ))}
         {editing && <AddCard hidden={hiddenKpis} onAdd={show} />}
@@ -55,15 +90,39 @@ interface KpiCardProps {
   kpi: Kpi
   editing: boolean
   jiggleAlt: boolean
+  dragging: boolean
   onRemove: () => void
   onDetails: () => void
+  onDragStart: () => void
+  onDragEnter: () => void
+  onDragEnd: () => void
 }
 
-function KpiCard({ kpi, editing, jiggleAlt, onRemove, onDetails }: KpiCardProps) {
+function KpiCard({
+  kpi,
+  editing,
+  jiggleAlt,
+  dragging,
+  onRemove,
+  onDetails,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+}: KpiCardProps) {
   const up = kpi.delta >= 0
   const deltaColor = up ? 'text-up' : 'text-down'
   return (
-    <div className={`relative ${editing ? (jiggleAlt ? 'jiggle-alt' : 'jiggle') : ''}`}>
+    <div
+      draggable={editing}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => editing && e.preventDefault()}
+      onDragEnd={onDragEnd}
+      onDrop={(e) => e.preventDefault()}
+      className={`relative transition-opacity ${editing ? 'cursor-grab active:cursor-grabbing' : ''} ${
+        dragging ? 'opacity-40' : editing ? (jiggleAlt ? 'jiggle-alt' : 'jiggle') : ''
+      }`}
+    >
       {editing && (
         <button
           onClick={onRemove}
@@ -76,7 +135,7 @@ function KpiCard({ kpi, editing, jiggleAlt, onRemove, onDetails }: KpiCardProps)
         </button>
       )}
 
-      <div className="rounded-xl border border-line/70 bg-card p-4 shadow-card">
+      <div className={`rounded-xl border bg-card p-4 shadow-card ${dragging ? 'border-primary' : 'border-line/70'}`}>
         <div className="flex items-start justify-between">
           <p className="max-w-[70%] text-[11px] font-medium uppercase tracking-wide text-muted">
             {kpi.label}
