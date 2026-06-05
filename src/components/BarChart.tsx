@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import type { RankItem } from '../lib/compute'
 
-// Horizontal ranking bar chart (CSS-driven) with a numeric x-axis.
+// Horizontal ranking bar chart (CSS-driven) with a numeric axis and value labels.
 const PALETTE = [
   'var(--color-chart-1)',
   'var(--color-chart-2)',
@@ -8,6 +9,9 @@ const PALETTE = [
   'var(--color-chart-4)',
   'var(--color-chart-5)',
 ]
+
+const barFill = (c: string) =>
+  `linear-gradient(180deg, color-mix(in oklab, ${c} 84%, white) 0%, ${c} 100%)`
 
 function niceTicks(max: number, count = 5): number[] {
   if (max <= 0) return [0]
@@ -22,51 +26,76 @@ function niceTicks(max: number, count = 5): number[] {
   return ticks
 }
 
-const fmtTick = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}K` : `${Math.round(v)}`)
+const fmt = (v: number) =>
+  v >= 1000 ? `${(Math.round(v / 100) / 10).toLocaleString('en-US')}K` : `${Math.round(v * 10) / 10}`
 
 interface BarChartProps {
   data: RankItem[]
   valueLabel?: string
+  showAxis?: boolean
 }
 
-export default function BarChart({ data, valueLabel }: BarChartProps) {
+export default function BarChart({ data, valueLabel, showAxis = true }: BarChartProps) {
+  const [mounted, setMounted] = useState(false)
+  const [hover, setHover] = useState<number | null>(null)
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   const ticks = niceTicks(Math.max(...data.map((d) => d.value), 0))
   const axisMax = ticks[ticks.length - 1] || 1
 
   return (
     <div>
-      <div className="space-y-3">
-        {data.map((d, i) => (
-          <div key={d.label} className="flex items-center gap-2">
-            <span className="w-3 shrink-0 text-right text-[11px] tabular-nums text-muted">
-              {i + 1}
-            </span>
-            <div className="relative h-6 flex-1 overflow-hidden rounded-[3px] bg-page">
-              <div
-                className="flex h-full items-center rounded-[3px] px-2 transition-[width] duration-500"
-                style={{
-                  width: `${Math.max((d.value / axisMax) * 100, d.value > 0 ? 8 : 0)}%`,
-                  background: PALETTE[i % PALETTE.length],
-                }}
-                title={`${d.label}: ${d.value}`}
-              >
-                <span className="truncate text-[11px] font-medium text-white">{d.label}</span>
+      <div className="space-y-2">
+        {data.map((d, i) => {
+          const w = Math.max((d.value / axisMax) * 100, d.value > 0 ? 7 : 0)
+          const active = hover === i
+          return (
+            <div
+              key={d.label}
+              className="flex items-center gap-2.5"
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+            >
+              <span className="w-3 shrink-0 text-right text-[11px] tabular-nums text-muted">{i + 1}</span>
+              <div className="relative h-7 flex-1 overflow-hidden rounded-md bg-page">
+                <div
+                  className="flex h-full items-center rounded-md px-2.5"
+                  style={{
+                    width: mounted ? `${w}%` : '0%',
+                    background: barFill(PALETTE[i % PALETTE.length]),
+                    transition: 'width 0.7s cubic-bezier(0.22,1,0.36,1)',
+                    transitionDelay: `${i * 55}ms`,
+                    filter: active ? 'saturate(1.15) brightness(1.03)' : undefined,
+                  }}
+                >
+                  <span className="truncate text-[11px] font-medium text-white drop-shadow-sm">{d.label}</span>
+                </div>
               </div>
+              <span
+                className={`w-10 shrink-0 text-right text-[11px] tabular-nums ${
+                  active ? 'text-ink' : 'text-muted'
+                }`}
+              >
+                {fmt(d.value)}
+              </span>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* x-axis */}
-      <div className="mt-2 flex justify-between pl-5 text-[10px] tabular-nums text-faint">
-        {ticks.map((t) => (
-          <span key={t}>{fmtTick(t)}</span>
-        ))}
-      </div>
+      {showAxis && (
+        <div className="mt-2 flex justify-between pl-5 pr-12 text-[10px] tabular-nums text-faint">
+          {ticks.map((t) => (
+            <span key={t}>{fmt(t)}</span>
+          ))}
+        </div>
+      )}
       {valueLabel && (
-        <p className="mt-1 pl-5 text-center text-[10px] uppercase tracking-wide text-faint">
-          {valueLabel}
-        </p>
+        <p className="mt-1.5 pl-5 pr-12 text-center text-[10px] uppercase tracking-wide text-faint">{valueLabel}</p>
       )}
     </div>
   )

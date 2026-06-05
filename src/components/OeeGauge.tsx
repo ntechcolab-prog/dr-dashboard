@@ -15,6 +15,7 @@ const RINGS = [
 export default function OeeGauge({ availability, performance, quality }: OeeGaugeProps) {
   const values: Record<string, number> = { availability, performance, quality }
   const stroke = 12
+  const oee = Math.round((availability * performance * quality) / 10000)
 
   return (
     <svg viewBox="0 0 200 200" className="mx-auto block" style={{ width: 200, height: 200 }}>
@@ -40,6 +41,12 @@ export default function OeeGauge({ availability, performance, quality }: OeeGaug
           )
         })}
       </g>
+      <text x="100" y="98" textAnchor="middle" className="fill-ink" style={{ fontSize: 30, fontWeight: 700 }}>
+        {oee}%
+      </text>
+      <text x="100" y="116" textAnchor="middle" className="fill-muted" style={{ fontSize: 11, letterSpacing: 1 }}>
+        OEE
+      </text>
     </svg>
   )
 }
