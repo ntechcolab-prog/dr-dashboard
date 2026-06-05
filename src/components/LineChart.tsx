@@ -49,9 +49,10 @@ export default function LineChart({
   const showDots = data.length <= 12
 
   const onMove = (e: MouseEvent<SVGRectElement>) => {
+    // rect.left already maps to plot x = padL, so mx is offset from the plot start.
     const rect = e.currentTarget.getBoundingClientRect()
     const mx = e.clientX - rect.left
-    const i = Math.round(((mx - padL) / plotW) * (data.length - 1))
+    const i = Math.round((mx / rect.width) * (data.length - 1))
     setHover(Math.max(0, Math.min(data.length - 1, i)))
   }
 
