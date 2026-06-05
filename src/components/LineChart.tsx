@@ -7,6 +7,7 @@ interface LineChartProps {
   color?: string
   yMax?: number
   height?: number
+  maxLabels?: number
 }
 
 export default function LineChart({
@@ -17,7 +18,9 @@ export default function LineChart({
   color = 'var(--color-primary)',
   yMax,
   height = 230,
+  maxLabels = 12,
 }: LineChartProps) {
+  const labelStep = Math.max(1, Math.ceil(labels.length / maxLabels))
   const max = yMax ?? niceMax(Math.max(...data, 1))
   const padL = 38
   const padR = 12
@@ -61,12 +64,14 @@ export default function LineChart({
         <circle key={i} cx={x(i)} cy={y(v)} r={3.2} fill={color} />
       ))}
 
-      {/* x labels */}
-      {labels.map((lab, i) => (
-        <text key={i} x={x(i)} y={H - 12} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
-          {lab}
-        </text>
-      ))}
+      {/* x labels (thinned to avoid crowding) */}
+      {labels.map((lab, i) =>
+        i % labelStep === 0 || i === labels.length - 1 ? (
+          <text key={i} x={x(i)} y={H - 12} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
+            {lab}
+          </text>
+        ) : null
+      )}
       {xLabel && (
         <text x={padL + plotW / 2} y={H - 1} textAnchor="middle" className="fill-faint" style={{ fontSize: 9 }}>
           {xLabel}

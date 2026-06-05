@@ -1,7 +1,7 @@
 // Aggregations that drive the KPI cards, calendar, and rankings.
 // Everything here is pure: filtered batches in, derived numbers out.
 
-import { INTERRUPTIONS, RECIPES, STATUSES, type Batch } from '../data/mockData'
+import { INTERRUPTIONS, MACHINES, RECIPES, STATUSES, type Batch } from '../data/mockData'
 
 export type ValueFormat = 'int' | 'dec1' | 'dec3'
 
@@ -132,6 +132,77 @@ function rank(
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5)
+}
+
+// --- Per-metric drill-down (drives the KPI details drawer) ---
+
+type AggField =
+  | 'count'
+  | 'mass'
+  | 'energy'
+  | 'cooling'
+  | 'co2'
+  | 'productionRate'
+  | 'specificEnergy'
+  | 'ratioProdIdle'
+
+const METRIC_FIELD: Record<string, AggField> = {
+  production: 'count',
+  size: 'mass',
+  totalEnergy: 'energy',
+  productionRate: 'productionRate',
+  coolingEnergy: 'cooling',
+  specificEnergy: 'specificEnergy',
+  carbon: 'co2',
+  ratio: 'ratioProdIdle',
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+export function metricValue(batches: Batch[], kpiKey: string): number {
+  const field = METRIC_FIELD[kpiKey] ?? 'count'
+  return aggregate(batches)[field]
+}
+
+// Daily series of a metric across the month (0 on empty days).
+export function metricByDaySeries(
+  batches: Batch[],
+  kpiKey: string,
+  daysInMonth: number
+): { labels: string[]; data: number[] } {
+  const groups = new Map<number, Batch[]>()
+  for (const b of batches) {
+    const arr = groups.get(b.day)
+    if (arr) arr.push(b)
+    else groups.set(b.day, [b])
+  }
+  const labels: string[] = []
+  const data: number[] = []
+  for (let d = 1; d <= daysInMonth; d++) {
+    labels.push(String(d).padStart(2, '0'))
+    data.push(round1(metricValue(groups.get(d) ?? [], kpiKey)))
+  }
+  return { labels, data }
+}
+
+function metricByGroup(batches: Batch[], kpiKey: string, keys: string[], keyFn: (b: Batch) => string): RankItem[] {
+  const groups = new Map<string, Batch[]>(keys.map((k) => [k, []]))
+  for (const b of batches) {
+    const g = groups.get(keyFn(b))
+    if (g) g.push(b)
+  }
+  return keys
+    .map((label) => ({ label, value: round1(metricValue(groups.get(label) ?? [], kpiKey)) }))
+    .filter((r) => r.value > 0)
+    .sort((a, b) => b.value - a.value)
+}
+
+export function metricByMachine(batches: Batch[], kpiKey: string): RankItem[] {
+  return metricByGroup(batches, kpiKey, MACHINES, (b) => b.machine)
+}
+
+export function metricByRecipe(batches: Batch[], kpiKey: string): RankItem[] {
+  return metricByGroup(batches, kpiKey, RECIPES, (b) => b.recipe).slice(0, 6)
 }
 
 export function buildRankings(batches: Batch[]): Rankings {

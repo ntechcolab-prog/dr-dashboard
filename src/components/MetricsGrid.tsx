@@ -7,11 +7,51 @@ interface MetricsGridProps {
   onDetails?: (kpi: Kpi) => void
 }
 
+interface Snapshot {
+  hidden: Set<string>
+  order: string[]
+}
+
 export default function MetricsGrid({ kpis, onDetails }: MetricsGridProps) {
   const [editing, setEditing] = useState(false)
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [order, setOrder] = useState<string[]>(() => kpis.map((k) => k.key))
   const [dragKey, setDragKey] = useState<string | null>(null)
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
+  const [confirming, setConfirming] = useState(false)
+
+  const enterEdit = () => {
+    setSnapshot({ hidden: new Set(hidden), order: [...order] })
+    setEditing(true)
+  }
+
+  const done = () => {
+    setEditing(false)
+    setConfirming(false)
+    setSnapshot(null)
+  }
+
+  const dirty =
+    !!snapshot &&
+    (snapshot.order.join() !== order.join() ||
+      snapshot.hidden.size !== hidden.size ||
+      [...hidden].some((k) => !snapshot.hidden.has(k)))
+
+  const cancel = () => {
+    if (dirty) {
+      setConfirming(true)
+      return
+    }
+    done()
+  }
+
+  const discard = () => {
+    if (snapshot) {
+      setHidden(new Set(snapshot.hidden))
+      setOrder([...snapshot.order])
+    }
+    done()
+  }
 
   // Keep the order list in sync if the set of metric keys ever changes.
   useEffect(() => {
@@ -54,16 +94,68 @@ export default function MetricsGrid({ kpis, onDetails }: MetricsGridProps) {
     <section className="px-6 pb-2">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-ink">Metrics</h3>
-        <div className="flex items-center gap-3">
-          {editing && <span className="hidden text-xs text-muted sm:inline">Drag to reorder</span>}
+        {editing ? (
+          <div className="relative flex items-center gap-3">
+            <button
+              onClick={cancel}
+              className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={done}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:bg-primary-700"
+            >
+              Done
+            </button>
+
+            {confirming && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-line bg-white p-4 text-left shadow-pop">
+                <p className="text-sm font-semibold text-ink">Discard changes?</p>
+                <p className="mt-1 text-xs text-muted">
+                  Your layout changes (removed, added or reordered metrics) won't be saved.
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:text-ink"
+                  >
+                    Keep editing
+                  </button>
+                  <button
+                    onClick={discard}
+                    className="rounded-md bg-down px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
           <button
-            onClick={() => setEditing((v) => !v)}
+            onClick={enterEdit}
             className="text-xs font-semibold uppercase tracking-wide text-primary hover:underline"
           >
-            {editing ? 'Done' : 'Edit'}
+            Edit
           </button>
-        </div>
+        )}
       </div>
+
+      {editing && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-page px-3 py-2 text-xs text-muted">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="5 9 2 12 5 15" />
+            <polyline points="9 5 12 2 15 5" />
+            <polyline points="15 19 12 22 9 19" />
+            <polyline points="19 9 22 12 19 15" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <line x1="12" y1="2" x2="12" y2="22" />
+          </svg>
+          Drag cards to reorder · tap <span className="font-semibold text-down">−</span> to remove · use{' '}
+          <span className="font-semibold text-primary">+ Add</span> to bring metrics back
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {orderedVisible.map((k, i) => (

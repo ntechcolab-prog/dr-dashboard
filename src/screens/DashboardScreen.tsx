@@ -5,14 +5,17 @@ import MetricsGrid from '../components/MetricsGrid'
 import Calendar from '../components/Calendar'
 import Rankings from '../components/Rankings'
 import InOperation from '../components/InOperation'
-import DetailsDrawer from '../components/DetailsDrawer'
+import DetailsDrawer, { type DrawerData } from '../components/DetailsDrawer'
 import MachineTab from '../components/MachineTab'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS, type Batch } from '../data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
 import {
   filterBatches,
   buildKpis,
   byDay,
   buildRankings,
+  metricByDaySeries,
+  metricByMachine,
+  metricByRecipe,
   type Kpi,
   type DayRollup,
 } from '../lib/compute'
@@ -22,11 +25,12 @@ const TABS: TabDef[] = [
   { key: 'machine', label: 'Machine' },
 ]
 
-interface DrawerState {
-  open: boolean
-  title: string
-  subtitle: string
-  batches: Batch[]
+const CLOSED_DRAWER: DrawerData = {
+  open: false,
+  kind: 'day',
+  title: '',
+  subtitle: '',
+  batches: [],
 }
 
 export default function DashboardScreen() {
@@ -42,12 +46,7 @@ export default function DashboardScreen() {
     setWeekIdx(0)
   }, [monthKey])
 
-  const [drawer, setDrawer] = useState<DrawerState>({
-    open: false,
-    title: '',
-    subtitle: '',
-    batches: [],
-  })
+  const [drawer, setDrawer] = useState<DrawerData>(CLOSED_DRAWER)
 
   const monthMeta = MONTHS.find((m) => m.key === monthKey)!
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
@@ -89,6 +88,7 @@ export default function DashboardScreen() {
   const openDayDetails = (day: number, data: DayRollup) =>
     setDrawer({
       open: true,
+      kind: 'day',
       title: `${monthMeta.label.split(' ')[0]} ${String(day).padStart(2, '0')}`,
       subtitle: `${data.count} ${data.count === 1 ? 'batch' : 'batches'} · ${(
         Math.round(data.mass * 10) / 10
@@ -96,13 +96,20 @@ export default function DashboardScreen() {
       batches: data.batches,
     })
 
-  const openKpiDetails = (kpi: Kpi) =>
+  const openKpiDetails = (kpi: Kpi) => {
+    const daysInMonth = new Date(monthMeta.year, monthMeta.month + 1, 0).getDate()
     setDrawer({
       open: true,
+      kind: 'kpi',
       title: kpi.label,
       subtitle: `${monthMeta.label} · ${monthBatches.length} batches in scope`,
-      batches: monthBatches,
+      batches: [],
+      kpi,
+      daily: metricByDaySeries(monthBatches, kpi.key, daysInMonth),
+      byMachine: metricByMachine(monthBatches, kpi.key),
+      byRecipe: metricByRecipe(monthBatches, kpi.key),
     })
+  }
 
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-5 p-5">
@@ -152,13 +159,7 @@ export default function DashboardScreen() {
         </div>
       )}
 
-      <DetailsDrawer
-        open={drawer.open}
-        title={drawer.title}
-        subtitle={drawer.subtitle}
-        batches={drawer.batches}
-        onClose={() => setDrawer((d) => ({ ...d, open: false }))}
-      />
+      <DetailsDrawer {...drawer} onClose={() => setDrawer((d) => ({ ...d, open: false }))} />
     </div>
   )
 }
