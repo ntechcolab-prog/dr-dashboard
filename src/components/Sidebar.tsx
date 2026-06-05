@@ -28,14 +28,7 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
         open ? 'w-[264px]' : 'w-[72px]'
       } shrink-0 overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
     >
-      <nav className="flex flex-col gap-1 p-3">
-        <p
-          className={`px-3 pb-2 text-[11px] font-medium uppercase tracking-wider text-white/40 transition-opacity ${
-            open ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          Menu
-        </p>
+      <nav className="flex flex-col gap-1 p-3 pt-4">
         {NAV.map(({ key, label, Icon }) => {
           const isActive = key === active
           return (

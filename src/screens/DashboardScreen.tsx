@@ -7,6 +7,7 @@ import Rankings from '../components/Rankings'
 import InOperation from '../components/InOperation'
 import DetailsDrawer, { type DrawerData } from '../components/DetailsDrawer'
 import MachineTab from '../components/MachineTab'
+import EmptyState from '../components/EmptyState'
 import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
 import {
   filterBatches,
@@ -111,12 +112,12 @@ export default function DashboardScreen() {
     })
   }
 
+  const hasMachine = machines.length > 0
+  const hasData = hasMachine && monthBatches.length > 0
+
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-5 p-5">
-      {/* Tabs strip */}
-      <div className="rounded-xl bg-card pt-1 shadow-card">
-        <Tabs tabs={TABS} active={tab} onChange={setTab} />
-      </div>
+      <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === 'batches' ? (
         <>
@@ -136,22 +137,35 @@ export default function DashboardScreen() {
               setWeekIdx={setWeekIdx}
               onClear={clearFilters}
             />
-            <div className="border-t border-line/70 pt-4">
-              <MetricsGrid kpis={kpis} onDetails={openKpiDetails} />
-              <Calendar
-                period={period}
-                year={monthMeta.year}
-                month={monthMeta.month}
-                weekIdx={weekIdx}
-                dayMap={dayMap}
-                avgMass={avgMass}
-                onDetails={openDayDetails}
-              />
-            </div>
+            {hasData ? (
+              <div className="border-t border-line/70 pt-4">
+                <MetricsGrid kpis={kpis} onDetails={openKpiDetails} />
+                <Calendar
+                  period={period}
+                  year={monthMeta.year}
+                  month={monthMeta.month}
+                  weekIdx={weekIdx}
+                  dayMap={dayMap}
+                  avgMass={avgMass}
+                  onDetails={openDayDetails}
+                />
+              </div>
+            ) : (
+              <div className="border-t border-line/70">
+                <EmptyState
+                  title={hasMachine ? 'No batches match these filters' : 'Select at least one machine'}
+                  description={
+                    hasMachine
+                      ? 'Try a different recipe, month or clear some filters.'
+                      : 'Choose a machine in the filter above to load metrics, the calendar and rankings.'
+                  }
+                />
+              </div>
+            )}
           </div>
 
-          <Rankings rankings={rankings} />
-          <InOperation batches={LIVE_BATCHES} />
+          {hasData && <Rankings rankings={rankings} />}
+          {hasData && <InOperation batches={LIVE_BATCHES} />}
         </>
       ) : (
         <div className="overflow-hidden rounded-xl bg-card shadow-card">

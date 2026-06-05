@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Menu, Calendar, Bell, Gear, ChevronDown } from '../icons/Icons'
+import { AppsGrid, Calendar, Bell, Gear, ChevronDown } from '../icons/Icons'
 import { buildWeeks } from '../lib/weeks'
 
 interface AppHeaderProps {
@@ -39,7 +39,7 @@ export default function AppHeader({ onToggleSidebar, onNavigate }: AppHeaderProp
           className="grid h-9 w-9 place-items-center rounded-md text-white/80 hover:bg-white/10"
           aria-label="Toggle menu"
         >
-          <Menu size={22} />
+          <AppsGrid size={20} />
         </button>
         <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[11px] font-bold">
           DR

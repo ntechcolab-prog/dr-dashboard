@@ -31,6 +31,13 @@ export const Menu = (p: IconProps) => (
   </Svg>
 )
 
+// 9-dot apps grid (product-standard menu trigger)
+export const AppsGrid = ({ size = 20, className = '' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    {[5, 12, 19].map((cy) => [5, 12, 19].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={2} />))}
+  </svg>
+)
+
 export const Calendar = (p: IconProps) => (
   <Svg {...p}>
     <rect x="3" y="4" width="18" height="17" rx="2" />

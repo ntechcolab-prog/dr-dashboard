@@ -6,10 +6,11 @@ interface DropdownProps {
   options: string[]
   onChange: (v: string) => void
   className?: string
+  placeholder?: string
 }
 
 // Simple single-select dropdown styled like the Figma filter selects.
-export default function Dropdown({ value, options, onChange, className = '' }: DropdownProps) {
+export default function Dropdown({ value, options, onChange, className = '', placeholder }: DropdownProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -27,7 +28,7 @@ export default function Dropdown({ value, options, onChange, className = '' }: D
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink"
       >
-        {value}
+        <span className={value ? 'text-ink' : 'text-muted'}>{value || placeholder}</span>
         <ChevronDown size={16} className="text-muted" />
       </button>
       {open && (

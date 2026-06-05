@@ -9,31 +9,21 @@ interface TabsProps {
   onChange: (key: string) => void
 }
 
+// Segmented control (consistent with the Monthly/Weekly and period toggles).
 export default function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-line px-2">
+    <div className="inline-flex rounded-xl bg-page p-1 shadow-card">
       {tabs.map((t) => {
         const isActive = t.key === active
         return (
           <button
             key={t.key}
             onClick={() => onChange(t.key)}
-            className={`relative -mb-px rounded-t-md px-4 py-2.5 text-sm font-medium transition-colors ${
-              isActive ? 'text-primary' : 'text-muted hover:text-ink'
+            className={`rounded-lg px-6 py-2 text-sm font-semibold transition-colors ${
+              isActive ? 'bg-white text-primary shadow-card' : 'text-muted hover:text-ink'
             }`}
           >
-            {isActive && (
-              <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-primary" />
-            )}
-            <span
-              className={
-                isActive
-                  ? 'rounded-full bg-primary-soft px-3 py-1 text-primary-700'
-                  : ''
-              }
-            >
-              {t.label}
-            </span>
+            {t.label}
           </button>
         )
       })}

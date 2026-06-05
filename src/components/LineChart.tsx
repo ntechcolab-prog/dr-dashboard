@@ -12,12 +12,15 @@ interface LineChartProps {
   maxLabels?: number
 }
 
+// Teal stroke gradient (top → bottom) shared by every line chart.
+const GRAD = ['#7ad6cb', '#46aa9f', '#2d8a80']
+
 export default function LineChart({
   data,
   labels,
   unit,
   xLabel,
-  color = 'var(--color-primary)',
+  color = '#39998f',
   yMax,
   height = 230,
   maxLabels = 8,
@@ -29,7 +32,7 @@ export default function LineChart({
   const W = width || 360
   const padL = 40
   const padR = 16
-  const padT = 16
+  const padT = 18
   const padB = 26
   const plotW = Math.max(1, W - padL - padR)
   const plotH = Math.max(1, height - padT - padB)
@@ -42,9 +45,7 @@ export default function LineChart({
   const labelStep = Math.max(1, Math.ceil(labels.length / maxLabels))
 
   const linePath = data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ')
-  const areaPath =
-    `${linePath} L ${x(data.length - 1)} ${padT + plotH} L ${x(0)} ${padT + plotH} Z`
-
+  const areaPath = `${linePath} L ${x(data.length - 1)} ${padT + plotH} L ${x(0)} ${padT + plotH} Z`
   const showDots = data.length <= 12
 
   const onMove = (e: MouseEvent<SVGRectElement>) => {
@@ -57,17 +58,21 @@ export default function LineChart({
   return (
     <div ref={ref} className="relative w-full" style={{ height }}>
       {width > 0 && (
-        <svg width={W} height={height} className="block">
+        <svg width={W} height={height} className="block overflow-visible">
           <defs>
-            <linearGradient id={`area-${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            <linearGradient id={`stroke-${gid}`} gradientUnits="userSpaceOnUse" x1="0" y1={padT} x2="0" y2={padT + plotH}>
+              <stop offset="0%" stopColor={GRAD[0]} />
+              <stop offset="55%" stopColor={GRAD[1]} />
+              <stop offset="100%" stopColor={GRAD[2]} />
+            </linearGradient>
+            <linearGradient id={`fill-${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={GRAD[1]} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={GRAD[1]} stopOpacity={0} />
             </linearGradient>
           </defs>
 
-          {/* unit */}
           {unit && (
-            <text x={padL - 32} y={padT - 4} className="fill-faint" style={{ fontSize: 9 }}>
+            <text x={padL - 32} y={padT - 6} className="fill-faint" style={{ fontSize: 9 }}>
               {unit}
             </text>
           )}
@@ -82,7 +87,7 @@ export default function LineChart({
                 y2={y(t)}
                 stroke="var(--color-line)"
                 strokeWidth={1}
-                strokeDasharray={i === 0 ? undefined : '3 4'}
+                strokeDasharray={i === 0 ? undefined : '2 5'}
               />
               <text x={padL - 8} y={y(t) + 3} textAnchor="end" className="fill-faint" style={{ fontSize: 9 }}>
                 {t}
@@ -90,36 +95,42 @@ export default function LineChart({
             </g>
           ))}
 
-          {/* area + line */}
-          <path d={areaPath} fill={`url(#area-${gid})`} className="chart-area" />
+          {/* subtle area for grounding */}
+          <path d={areaPath} fill={`url(#fill-${gid})`} className="chart-area" />
+
+          {/* glow: blurred copy of the line underneath */}
           <path
             d={linePath}
             fill="none"
-            stroke={color}
-            strokeWidth={2.5}
+            stroke={`url(#stroke-${gid})`}
+            strokeWidth={6}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity={0.5}
+            style={{ filter: 'blur(7px)' }}
+          />
+
+          {/* main line */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke={`url(#stroke-${gid})`}
+            strokeWidth={2.75}
             strokeLinejoin="round"
             strokeLinecap="round"
             pathLength={1}
             className="chart-line"
           />
 
-          {/* hover guide */}
+          {/* hover crosshair */}
           {hover !== null && (
-            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={padT + plotH} stroke={color} strokeWidth={1} strokeOpacity={0.35} />
+            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={padT + plotH} stroke={color} strokeWidth={1} strokeOpacity={0.3} />
           )}
 
           {/* dots */}
           {data.map((v, i) =>
             showDots || i === hover ? (
-              <circle
-                key={i}
-                cx={x(i)}
-                cy={y(v)}
-                r={i === hover ? 5 : 3.5}
-                fill="#fff"
-                stroke={color}
-                strokeWidth={2}
-              />
+              <circle key={i} cx={x(i)} cy={y(v)} r={i === hover ? 5 : 3.4} fill="#fff" stroke={color} strokeWidth={2} />
             ) : null
           )}
 
@@ -137,7 +148,6 @@ export default function LineChart({
             </text>
           )}
 
-          {/* hover capture */}
           <rect
             x={padL}
             y={padT}
@@ -150,14 +160,12 @@ export default function LineChart({
         </svg>
       )}
 
-      {/* tooltip */}
       {hover !== null && width > 0 && (
         <div
           className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white shadow-pop"
           style={{ left: x(hover), top: y(data[hover]) - 10 }}
         >
-          <span className="text-white/60">{labels[hover]}:</span>{' '}
-          {fmtVal(data[hover])}
+          <span className="text-white/60">{labels[hover]}:</span> {fmtVal(data[hover])}
           {unit ? ` ${unit}` : ''}
         </div>
       )}
