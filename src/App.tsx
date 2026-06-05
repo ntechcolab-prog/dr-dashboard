@@ -12,7 +12,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+      <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} onNavigate={setActiveNav} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar open={sidebarOpen} active={activeNav} onSelect={setActiveNav} />

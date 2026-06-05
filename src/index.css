@@ -47,6 +47,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* iOS-style "edit mode" jiggle for the metric cards */
+@keyframes jiggle {
+  0% { transform: rotate(-0.7deg); }
+  50% { transform: rotate(0.7deg); }
+  100% { transform: rotate(-0.7deg); }
+}
+@keyframes jiggle-alt {
+  0% { transform: rotate(0.7deg); }
+  50% { transform: rotate(-0.7deg); }
+  100% { transform: rotate(0.7deg); }
+}
+.jiggle {
+  animation: jiggle 0.32s ease-in-out infinite;
+  transform-origin: center;
+}
+.jiggle-alt {
+  animation: jiggle-alt 0.3s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jiggle,
+  .jiggle-alt { animation: none; }
+}
+
 /* thin scrollbars to match a product chrome */
 * {
   scrollbar-width: thin;

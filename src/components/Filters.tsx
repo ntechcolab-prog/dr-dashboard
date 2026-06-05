@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import MultiSelect from './MultiSelect'
 import { ChevronDown } from '../icons/Icons'
 import { MACHINES, RECIPES, MONTHS } from '../data/mockData'
+import { buildWeeks, weekLabel } from '../lib/weeks'
 
 export type Period = 'monthly' | 'weekly'
 
@@ -14,6 +15,10 @@ interface FiltersProps {
   setPeriod: (p: Period) => void
   monthKey: string
   setMonthKey: (key: string) => void
+  year: number
+  month: number
+  weekIdx: number
+  setWeekIdx: (i: number) => void
   onClear: () => void
 }
 
@@ -26,6 +31,10 @@ export default function Filters({
   setPeriod,
   monthKey,
   setMonthKey,
+  year,
+  month,
+  weekIdx,
+  setWeekIdx,
   onClear,
 }: FiltersProps) {
   return (
@@ -59,7 +68,11 @@ export default function Filters({
               { key: 'weekly', label: 'Weekly' },
             ]}
           />
-          <MonthDropdown value={monthKey} onChange={setMonthKey} />
+          {period === 'weekly' ? (
+            <WeekDropdown year={year} month={month} value={weekIdx} onChange={setWeekIdx} />
+          ) : (
+            <MonthDropdown value={monthKey} onChange={setMonthKey} />
+          )}
         </div>
 
         <button
@@ -97,23 +110,22 @@ function Segmented({ value, onChange, options }: SegmentedProps) {
   )
 }
 
-interface MonthDropdownProps {
-  value: string
-  onChange: (key: string) => void
-}
-
-function MonthDropdown({ value, onChange }: MonthDropdownProps) {
-  const [open, setOpen] = useState(false)
+function useOutsideClose(onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null)
-  const current = MONTHS.find((m) => m.key === value)
-
   useEffect(() => {
     function onDoc(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
-  }, [])
+  }, [onClose])
+  return ref
+}
+
+function MonthDropdown({ value, onChange }: { value: string; onChange: (key: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useOutsideClose(() => setOpen(false))
+  const current = MONTHS.find((m) => m.key === value)
 
   return (
     <div className="relative" ref={ref}>
@@ -121,11 +133,11 @@ function MonthDropdown({ value, onChange }: MonthDropdownProps) {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink"
       >
-        {current?.label}
+        <span className="text-muted">Month:</span> {current?.label}
         <ChevronDown size={16} className="text-muted" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-pop">
+        <div className="absolute left-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-pop">
           {MONTHS.map((m) => (
             <button
               key={m.key}
@@ -138,6 +150,53 @@ function MonthDropdown({ value, onChange }: MonthDropdownProps) {
               }`}
             >
               {m.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function WeekDropdown({
+  year,
+  month,
+  value,
+  onChange,
+}: {
+  year: number
+  month: number
+  value: number
+  onChange: (i: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useOutsideClose(() => setOpen(false))
+  const weeks = buildWeeks(year, month)
+  const safe = Math.min(value, weeks.length - 1)
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink"
+      >
+        <span className="text-muted">Week:</span> {weekLabel(year, month, weeks[safe])}
+        <ChevronDown size={16} className="text-muted" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-pop">
+          {weeks.map((w, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                onChange(i)
+                setOpen(false)
+              }}
+              className={`block w-full px-3 py-2 text-left text-sm hover:bg-page ${
+                i === safe ? 'font-semibold text-primary' : 'text-ink'
+              }`}
+            >
+              Week {i + 1} · {weekLabel(year, month, w)}
             </button>
           ))}
         </div>

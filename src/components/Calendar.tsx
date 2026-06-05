@@ -1,70 +1,27 @@
-import { useState, useEffect } from 'react'
 import { ArrowUp, ArrowDown } from '../icons/Icons'
 import type { DayRollup } from '../lib/compute'
 import type { Period } from './Filters'
+import { buildWeeks, type Cell } from '../lib/weeks'
 
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
-
-type Cell = number | null
-
-// Build a matrix of weeks; each slot is a day number or null (padding).
-function buildWeeks(year: number, month: number): Cell[][] {
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstWeekday = new Date(year, month, 1).getDay() // 0 = Sun
-  const cells: Cell[] = []
-  for (let i = 0; i < firstWeekday; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-  while (cells.length % 7 !== 0) cells.push(null)
-  const weeks: Cell[][] = []
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
-  return weeks
-}
 
 interface CalendarProps {
   period: Period
   year: number
   month: number
+  weekIdx: number
   dayMap: Map<number, DayRollup>
   avgMass: number
   onDetails: (day: number, data: DayRollup) => void
 }
 
-export default function Calendar({ period, year, month, dayMap, avgMass, onDetails }: CalendarProps) {
+export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass, onDetails }: CalendarProps) {
   const weeks = buildWeeks(year, month)
-  const [weekIdx, setWeekIdx] = useState(0)
-
-  // Keep the selected week valid when the month changes.
-  useEffect(() => {
-    setWeekIdx(0)
-  }, [year, month])
-
-  const visibleWeeks =
-    period === 'weekly' ? [weeks[Math.min(weekIdx, weeks.length - 1)]] : weeks
+  const safe = Math.min(weekIdx, weeks.length - 1)
+  const visibleWeeks = period === 'weekly' ? [weeks[safe]] : weeks
 
   return (
     <section className="px-6 pb-6 pt-2">
-      {period === 'weekly' && (
-        <div className="mb-3 flex items-center justify-end gap-2 text-sm">
-          <button
-            onClick={() => setWeekIdx((i) => Math.max(0, i - 1))}
-            disabled={weekIdx === 0}
-            className="rounded-md border border-line px-3 py-1 text-muted enabled:hover:text-ink disabled:opacity-40"
-          >
-            ‹ Prev week
-          </button>
-          <span className="text-muted">
-            Week {Math.min(weekIdx, weeks.length - 1) + 1} of {weeks.length}
-          </span>
-          <button
-            onClick={() => setWeekIdx((i) => Math.min(weeks.length - 1, i + 1))}
-            disabled={weekIdx >= weeks.length - 1}
-            className="rounded-md border border-line px-3 py-1 text-muted enabled:hover:text-ink disabled:opacity-40"
-          >
-            Next week ›
-          </button>
-        </div>
-      )}
-
       <div className="overflow-hidden rounded-lg border border-line">
         <div className="grid grid-cols-7 border-b border-line bg-page/60">
           {WEEKDAYS.map((d) => (

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Tabs, { type TabDef } from '../components/Tabs'
 import Filters, { type Period } from '../components/Filters'
 import MetricsGrid from '../components/MetricsGrid'
@@ -35,6 +35,12 @@ export default function DashboardScreen() {
   const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
   const [period, setPeriod] = useState<Period>('monthly')
   const [monthKey, setMonthKey] = useState('2026-04')
+  const [weekIdx, setWeekIdx] = useState(0)
+
+  // Reset the selected week whenever the month changes.
+  useEffect(() => {
+    setWeekIdx(0)
+  }, [monthKey])
 
   const [drawer, setDrawer] = useState<DrawerState>({
     open: false,
@@ -117,6 +123,10 @@ export default function DashboardScreen() {
               setPeriod={setPeriod}
               monthKey={monthKey}
               setMonthKey={setMonthKey}
+              year={monthMeta.year}
+              month={monthMeta.month}
+              weekIdx={weekIdx}
+              setWeekIdx={setWeekIdx}
               onClear={clearFilters}
             />
             <div className="border-t border-line/70 pt-4">
@@ -125,6 +135,7 @@ export default function DashboardScreen() {
                 period={period}
                 year={monthMeta.year}
                 month={monthMeta.month}
+                weekIdx={weekIdx}
                 dayMap={dayMap}
                 avgMass={avgMass}
                 onDetails={openDayDetails}
