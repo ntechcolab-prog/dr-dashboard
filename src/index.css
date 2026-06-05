@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+
+  /* Digital Reports tokens (from Figma file tx5EIqycBjXKI1aF7hExGA) */
+  --color-header: #4c4d57;
+  --color-sidebar: #5c5f62;
+  --color-page: #f6f6f6;
+  --color-card: #ffffff;
+
+  --color-primary: #46aa9f;
+  --color-primary-700: #008d84;
+  --color-primary-soft: #e2f0ed;
+
+  --color-ink: #4c4d57;
+  --color-muted: #8d9094;
+  --color-faint: #c3c5c7;
+  --color-line: #ececec;
+
+  --color-up: #1aa367;
+  --color-down: #c12907;
+  --color-warning: #f19909;
+
+  /* ranking / chart palette */
+  --color-chart-1: #46aa9f;
+  --color-chart-2: #6bb7b0;
+  --color-chart-3: #f19909;
+  --color-chart-4: #f89984;
+  --color-chart-5: #a2a6ac;
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02);
+  --shadow-pop: 0 8px 24px rgba(17, 17, 26, 0.12);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-page);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* thin scrollbars to match a product chrome */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c3c5c7 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c3c5c7;
+  border-radius: 8px;
+}
