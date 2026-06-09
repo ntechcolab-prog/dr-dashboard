@@ -5,6 +5,16 @@ import { buildWeeks } from '../lib/weeks'
 
 interface AppHeaderProps {
   onToggleSidebar: () => void
+  name: string
+  icon: string | null
+}
+
+// Up to two uppercase initials from the app name (e.g. "Batch Book" → "BB").
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'DR'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
 const MONTH_NAMES = [
@@ -26,7 +36,7 @@ const INITIAL_NOTIFS: Notification[] = [
   { id: 4, text: 'Monthly report for March is ready.', time: 'Yesterday', read: true },
 ]
 
-export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
+export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProps) {
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS)
   const unread = notifs.filter((n) => !n.read).length
 
@@ -40,10 +50,14 @@ export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
         >
           <AppsGrid size={20} />
         </button>
-        <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[11px] font-bold">
-          DR
-        </div>
-        <span className="text-base font-medium tracking-tight">Digital Reports</span>
+        {icon ? (
+          <img src={icon} alt="" className="h-8 w-8 rounded-full object-cover" />
+        ) : (
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[11px] font-bold">
+            {initials(name)}
+          </div>
+        )}
+        <span className="text-base font-medium tracking-tight">{name}</span>
       </div>
 
       <div className="flex items-center gap-1">
