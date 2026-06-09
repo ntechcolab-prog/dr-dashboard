@@ -84,7 +84,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
               }`}
             >
               {disabled && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-px text-[9px] font-semibold lowercase tracking-wide text-white shadow-sm">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-line px-1.5 py-px text-[9px] font-medium lowercase tracking-wide text-muted">
                   soon
                 </span>
               )}
