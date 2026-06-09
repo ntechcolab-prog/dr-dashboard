@@ -65,7 +65,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
       <h1 className="text-2xl font-bold text-ink">Batch Information</h1>
 
       {/* step tabs */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 pt-2">
         {STEPS.map((s) => {
           const disabled = DISABLED_STEPS.includes(s)
           return (
@@ -75,7 +75,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
               disabled={disabled}
               aria-disabled={disabled}
               title={disabled ? `${s} (coming soon)` : s}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              className={`relative rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 disabled
                   ? 'cursor-not-allowed text-faint'
                   : s === step
@@ -83,12 +83,12 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
                   : 'text-muted hover:bg-page hover:text-ink'
               }`}
             >
-              {s}
               {disabled && (
-                <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">
-                  Coming Soon
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-px text-[9px] font-semibold lowercase tracking-wide text-white shadow-sm">
+                  soon
                 </span>
               )}
+              {s}
             </button>
           )
         })}
