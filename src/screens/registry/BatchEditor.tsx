@@ -8,11 +8,12 @@ import ResultsTab from './tabs/ResultsTab'
 import RemarksTab from './tabs/RemarksTab'
 import LogsTab from './tabs/LogsTab'
 import ReportsTab from './tabs/ReportsTab'
-import ComingSoon from '../../components/ComingSoon'
 import { ChevronLeft, Save, Pencil } from '../../icons/Icons'
 
-const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports', 'Examples'] as const
+const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports', 'Example'] as const
 type Step = (typeof STEPS)[number]
+
+const DISABLED_STEPS: Step[] = ['Example']
 
 interface Props {
   initial: BatchForm
@@ -65,17 +66,32 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
 
       {/* step tabs */}
       <div className="flex flex-wrap gap-1">
-        {STEPS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setStep(s)}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              s === step ? 'bg-primary text-white' : 'text-muted hover:bg-page hover:text-ink'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+        {STEPS.map((s) => {
+          const disabled = DISABLED_STEPS.includes(s)
+          return (
+            <button
+              key={s}
+              onClick={() => !disabled && setStep(s)}
+              disabled={disabled}
+              aria-disabled={disabled}
+              title={disabled ? `${s} (coming soon)` : s}
+              className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                disabled
+                  ? 'cursor-not-allowed text-faint'
+                  : s === step
+                  ? 'bg-primary text-white'
+                  : 'text-muted hover:bg-page hover:text-ink'
+              }`}
+            >
+              {s}
+              {disabled && (
+                <span className="rounded-full bg-page px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-faint">
+                  Coming Soon
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       <div className="pt-1">
@@ -87,7 +103,6 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
         {step === 'Remarks' && <RemarksTab value={form.remarks} onChange={(v) => update('remarks', v)} />}
         {step === 'Details' && <LogsTab />}
         {step === 'Reports' && <ReportsTab value={form.reports} onChange={(v) => update('reports', v)} />}
-        {step === 'Examples' && <ComingSoon description="The Examples tab is under construction and will be available soon." />}
       </div>
     </div>
   )

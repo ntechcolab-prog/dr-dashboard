@@ -12,8 +12,7 @@ const NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { key: 'registry', label: 'Registry', Icon: RegistryIcon },
   { key: 'analysis', label: 'Analysis', Icon: AnalysisIcon },
-  { key: 'example', label: 'Example', Icon: ExampleIcon },
-  { key: 'example2', label: 'Example 2', Icon: ExampleIcon, disabled: true },
+  { key: 'example', label: 'Example', Icon: ExampleIcon, disabled: true },
   { key: 'settings', label: 'Settings', Icon: Gear },
 ]
 
@@ -56,8 +55,8 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
                 <span className="flex flex-1 items-center justify-between truncate">
                   {label}
                   {disabled && (
-                    <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/40">
-                      Soon
+                    <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/40">
+                      Coming Soon
                     </span>
                   )}
                 </span>
