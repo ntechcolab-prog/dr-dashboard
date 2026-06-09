@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import DashboardScreen from './screens/DashboardScreen'
 import RegistryScreen from './screens/RegistryScreen'
 import AnalysisScreen from './screens/AnalysisScreen'
+import ExampleScreen from './screens/ExampleScreen'
 import SettingsScreen from './screens/SettingsScreen'
 
 export default function App() {
@@ -12,7 +13,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} onNavigate={setActiveNav} />
+      <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar open={sidebarOpen} active={activeNav} onSelect={setActiveNav} />
@@ -21,6 +22,7 @@ export default function App() {
           {activeNav === 'dashboard' && <DashboardScreen />}
           {activeNav === 'registry' && <RegistryScreen />}
           {activeNav === 'analysis' && <AnalysisScreen />}
+          {activeNav === 'example' && <ExampleScreen />}
           {activeNav === 'settings' && <SettingsScreen />}
         </main>
       </div>

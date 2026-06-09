@@ -1,4 +1,4 @@
-import { DashboardIcon, RegistryIcon, AnalysisIcon, Gear, type IconProps } from '../icons/Icons'
+import { DashboardIcon, RegistryIcon, AnalysisIcon, ExampleIcon, Gear, type IconProps } from '../icons/Icons'
 import type { ComponentType } from 'react'
 
 interface NavItem {
@@ -11,6 +11,7 @@ const NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { key: 'registry', label: 'Registry', Icon: RegistryIcon },
   { key: 'analysis', label: 'Analysis', Icon: AnalysisIcon },
+  { key: 'example', label: 'Example', Icon: ExampleIcon },
   { key: 'settings', label: 'Settings', Icon: Gear },
 ]
 

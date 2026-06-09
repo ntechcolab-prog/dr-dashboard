@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AppsGrid, Calendar, Bell, Gear, ChevronDown } from '../icons/Icons'
+import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
 import { buildWeeks } from '../lib/weeks'
 
 interface AppHeaderProps {
   onToggleSidebar: () => void
-  onNavigate: (key: string) => void
 }
 
 const MONTH_NAMES = [
@@ -27,7 +26,7 @@ const INITIAL_NOTIFS: Notification[] = [
   { id: 4, text: 'Monthly report for March is ready.', time: 'Yesterday', read: true },
 ]
 
-export default function AppHeader({ onToggleSidebar, onNavigate }: AppHeaderProps) {
+export default function AppHeader({ onToggleSidebar }: AppHeaderProps) {
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS)
   const unread = notifs.filter((n) => !n.read).length
 
@@ -87,7 +86,7 @@ export default function AppHeader({ onToggleSidebar, onNavigate }: AppHeaderProp
               <ChevronDown size={14} className="text-white/70" />
             </span>
           }
-          render={(close) => <AccountMenu onNavigate={(k) => { onNavigate(k); close() }} />}
+          render={() => <AccountMenu />}
         />
       </div>
     </header>
@@ -223,7 +222,7 @@ function Notifications({ notifs, onRead, onReadAll }: NotificationsProps) {
   )
 }
 
-function AccountMenu({ onNavigate }: { onNavigate: (key: string) => void }) {
+function AccountMenu() {
   return (
     <div className="py-1">
       <div className="border-b border-line px-4 py-3">
@@ -231,7 +230,6 @@ function AccountMenu({ onNavigate }: { onNavigate: (key: string) => void }) {
         <p className="text-xs text-muted">gabriel.oliveira@netzsch.com</p>
       </div>
       <MenuItem label="Profile" onClick={() => {}} />
-      <MenuItem label="Settings" onClick={() => onNavigate('settings')} icon={<Gear size={16} />} />
       <div className="my-1 border-t border-line" />
       <MenuItem label="Sign out" onClick={() => {}} danger />
     </div>
