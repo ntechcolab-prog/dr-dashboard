@@ -5,6 +5,7 @@ import DashboardScreen from './screens/DashboardScreen'
 import RegistryScreen from './screens/RegistryScreen'
 import AnalysisScreen from './screens/AnalysisScreen'
 import SettingsScreen from './screens/SettingsScreen'
+import NameIdeas from './components/NameIdeas'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -24,6 +25,8 @@ export default function App() {
           {activeNav === 'settings' && <SettingsScreen />}
         </main>
       </div>
+
+      <NameIdeas />
     </div>
   )
 }
