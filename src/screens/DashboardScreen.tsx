@@ -8,6 +8,8 @@ import InOperation from '../components/InOperation'
 import DetailsDrawer, { type DrawerData } from '../components/DetailsDrawer'
 import MachineTab from '../components/MachineTab'
 import EmptyState from '../components/EmptyState'
+import { FilePdf, AnalysisIcon } from '../icons/Icons'
+import { printElement } from '../lib/exportPdf'
 import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
 import {
   filterBatches,
@@ -34,7 +36,13 @@ const CLOSED_DRAWER: DrawerData = {
   batches: [],
 }
 
-export default function DashboardScreen() {
+interface DashboardScreenProps {
+  onNavigate?: (key: string) => void
+}
+
+const BATCHES_PRINT_ID = 'batches-print'
+
+export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [tab, setTab] = useState('batches')
   const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
   const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
@@ -121,7 +129,29 @@ export default function DashboardScreen() {
 
       {tab === 'batches' ? (
         <>
-          <div className="overflow-hidden rounded-xl bg-card shadow-card">
+          <div className="no-print flex items-center justify-end gap-2">
+            <button
+              onClick={() =>
+                printElement(
+                  BATCHES_PRINT_ID,
+                  `Batches · ${monthMeta.label} · ${machines.length ? machines.join(', ') : 'All machines'}`
+                )
+              }
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+            >
+              <FilePdf size={16} />
+              Export PDF
+            </button>
+            <button
+              onClick={() => onNavigate?.('analysis')}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            >
+              <AnalysisIcon size={16} />
+              Generate Analysis
+            </button>
+          </div>
+
+          <div id={BATCHES_PRINT_ID} className="overflow-hidden rounded-xl bg-card shadow-card">
             <Filters
               machines={machines}
               recipes={recipes}
@@ -169,7 +199,7 @@ export default function DashboardScreen() {
         </>
       ) : (
         <div className="overflow-hidden rounded-xl bg-card shadow-card">
-          <MachineTab />
+          <MachineTab onNavigate={onNavigate} />
         </div>
       )}
 
