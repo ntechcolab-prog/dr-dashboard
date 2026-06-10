@@ -1,5 +1,6 @@
 import { useId, useState, type MouseEvent } from 'react'
 import { useElementWidth } from '../lib/useElementWidth'
+import { useRootScale } from '../lib/useRootScale'
 
 interface LineChartProps {
   data: number[]
@@ -29,13 +30,19 @@ export default function LineChart({
   const gid = useId().replace(/:/g, '')
   const [hover, setHover] = useState<number | null>(null)
 
+  // The container width (W) already grows with the rem-based layout; scale the
+  // pixel-space geometry (height, paddings, fonts, strokes) by the same root
+  // factor so the chart zooms uniformly on large monitors.
+  const s = useRootScale()
+  const H = height * s
+  const fs = 9 * s
   const W = width || 360
-  const padL = 40
-  const padR = 16
-  const padT = 18
-  const padB = 26
+  const padL = 40 * s
+  const padR = 16 * s
+  const padT = 18 * s
+  const padB = 26 * s
   const plotW = Math.max(1, W - padL - padR)
-  const plotH = Math.max(1, height - padT - padB)
+  const plotH = Math.max(1, H - padT - padB)
 
   const max = yMax ?? niceMax(Math.max(...data, 1))
   const x = (i: number) => padL + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW)
@@ -57,9 +64,9 @@ export default function LineChart({
   }
 
   return (
-    <div ref={ref} className="relative w-full" style={{ height }}>
+    <div ref={ref} className="relative w-full" style={{ height: H }}>
       {width > 0 && (
-        <svg width={W} height={height} className="block overflow-visible">
+        <svg width={W} height={H} className="block overflow-visible">
           <defs>
             <linearGradient id={`stroke-${gid}`} gradientUnits="userSpaceOnUse" x1="0" y1={padT} x2="0" y2={padT + plotH}>
               <stop offset="0%" stopColor={GRAD[0]} />
@@ -73,7 +80,7 @@ export default function LineChart({
           </defs>
 
           {unit && (
-            <text x={padL - 32} y={padT - 6} className="fill-faint" style={{ fontSize: 9 }}>
+            <text x={padL - 32 * s} y={padT - 6 * s} className="fill-faint" style={{ fontSize: fs }}>
               {unit}
             </text>
           )}
@@ -87,10 +94,10 @@ export default function LineChart({
                 y1={y(t)}
                 y2={y(t)}
                 stroke="var(--color-line)"
-                strokeWidth={1}
+                strokeWidth={s}
                 strokeDasharray={i === 0 ? undefined : '2 5'}
               />
-              <text x={padL - 8} y={y(t) + 3} textAnchor="end" className="fill-faint" style={{ fontSize: 9 }}>
+              <text x={padL - 8 * s} y={y(t) + 3 * s} textAnchor="end" className="fill-faint" style={{ fontSize: fs }}>
                 {t}
               </text>
             </g>
@@ -104,11 +111,11 @@ export default function LineChart({
             d={linePath}
             fill="none"
             stroke={`url(#stroke-${gid})`}
-            strokeWidth={6}
+            strokeWidth={6 * s}
             strokeLinejoin="round"
             strokeLinecap="round"
             opacity={0.5}
-            style={{ filter: 'blur(7px)' }}
+            style={{ filter: `blur(${7 * s}px)` }}
           />
 
           {/* main line */}
@@ -116,7 +123,7 @@ export default function LineChart({
             d={linePath}
             fill="none"
             stroke={`url(#stroke-${gid})`}
-            strokeWidth={2.75}
+            strokeWidth={2.75 * s}
             strokeLinejoin="round"
             strokeLinecap="round"
             pathLength={1}
@@ -125,26 +132,26 @@ export default function LineChart({
 
           {/* hover crosshair */}
           {hover !== null && (
-            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={padT + plotH} stroke={color} strokeWidth={1} strokeOpacity={0.3} />
+            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={padT + plotH} stroke={color} strokeWidth={s} strokeOpacity={0.3} />
           )}
 
           {/* dots */}
           {data.map((v, i) =>
             showDots || i === hover ? (
-              <circle key={i} cx={x(i)} cy={y(v)} r={i === hover ? 5 : 3.4} fill="#fff" stroke={color} strokeWidth={2} />
+              <circle key={i} cx={x(i)} cy={y(v)} r={(i === hover ? 5 : 3.4) * s} fill="#fff" stroke={color} strokeWidth={2 * s} />
             ) : null
           )}
 
           {/* x labels (thinned) */}
           {labels.map((lab, i) =>
             i % labelStep === 0 || i === labels.length - 1 ? (
-              <text key={i} x={x(i)} y={height - 12} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
+              <text key={i} x={x(i)} y={H - 12 * s} textAnchor="middle" className="fill-muted" style={{ fontSize: fs }}>
                 {lab}
               </text>
             ) : null
           )}
           {xLabel && (
-            <text x={padL + plotW / 2} y={height - 1} textAnchor="middle" className="fill-faint" style={{ fontSize: 9 }}>
+            <text x={padL + plotW / 2} y={H - s} textAnchor="middle" className="fill-faint" style={{ fontSize: fs }}>
               {xLabel}
             </text>
           )}
@@ -163,8 +170,8 @@ export default function LineChart({
 
       {hover !== null && width > 0 && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white shadow-pop"
-          style={{ left: x(hover), top: y(data[hover]) - 10 }}
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[0.6875rem] font-medium text-white shadow-pop"
+          style={{ left: x(hover), top: y(data[hover]) - 10 * s }}
         >
           <span className="text-white/60">{labels[hover]}:</span> {fmtVal(data[hover])}
           {unit ? ` ${unit}` : ''}

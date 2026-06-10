@@ -35,7 +35,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-5">
+    <div className="mx-auto flex max-w-[75rem] flex-col gap-4 p-5">
       {/* meta bar */}
       <div className="flex items-center justify-between border-b border-line pb-4">
         <div className="flex items-center gap-5">
@@ -84,7 +84,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
               }`}
             >
               {disabled && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-line px-1.5 py-px text-[9px] font-medium lowercase tracking-wide text-muted">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-line px-1.5 py-px text-[0.5625rem] font-medium lowercase tracking-wide text-muted">
                   soon
                 </span>
               )}
@@ -111,7 +111,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-[0.6875rem] uppercase tracking-wide text-muted">{label}</p>
       <p className="text-base font-semibold text-ink">{value}</p>
     </div>
   )

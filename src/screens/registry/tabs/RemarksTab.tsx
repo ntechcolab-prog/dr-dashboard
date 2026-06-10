@@ -64,7 +64,7 @@ export default function RemarksTab({ value, onChange }: Props) {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {SENSORS.map((s, i) => (
             <div key={i} className="rounded-lg border-2 bg-white p-3" style={{ borderColor: s.color }}>
-              <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
               <p className="mt-1 text-xs text-muted">{s.line}</p>
               <p className="text-xs text-muted">{s.machine}</p>
             </div>

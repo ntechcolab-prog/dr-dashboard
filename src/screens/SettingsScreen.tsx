@@ -19,7 +19,7 @@ export default function SettingsScreen() {
   }, [query])
 
   return (
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-4 p-5">
+    <div className="mx-auto flex max-w-[80rem] flex-col gap-4 p-5">
       <SubHeader Icon={Gear} title="Settings" />
 
       {/* Tabs */}
@@ -104,7 +104,7 @@ function MachineTile({ machine, compact }: { machine: MachineCard; compact: bool
       >
         <MachineGlyph />
         {machine.upgrade && !compact && (
-          <span className="absolute right-2 top-2 rounded-full border border-primary bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          <span className="absolute right-2 top-2 rounded-full border border-primary bg-white px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-primary">
             Upgrade
           </span>
         )}
@@ -115,7 +115,7 @@ function MachineTile({ machine, compact }: { machine: MachineCard; compact: bool
           <p className="truncate text-base font-semibold text-ink">{machine.name}</p>
           <ChevronDown size={16} className="-rotate-90 text-muted" />
         </div>
-        <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted">
+        <p className="mt-0.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted">
           {machine.line || machine.subtitle}
         </p>
 
@@ -126,7 +126,7 @@ function MachineTile({ machine, compact }: { machine: MachineCard; compact: bool
           <Field label="Commission Number" value={machine.commission} accent />
         </div>
 
-        <p className="mt-3 border-t border-line pt-2 text-[11px] text-muted">
+        <p className="mt-3 border-t border-line pt-2 text-[0.6875rem] text-muted">
           Last Service <span className="float-right text-ink">{machine.lastService}</span>
         </p>
       </div>

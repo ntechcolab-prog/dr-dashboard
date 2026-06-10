@@ -44,7 +44,7 @@ export default function HBars({ items, axisMax, axisTicks, labelInside = true }:
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-muted">
+              <span className="w-6 shrink-0 text-right text-[0.6875rem] tabular-nums text-muted">
                 {it.leftLabel ?? i + 1}
               </span>
               <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-page">
@@ -60,7 +60,7 @@ export default function HBars({ items, axisMax, axisTicks, labelInside = true }:
                   title={`${it.label}: ${it.value}`}
                 >
                   {labelInside && (
-                    <span className="truncate text-[11px] font-medium text-white drop-shadow-sm">{it.label}</span>
+                    <span className="truncate text-[0.6875rem] font-medium text-white drop-shadow-sm">{it.label}</span>
                   )}
                 </div>
               </div>
@@ -70,7 +70,7 @@ export default function HBars({ items, axisMax, axisTicks, labelInside = true }:
       </div>
 
       {axisTicks && (
-        <div className="mt-2 flex justify-between pl-8 text-[10px] tabular-nums text-faint">
+        <div className="mt-2 flex justify-between pl-8 text-[0.625rem] tabular-nums text-faint">
           {axisTicks.map((t) => (
             <span key={t}>{t >= 1000 ? `${Math.round(t / 1000)}K` : t}</span>
           ))}

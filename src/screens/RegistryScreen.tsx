@@ -45,7 +45,7 @@ export default function RegistryScreen() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1280px] flex-col gap-4 p-5">
+    <div className="mx-auto flex max-w-[80rem] flex-col gap-4 p-5">
       <SubHeader Icon={RegistryIcon} title="Registry" />
 
       <section className="rounded-xl bg-card p-6 shadow-card">
@@ -68,7 +68,7 @@ export default function RegistryScreen() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
+          <table className="w-full min-w-[53.75rem] border-collapse text-sm">
             <thead>
               <tr className="bg-page/60 text-left text-xs text-muted">
                 {COLUMNS.map((c) => (

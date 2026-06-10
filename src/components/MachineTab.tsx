@@ -135,7 +135,7 @@ export default function MachineTab() {
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rounded-xl border border-line/70 bg-card p-4 shadow-card">
-      <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-ink">{title}</p>
+      <p className="mb-2 text-[0.8125rem] font-semibold uppercase tracking-wide text-ink">{title}</p>
       {children}
     </div>
   )
@@ -144,7 +144,7 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 function Legend({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div>
-      <p className="text-[10px] text-muted">{label}</p>
+      <p className="text-[0.625rem] text-muted">{label}</p>
       <p className={`mt-0.5 text-sm font-bold ${color}`}>{value}</p>
     </div>
   )

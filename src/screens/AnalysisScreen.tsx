@@ -55,7 +55,7 @@ export default function AnalysisScreen() {
   const totals = useMemo(() => aggregate(ALL_BATCHES), [])
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-5">
+    <div className="mx-auto flex max-w-[75rem] flex-col gap-4 p-5">
       <SubHeader Icon={AnalysisIcon} title="Analysis" />
 
       {/* Summary strip */}
@@ -111,7 +111,7 @@ export default function AnalysisScreen() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line/70 bg-card p-4 shadow-card">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1.5 text-2xl font-bold text-ink">{value}</p>
     </div>
   )

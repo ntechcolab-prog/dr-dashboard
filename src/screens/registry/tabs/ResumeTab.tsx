@@ -174,7 +174,7 @@ export default function ResumeTab({ form }: Props) {
               <div key={s.name} className="rounded-lg border-l-4 bg-page/40 p-3" style={{ borderColor: s.color }}>
                 <div className="flex items-baseline justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
-                  <span className="text-[11px] text-faint">{s.unit}</span>
+                  <span className="text-[0.6875rem] text-faint">{s.unit}</span>
                 </div>
                 <div className="mt-2 flex gap-4">
                   {s.stats.map(([k, v]) => (
@@ -242,7 +242,7 @@ export default function ResumeTab({ form }: Props) {
 function Stat({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-[0.6875rem] uppercase tracking-wide text-muted">{label}</p>
       <div className="mt-1 text-sm font-medium text-ink tabular-nums">{children ?? value}</div>
     </div>
   )

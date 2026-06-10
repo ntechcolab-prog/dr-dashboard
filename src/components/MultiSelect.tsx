@@ -42,7 +42,7 @@ export default function MultiSelect({
       <label className="mb-1 block text-xs font-medium text-primary">{label}</label>
 
       <div
-        className="flex min-h-[40px] cursor-text flex-wrap items-center gap-1.5 border-b border-faint pb-1.5 pr-7"
+        className="flex min-h-[2.5rem] cursor-text flex-wrap items-center gap-1.5 border-b border-faint pb-1.5 pr-7"
         onClick={() => setOpen(true)}
       >
         {selected.map((opt) => (
@@ -68,7 +68,7 @@ export default function MultiSelect({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           placeholder={selected.length ? '' : placeholder}
-          className="min-w-[60px] flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted"
+          className="min-w-[3.75rem] flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-muted"
         />
         <button
           onClick={(e) => {

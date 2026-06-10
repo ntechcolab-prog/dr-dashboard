@@ -28,7 +28,7 @@ export default function Rankings({ rankings }: RankingsProps) {
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</p>
+      <p className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{title}</p>
       {children}
     </div>
   )

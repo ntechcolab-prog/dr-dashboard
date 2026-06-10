@@ -53,7 +53,7 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
         {icon ? (
           <img src={icon} alt="" className="h-8 w-8 rounded-full object-cover" />
         ) : (
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[11px] font-bold">
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[0.6875rem] font-bold">
             {initials(name)}
           </div>
         )}
@@ -94,7 +94,7 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
           panelClassName="w-56"
           trigger={
             <span className="flex items-center gap-1.5">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[11px] font-bold uppercase">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[0.6875rem] font-bold uppercase">
                 go
               </span>
               <ChevronDown size={14} className="text-white/70" />
@@ -136,7 +136,7 @@ function Popover({ icon, trigger, badge, align = 'right', panelClassName = '', r
       >
         {trigger ?? icon}
         {badge !== undefined && badge > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-down px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-down px-1 text-[0.625rem] font-bold text-white">
             {badge}
           </span>
         )}
@@ -174,7 +174,7 @@ function MiniCalendar() {
         <span className="text-sm font-semibold">{MONTH_NAMES[month]} {year}</span>
         <button onClick={() => shift(1)} className="grid h-7 w-7 place-items-center rounded-md text-muted hover:bg-page">›</button>
       </div>
-      <div className="grid grid-cols-7 text-center text-[10px] text-muted">
+      <div className="grid grid-cols-7 text-center text-[0.625rem] text-muted">
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
           <span key={i} className="py-1">{d}</span>
         ))}
@@ -227,7 +227,7 @@ function Notifications({ notifs, onRead, onReadAll }: NotificationsProps) {
             <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-transparent' : 'bg-primary'}`} />
             <span>
               <span className={`block text-sm ${n.read ? 'text-muted' : 'text-ink'}`}>{n.text}</span>
-              <span className="text-[11px] text-faint">{n.time}</span>
+              <span className="text-[0.6875rem] text-faint">{n.time}</span>
             </span>
           </button>
         ))}

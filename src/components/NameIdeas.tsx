@@ -67,13 +67,13 @@ export default function NameIdeas({ name, onPickName, icon, onIconChange }: Prop
         className="fixed right-0 top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5 rounded-l-lg bg-primary px-2.5 py-3 text-white shadow-pop transition-colors hover:bg-primary-700"
       >
         <Tag size={16} />
-        <span className="text-[11px] font-semibold uppercase tracking-wide [writing-mode:vertical-rl]">Names</span>
+        <span className="text-[0.6875rem] font-semibold uppercase tracking-wide [writing-mode:vertical-rl]">Names</span>
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setOpen(false)} />
-          <aside className="fixed right-0 top-0 z-50 flex h-full w-[330px] flex-col bg-white shadow-pop">
+          <aside className="fixed right-0 top-0 z-50 flex h-full w-[20.625rem] flex-col bg-white shadow-pop">
             {/* header */}
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <div className="flex items-center gap-2 text-primary">
@@ -87,13 +87,13 @@ export default function NameIdeas({ name, onPickName, icon, onIconChange }: Prop
 
             {/* current pick + icon */}
             <div className="border-b border-line px-5 py-4">
-              <p className="text-[11px] uppercase tracking-wide text-muted">Current name</p>
+              <p className="text-[0.6875rem] uppercase tracking-wide text-muted">Current name</p>
               <div className="mt-1.5 flex items-center gap-2">
                 <CheckCircle size={18} className="text-primary" />
                 <span className="text-lg font-bold text-ink">{name}</span>
               </div>
 
-              <p className="mt-4 text-[11px] uppercase tracking-wide text-muted">Header icon</p>
+              <p className="mt-4 text-[0.6875rem] uppercase tracking-wide text-muted">Header icon</p>
               <div className="mt-2 flex items-center gap-3">
                 {icon ? (
                   <img src={icon} alt="" className="h-10 w-10 rounded-full object-cover ring-1 ring-line" />
@@ -139,7 +139,7 @@ export default function NameIdeas({ name, onPickName, icon, onIconChange }: Prop
 
             {/* ideas list */}
             <div className="flex-1 overflow-auto px-5 py-3">
-              <p className="mb-2 text-[11px] uppercase tracking-wide text-muted">Ideas ({ideas.length})</p>
+              <p className="mb-2 text-[0.6875rem] uppercase tracking-wide text-muted">Ideas ({ideas.length})</p>
               <ul className="space-y-1">
                 {ideas.map((n) => (
                   <li key={n} className="group flex items-center justify-between rounded-lg px-2 py-2 hover:bg-page">
@@ -160,7 +160,7 @@ export default function NameIdeas({ name, onPickName, icon, onIconChange }: Prop
               </ul>
             </div>
 
-            <p className="border-t border-line px-5 py-3 text-[11px] text-muted">
+            <p className="border-t border-line px-5 py-3 text-[0.6875rem] text-muted">
               Click a name to apply it to the header. Temporary — saved in this browser.
             </p>
           </aside>

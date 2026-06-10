@@ -27,7 +27,7 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
   return (
     <aside
       className={`${
-        open ? 'w-[264px]' : 'w-[72px]'
+        open ? 'w-[16.5rem]' : 'w-[4.5rem]'
       } shrink-0 overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
     >
       <nav className="flex flex-col gap-1 p-3 pt-4">
@@ -55,7 +55,7 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
                 <span className="flex flex-1 items-center justify-between truncate">
                   {label}
                   {disabled && (
-                    <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/40">
+                    <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-white/40">
                       Coming Soon
                     </span>
                   )}

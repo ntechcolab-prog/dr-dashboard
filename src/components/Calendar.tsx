@@ -25,7 +25,7 @@ export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass
       <div className="overflow-hidden rounded-lg border border-line">
         <div className="grid grid-cols-7 border-b border-line bg-page/60">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="px-3 py-2.5 text-center text-[11px] font-semibold tracking-wide text-muted">
+            <div key={d} className="px-3 py-2.5 text-center text-[0.6875rem] font-semibold tracking-wide text-muted">
               {d}
             </div>
           ))}
@@ -62,7 +62,7 @@ function DayCell({ day, data, avgMass, tall, onDetails }: DayCellProps) {
   const empty = !day || !data
   return (
     <div
-      className={`border-b border-r border-line last:border-r-0 ${tall ? 'min-h-[170px]' : 'min-h-[120px]'} ${
+      className={`border-b border-r border-line last:border-r-0 ${tall ? 'min-h-[10.625rem]' : 'min-h-[7.5rem]'} ${
         empty ? 'bg-page/70' : 'bg-white'
       } p-3`}
     >

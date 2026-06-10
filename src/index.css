@@ -39,6 +39,14 @@ body,
   height: 100%;
 }
 
+/* Fluid root scale: the whole UI is rem-based, so growing the root font-size
+   zooms everything (type, spacing, chrome, charts) on large monitors and keeps
+   it at the design baseline on laptops. Stays 16px up to ~1455px viewport,
+   ramps to ~29px on a 4K (50") display. */
+html {
+  font-size: clamp(16px, 0.55vw + 8px, 30px);
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);

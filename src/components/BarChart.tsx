@@ -60,7 +60,7 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              <span className="w-3 shrink-0 text-right text-[11px] tabular-nums text-muted">{i + 1}</span>
+              <span className="w-3 shrink-0 text-right text-[0.6875rem] tabular-nums text-muted">{i + 1}</span>
               <div className="relative h-7 flex-1 overflow-hidden rounded-md bg-page">
                 <div
                   className="flex h-full items-center rounded-md px-2.5"
@@ -72,11 +72,11 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
                     filter: active ? 'saturate(1.18) brightness(1.05)' : undefined,
                   }}
                 >
-                  <span className="truncate text-[11px] font-medium text-white drop-shadow-sm">{d.label}</span>
+                  <span className="truncate text-[0.6875rem] font-medium text-white drop-shadow-sm">{d.label}</span>
                 </div>
               </div>
               <span
-                className={`w-10 shrink-0 text-right text-[11px] tabular-nums ${
+                className={`w-10 shrink-0 text-right text-[0.6875rem] tabular-nums ${
                   active ? 'text-ink' : 'text-muted'
                 }`}
               >
@@ -88,14 +88,14 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
       </div>
 
       {showAxis && (
-        <div className="mt-2 flex justify-between pl-5 pr-12 text-[10px] tabular-nums text-faint">
+        <div className="mt-2 flex justify-between pl-5 pr-12 text-[0.625rem] tabular-nums text-faint">
           {ticks.map((t) => (
             <span key={t}>{fmt(t)}</span>
           ))}
         </div>
       )}
       {valueLabel && (
-        <p className="mt-1.5 pl-5 pr-12 text-center text-[10px] uppercase tracking-wide text-faint">{valueLabel}</p>
+        <p className="mt-1.5 pl-5 pr-12 text-center text-[0.625rem] uppercase tracking-wide text-faint">{valueLabel}</p>
       )}
     </div>
   )

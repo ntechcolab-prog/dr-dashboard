@@ -229,7 +229,7 @@ function KpiCard({
 
       <div className={`rounded-xl border bg-card p-4 shadow-card ${dragging ? 'border-primary' : 'border-line/70'}`}>
         <div className="flex items-start justify-between">
-          <p className="max-w-[70%] text-[11px] font-medium uppercase tracking-wide text-muted">
+          <p className="max-w-[70%] text-[0.6875rem] font-medium uppercase tracking-wide text-muted">
             {kpi.label}
           </p>
           <span className={`flex items-center gap-0.5 text-sm font-semibold ${deltaColor}`}>
@@ -273,7 +273,7 @@ function AddCard({ hidden, onAdd }: { hidden: Kpi[]; onAdd: (key: string) => voi
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-full min-h-[104px] w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-faint text-muted transition-colors hover:border-primary hover:text-primary"
+        className="flex h-full min-h-[6.5rem] w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-faint text-muted transition-colors hover:border-primary hover:text-primary"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <line x1="12" y1="5" x2="12" y2="19" />

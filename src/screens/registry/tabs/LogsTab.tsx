@@ -31,7 +31,7 @@ export default function LogsTab() {
             <span className="text-muted tabular-nums">{l.at}</span>
             <span className="text-ink">{l.user}</span>
             <span>
-              <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${tone(l.action)}`}>{l.action}</span>
+              <span className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-medium ${tone(l.action)}`}>{l.action}</span>
             </span>
             <span className="text-ink">{l.detail}</span>
           </div>

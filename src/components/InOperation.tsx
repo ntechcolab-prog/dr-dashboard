@@ -61,7 +61,7 @@ function BatchCard({ batch }: { batch: LiveBatch }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-[0.6875rem] text-muted">{label}</p>
       <p className="mt-0.5 truncate font-medium text-ink" title={value}>
         {value}
       </p>

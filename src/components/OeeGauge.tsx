@@ -26,7 +26,7 @@ export default function OeeGauge({ availability, performance, quality }: OeeGaug
   }, [])
 
   return (
-    <svg viewBox="0 0 200 200" className="mx-auto block" style={{ width: 200, height: 200 }}>
+    <svg viewBox="0 0 200 200" className="mx-auto block" style={{ width: '12.5rem', height: '12.5rem' }}>
       <g transform="rotate(-90 100 100)">
         {RINGS.map(({ key, color, r }, i) => {
           const c = 2 * Math.PI * r

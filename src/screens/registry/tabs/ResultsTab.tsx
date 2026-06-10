@@ -86,7 +86,7 @@ export default function ResultsTab({ value, onChange }: Props) {
       )}
 
       <div className="mt-5 overflow-x-auto rounded-lg border border-line">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[40rem] text-sm">
           <thead>
             <tr className="bg-page/60 text-left text-xs text-muted">
               <th className="px-4 py-3 font-medium">DATE</th>

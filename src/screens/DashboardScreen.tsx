@@ -116,7 +116,7 @@ export default function DashboardScreen() {
   const hasData = hasMachine && monthBatches.length > 0
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 p-5">
+    <div className="mx-auto flex max-w-[75rem] flex-col gap-5 p-5">
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
       {tab === 'batches' ? (

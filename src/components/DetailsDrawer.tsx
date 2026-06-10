@@ -44,7 +44,7 @@ export default function DetailsDrawer({
         onClick={onClose}
       />
       <aside
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-white shadow-pop transition-transform duration-300 ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[30rem] flex-col bg-white shadow-pop transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -126,7 +126,7 @@ function KpiDetail({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</p>
+      <p className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{title}</p>
       {children}
     </div>
   )
@@ -164,7 +164,7 @@ function BatchList({ batches }: { batches: Batch[] }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-[0.6875rem] text-muted">{label}</p>
       <p className="mt-0.5 font-medium text-ink">{value}</p>
     </div>
   )
@@ -177,5 +177,5 @@ function StatusPill({ status }: { status: string }) {
       : status.startsWith('Completed')
       ? 'bg-primary-soft text-primary-700'
       : 'bg-page text-muted'
-  return <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${tone}`}>{status}</span>
+  return <span className={`rounded-full px-2.5 py-1 text-[0.6875rem] font-medium ${tone}`}>{status}</span>
 }
