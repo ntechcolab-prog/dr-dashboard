@@ -239,14 +239,14 @@ function KpiCardV2({
           dragging ? 'border-primary' : 'border-line/70'
         }`}
       >
-        {/* row 1 — icon + label, delta on the right */}
+        {/* row 1 — icon + title, delta on the right */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg"
               style={{ background: withAlpha(accent, 0.12), color: accent }}
             >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                 {icon}
               </svg>
             </span>
@@ -262,25 +262,29 @@ function KpiCardV2({
           </span>
         </div>
 
-        {/* row 2 — the value */}
-        <p className="mt-3 flex items-baseline gap-1.5">
-          <span className="text-3xl font-bold leading-none text-ink">{formatValue(kpi.value, kpi.fmt)}</span>
-          <span className="text-sm text-muted">{kpi.unit}</span>
-        </p>
-
-        {/* row 3 — the viz, pinned to the bottom so every card aligns */}
-        <div className="mt-auto pt-4">
-          <CardViz kpi={kpi} series={series} color={accent} />
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-[0.625rem] font-medium uppercase tracking-wide text-faint">
-              {VIZ_CAPTION[kpi.key] ?? 'vs last month'}
-            </span>
-            {!editing && (
-              <button onClick={onDetails} className="text-xs font-medium text-primary hover:underline">
-                Details
-              </button>
-            )}
+        {/* row 2 — value on the left, the (bigger) viz on the right */}
+        <div className="mt-4 grid grid-cols-5 items-center gap-3">
+          <div className="col-span-2 min-w-0">
+            <p className="flex flex-wrap items-baseline gap-x-1 leading-none">
+              <span className="text-[1.75rem] font-bold leading-none text-ink">{formatValue(kpi.value, kpi.fmt)}</span>
+              <span className="text-xs text-muted">{kpi.unit}</span>
+            </p>
           </div>
+          <div className="col-span-3 h-20 overflow-hidden">
+            <CardViz kpi={kpi} series={series} color={accent} />
+          </div>
+        </div>
+
+        {/* footer — caption + details */}
+        <div className="mt-auto flex items-center justify-between pt-3">
+          <span className="text-[0.625rem] font-medium uppercase tracking-wide text-faint">
+            {VIZ_CAPTION[kpi.key] ?? 'vs last month'}
+          </span>
+          {!editing && (
+            <button onClick={onDetails} className="text-xs font-medium text-primary hover:underline">
+              Details
+            </button>
+          )}
         </div>
       </div>
     </div>

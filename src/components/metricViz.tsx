@@ -55,15 +55,15 @@ export function CardViz({ kpi, series, color }: { kpi: Kpi; series: number[]; co
   const kind = VIZ[kpi.key] ?? 'area'
   switch (kind) {
     case 'column':
-      return <Columns data={series} color={color} className="h-12" />
+      return <Columns data={series} color={color} className="h-full" />
     case 'compare':
       return <CompareBars current={kpi.value} previous={prevOf(kpi)} color={color} fmt={kpi.fmt} />
     case 'gauge': {
       const peak = Math.max(kpi.value, ...series, 1)
-      return <RadialGauge pct={kpi.value / peak} color={color} className="h-12" />
+      return <RadialGauge pct={kpi.value / peak} color={color} className="h-full" />
     }
     case 'donut':
-      return <DonutRing pct={Math.max(0, Math.min(1, kpi.value / 100))} color={color} className="h-12 w-12" />
+      return <DonutRing pct={Math.max(0, Math.min(1, kpi.value / 100))} color={color} className="h-full" />
     case 'bullet': {
       const max = Math.max(kpi.value, ...series, 1)
       const min = Math.min(kpi.value, ...(series.length ? series : [kpi.value]))
@@ -71,7 +71,7 @@ export function CardViz({ kpi, series, color }: { kpi: Kpi; series: number[]; co
       return <BulletBar value={kpi.value} min={min} max={max} avg={avg} color={color} />
     }
     default:
-      return <Area data={series} color={color} className="h-12" />
+      return <Area data={series} color={color} className="h-full" />
   }
 }
 
@@ -203,7 +203,7 @@ function RadialGauge({ pct, color, centerLabel, className }: { pct: number; colo
   const cy = 46
   const d = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       <svg viewBox="0 0 100 54" className={`block ${className ?? 'h-12'}`}>
         <path d={d} fill="none" stroke="var(--color-page)" strokeWidth={8} strokeLinecap="round" />
         <path d={d} fill="none" stroke={color} strokeWidth={8} strokeLinecap="round" pathLength={1} strokeDasharray={`${p} 1`} style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
@@ -223,8 +223,8 @@ function DonutRing({ pct, color, className }: { pct: number; color: string; clas
   const r = 22
   const c = 2 * Math.PI * r
   return (
-    <div className="flex items-center justify-center">
-      <svg viewBox="0 0 60 60" className={`block ${className ?? 'h-12 w-12'}`}>
+    <div className="flex h-full w-full items-center justify-center">
+      <svg viewBox="0 0 60 60" className={`block aspect-square ${className ?? 'h-12 w-12'}`}>
         <circle cx="30" cy="30" r={r} fill="none" stroke="var(--color-page)" strokeWidth={7} />
         <circle cx="30" cy="30" r={r} fill="none" stroke={color} strokeWidth={7} strokeLinecap="round" strokeDasharray={`${(c * p).toFixed(2)} ${c.toFixed(2)}`} transform="rotate(-90 30 30)" style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
         <text x="30" y="30" textAnchor="middle" dominantBaseline="central" className="fill-ink" style={{ fontSize: 13, fontWeight: 700 }}>
@@ -248,7 +248,7 @@ function CompareBars({ current, previous, color, fmt, detail }: { current: numbe
     </div>
   )
   return (
-    <div className={`flex flex-col justify-center ${detail ? 'gap-3' : 'h-12 gap-1.5'}`}>
+    <div className={`flex flex-col justify-center ${detail ? 'gap-3' : 'h-full gap-2'}`}>
       <Row label="This" value={current} />
       <Row label="Last" value={previous} faded />
     </div>
@@ -260,7 +260,7 @@ function BulletBar({ value, min, max, avg, color, fmt, detail }: { value: number
   const range = max - min || 1
   const pos = (v: number) => Math.max(0, Math.min(100, ((v - min) / range) * 100))
   return (
-    <div className={`flex flex-col justify-center ${detail ? 'gap-2' : 'h-12 gap-1.5'}`}>
+    <div className={`flex flex-col justify-center ${detail ? 'gap-2' : 'h-full gap-2'}`}>
       {detail && (
         <p className="text-sm font-semibold text-ink">
           {formatValue(value, fmt ?? 'dec1')} <span className="text-xs font-normal text-muted">current</span>
