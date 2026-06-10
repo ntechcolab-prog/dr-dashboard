@@ -25,7 +25,7 @@ export default function App() {
         <Sidebar open={sidebarOpen} active={activeNav} onSelect={setActiveNav} />
 
         <main className="flex-1 overflow-auto">
-          {activeNav === 'dashboard' && <DashboardScreen />}
+          {activeNav === 'dashboard' && <DashboardScreen onNavigate={setActiveNav} />}
           {activeNav === 'dashboard-v2' && <DashboardV2Screen />}
           {activeNav === 'registry' && <RegistryScreen />}
           {activeNav === 'analysis' && <AnalysisScreen />}

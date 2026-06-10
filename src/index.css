@@ -100,6 +100,13 @@ body {
   .chart-area { opacity: 1; animation: none; }
 }
 
+/* Print rules — used by the fallback path of printElement() when a popup is
+   blocked, so window.print() still yields a clean, chrome-free page. */
+@media print {
+  .no-print { display: none !important; }
+  @page { margin: 14mm; }
+}
+
 /* thin scrollbars to match a product chrome */
 * {
   scrollbar-width: thin;
