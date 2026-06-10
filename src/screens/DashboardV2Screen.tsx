@@ -120,6 +120,7 @@ export default function DashboardV2Screen() {
       daily: metricByDaySeries(monthBatches, kpi.key, daysInMonth),
       byMachine: metricByMachine(monthBatches, kpi.key),
       byRecipe: metricByRecipe(monthBatches, kpi.key),
+      richViz: true,
     })
   }
 

@@ -1,6 +1,7 @@
 import { Close, ArrowUp, ArrowDown } from '../icons/Icons'
 import LineChart from './LineChart'
 import BarChart from './BarChart'
+import { DetailViz, VIZ, metaFor } from './metricViz'
 import type { Batch } from '../data/mockData'
 import { formatValue, type Kpi, type RankItem } from '../lib/compute'
 
@@ -16,6 +17,8 @@ export interface DrawerData {
   daily?: { labels: string[]; data: number[] }
   byMachine?: RankItem[]
   byRecipe?: RankItem[]
+  // when true, the trend uses the same viz style as the V2 metric card
+  richViz?: boolean
 }
 
 interface DetailsDrawerProps extends DrawerData {
@@ -33,6 +36,7 @@ export default function DetailsDrawer({
   daily,
   byMachine,
   byRecipe,
+  richViz,
   onClose,
 }: DetailsDrawerProps) {
   return (
@@ -64,7 +68,7 @@ export default function DetailsDrawer({
 
         <div className="flex-1 overflow-auto px-6 py-5">
           {kind === 'kpi' ? (
-            <KpiDetail kpi={kpi} daily={daily} byMachine={byMachine} byRecipe={byRecipe} />
+            <KpiDetail kpi={kpi} daily={daily} byMachine={byMachine} byRecipe={byRecipe} richViz={richViz} />
           ) : (
             <BatchList batches={batches} />
           )}
@@ -79,14 +83,19 @@ function KpiDetail({
   daily,
   byMachine,
   byRecipe,
+  richViz,
 }: {
   kpi?: Kpi
   daily?: { labels: string[]; data: number[] }
   byMachine?: RankItem[]
   byRecipe?: RankItem[]
+  richViz?: boolean
 }) {
   if (!kpi) return null
   const up = kpi.delta >= 0
+  // Time-series viz read as a trend; the summary viz (gauge/donut/...) doesn't.
+  const kind = VIZ[kpi.key]
+  const trendTitle = !richViz || kind === 'area' || kind === 'column' ? 'Daily trend' : 'Summary'
   return (
     <div className="space-y-6">
       {/* headline value */}
@@ -103,8 +112,12 @@ function KpiDetail({
       </div>
 
       {daily && (
-        <Section title="Daily trend">
-          <LineChart data={daily.data} labels={daily.labels} unit={kpi.unit} height={220} maxLabels={8} />
+        <Section title={trendTitle}>
+          {richViz ? (
+            <DetailViz kpi={kpi} series={daily.data} labels={daily.labels} color={metaFor(kpi.key).accent} />
+          ) : (
+            <LineChart data={daily.data} labels={daily.labels} unit={kpi.unit} height={220} maxLabels={8} />
+          )}
         </Section>
       )}
 

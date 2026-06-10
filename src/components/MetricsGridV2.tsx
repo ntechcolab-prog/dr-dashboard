@@ -1,10 +1,11 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown } from '../icons/Icons'
 import { formatValue, type Kpi } from '../lib/compute'
+import { CardViz, VIZ_CAPTION, metaFor, withAlpha } from './metricViz'
 
 interface MetricsGridV2Props {
   kpis: Kpi[]
-  // Per-metric daily series (keyed by kpi.key) for the card sparklines.
+  // Per-metric daily series (keyed by kpi.key) for the card visualizations.
   series?: Record<string, number[]>
   onDetails?: (kpi: Kpi) => void
 }
@@ -12,27 +13,6 @@ interface MetricsGridV2Props {
 interface Snapshot {
   hidden: Set<string>
   order: string[]
-}
-
-// Per-metric accent color + glyph. Drives the icon chip, delta pill and
-// sparkline so every card reads as its own thing at a glance.
-const META: Record<string, { accent: string; icon: ReactNode }> = {
-  production: { accent: '#46aa9f', icon: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></> },
-  size: { accent: '#3b82f6', icon: <><path d="M12 3v18" /><path d="m7 7 5-4 5 4" /><path d="M4 21h16" /><path d="M6 11h12l-2 6H8z" /></> },
-  totalEnergy: { accent: '#f19909', icon: <polygon points="13 2 4 14 11 14 10 22 20 9 13 9 13 2" /> },
-  productionRate: { accent: '#1aa367', icon: <><path d="M3 12a9 9 0 0 1 18 0" /><path d="m12 12 4-3" /><circle cx="12" cy="12" r="1.6" /></> },
-  coolingEnergy: { accent: '#06b6d4', icon: <path d="M12 2.5S6 9 6 14a6 6 0 0 0 12 0c0-5-6-11.5-6-11.5Z" /> },
-  specificEnergy: { accent: '#8b5cf6', icon: <><path d="M3 17l5-5 4 3 6-7" /><path d="M17 5h4v4" /></> },
-  carbon: { accent: '#16a34a', icon: <><path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 12-9 0 7-3 12-9 12Z" /><path d="M5 19c4-1 7-4 9-9" /></> },
-  ratio: { accent: '#6366f1', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18Z" /></> },
-}
-const FALLBACK = { accent: '#46aa9f', icon: <circle cx="12" cy="12" r="8" /> }
-
-const metaFor = (key: string) => META[key] ?? FALLBACK
-
-const withAlpha = (hex: string, a: number) => {
-  const n = parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`
 }
 
 export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2Props) {
@@ -185,7 +165,7 @@ export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2
           <KpiCardV2
             key={k.key}
             kpi={k}
-            series={series?.[k.key]}
+            series={series?.[k.key] ?? []}
             editing={editing}
             jiggleAlt={i % 2 === 1}
             dragging={dragKey === k.key}
@@ -204,7 +184,7 @@ export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2
 
 interface KpiCardV2Props {
   kpi: Kpi
-  series?: number[]
+  series: number[]
   editing: boolean
   jiggleAlt: boolean
   dragging: boolean
@@ -255,273 +235,53 @@ function KpiCardV2({
       )}
 
       <div
-        className={`relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-card ${
+        className={`flex h-full flex-col rounded-2xl border bg-card p-4 shadow-card ${
           dragging ? 'border-primary' : 'border-line/70'
         }`}
       >
-        {/* accent rail */}
-        <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} />
-
-        <div className="flex items-start justify-between gap-2 px-4 pt-4">
-          <div className="flex items-center gap-2.5">
+        {/* row 1 — icon + label, delta on the right */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
               style={{ background: withAlpha(accent, 0.12), color: accent }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                 {icon}
               </svg>
             </span>
-            <p className="text-[0.6875rem] font-semibold uppercase leading-tight tracking-wide text-muted">
-              {kpi.label}
-            </p>
+            <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted">{kpi.label}</p>
           </div>
           <span
-            className="flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold"
-            style={{
-              background: withAlpha(up ? '#1aa367' : '#c12907', 0.12),
-              color: up ? '#1aa367' : '#c12907',
-            }}
+            className="flex shrink-0 items-center gap-0.5 text-xs font-semibold"
+            style={{ color: up ? '#1aa367' : '#c12907' }}
           >
-            {up ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+            {up ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
             {up ? '+' : ''}
             {Math.round(kpi.delta)}%
           </span>
         </div>
 
-        <div className="px-4 pt-3">
-          <p className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold leading-none text-ink">
-              {formatValue(kpi.value, kpi.fmt)}
+        {/* row 2 — the value */}
+        <p className="mt-3 flex items-baseline gap-1.5">
+          <span className="text-3xl font-bold leading-none text-ink">{formatValue(kpi.value, kpi.fmt)}</span>
+          <span className="text-sm text-muted">{kpi.unit}</span>
+        </p>
+
+        {/* row 3 — the viz, pinned to the bottom so every card aligns */}
+        <div className="mt-auto pt-4">
+          <CardViz kpi={kpi} series={series} color={accent} />
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-[0.625rem] font-medium uppercase tracking-wide text-faint">
+              {VIZ_CAPTION[kpi.key] ?? 'vs last month'}
             </span>
-            <span className="text-sm text-muted">{kpi.unit}</span>
-          </p>
+            {!editing && (
+              <button onClick={onDetails} className="text-xs font-medium text-primary hover:underline">
+                Details
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* viz — varies per metric (columns / area / gauge / donut / compare / bullet) */}
-        <div className="mt-auto px-4 pt-3">
-          <MetricViz kpi={kpi} series={series ?? []} color={accent} />
-        </div>
-
-        <div className="flex items-center justify-between px-4 pb-3 pt-2">
-          <span className="text-[0.625rem] font-medium uppercase tracking-wide text-faint">
-            {VIZ_CAPTION[kpi.key] ?? 'vs last month'}
-          </span>
-          {!editing && (
-            <button onClick={onDetails} className="text-xs font-medium text-primary hover:underline">
-              Details
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Per-metric visualization ────────────────────────────────────────────────
-// Each metric gets a viz that fits its nature, so the grid reads as a varied
-// little dashboard instead of eight identical sparklines.
-type VizKind = 'column' | 'area' | 'gauge' | 'donut' | 'compare' | 'bullet'
-
-const VIZ: Record<string, VizKind> = {
-  production: 'column',
-  size: 'area',
-  totalEnergy: 'compare',
-  productionRate: 'gauge',
-  coolingEnergy: 'column',
-  specificEnergy: 'bullet',
-  carbon: 'area',
-  ratio: 'donut',
-}
-
-const VIZ_CAPTION: Record<string, string> = {
-  production: 'batches / day',
-  size: '30-day trend',
-  totalEnergy: 'this vs last month',
-  productionRate: 'vs best day',
-  coolingEnergy: 'liters / day',
-  specificEnergy: 'within monthly range',
-  carbon: '30-day trend',
-  ratio: 'production vs idle',
-}
-
-function MetricViz({ kpi, series, color }: { kpi: Kpi; series: number[]; color: string }) {
-  const kind = VIZ[kpi.key] ?? 'area'
-  switch (kind) {
-    case 'column':
-      return <ColumnSpark data={series} color={color} />
-    case 'compare': {
-      const prev = kpi.delta <= -100 ? 0 : kpi.value / (1 + kpi.delta / 100)
-      return <CompareBars current={kpi.value} previous={prev} color={color} fmt={kpi.fmt} />
-    }
-    case 'gauge': {
-      const peak = Math.max(kpi.value, ...series, 1)
-      return <RadialGauge pct={kpi.value / peak} color={color} centerLabel={`${Math.round((kpi.value / peak) * 100)}%`} />
-    }
-    case 'donut':
-      return <DonutRing pct={Math.max(0, Math.min(1, kpi.value / 100))} color={color} />
-    case 'bullet': {
-      const max = Math.max(kpi.value, ...series, 1)
-      const min = Math.min(kpi.value, ...(series.length ? series : [kpi.value]))
-      const avg = series.length ? series.reduce((a, b) => a + b, 0) / series.length : kpi.value
-      return <BulletBar value={kpi.value} min={min} max={max} avg={avg} color={color} />
-    }
-    default:
-      return <AreaSpark data={series} color={color} />
-  }
-}
-
-// Area line — smooth-feeling trend with a soft fill.
-function AreaSpark({ data, color }: { data: number[]; color: string }) {
-  const gid = useId().replace(/:/g, '')
-  if (data.length < 2) return <div className="h-12" />
-  const max = Math.max(...data)
-  const min = Math.min(...data)
-  const range = max - min || 1
-  const n = data.length
-  const x = (i: number) => (i / (n - 1)) * 100
-  const y = (v: number) => 30 - ((v - min) / range) * 26 + 2
-  const line = data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(2)} ${y(v).toFixed(2)}`).join(' ')
-  const area = `${line} L 100 32 L 0 32 Z`
-  return (
-    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="block h-12 w-full">
-      <defs>
-        <linearGradient id={`spark-${gid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.24} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#spark-${gid})`} />
-      <path d={line} fill="none" stroke={color} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-    </svg>
-  )
-}
-
-// Vertical columns — daily values as little bars.
-function ColumnSpark({ data, color }: { data: number[]; color: string }) {
-  if (!data.length) return <div className="h-12" />
-  const max = Math.max(...data, 1)
-  const n = data.length
-  const gap = n > 20 ? 0.8 : 1.4
-  const bw = (100 - gap * (n - 1)) / n
-  return (
-    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="block h-12 w-full">
-      {data.map((v, i) => {
-        const h = Math.max((v / max) * 30, v > 0 ? 1.2 : 0)
-        const xPos = i * (bw + gap)
-        return (
-          <rect
-            key={i}
-            x={xPos.toFixed(2)}
-            y={(32 - h).toFixed(2)}
-            width={bw.toFixed(2)}
-            height={h.toFixed(2)}
-            rx={Math.min(bw / 2, 0.9)}
-            fill={color}
-            opacity={0.35 + 0.65 * (v / max)}
-          />
-        )
-      })}
-    </svg>
-  )
-}
-
-// Semicircular gauge — fill proportion with a centered label.
-function RadialGauge({ pct, color, centerLabel }: { pct: number; color: string; centerLabel: string }) {
-  const p = Math.max(0, Math.min(1, pct))
-  const r = 38
-  const cx = 50
-  const cy = 46
-  const d = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
-  return (
-    <div className="flex items-center justify-center">
-      <svg viewBox="0 0 100 54" className="block h-14">
-        <path d={d} fill="none" stroke="var(--color-page)" strokeWidth={8} strokeLinecap="round" />
-        <path
-          d={d}
-          fill="none"
-          stroke={color}
-          strokeWidth={8}
-          strokeLinecap="round"
-          pathLength={1}
-          strokeDasharray={`${p} 1`}
-          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }}
-        />
-        <text x={cx} y={cy - 4} textAnchor="middle" className="fill-ink" style={{ fontSize: 13, fontWeight: 700 }}>
-          {centerLabel}
-        </text>
-      </svg>
-    </div>
-  )
-}
-
-// Full ring — a clean percentage donut.
-function DonutRing({ pct, color }: { pct: number; color: string }) {
-  const p = Math.max(0, Math.min(1, pct))
-  const r = 22
-  const c = 2 * Math.PI * r
-  return (
-    <div className="flex items-center justify-center">
-      <svg viewBox="0 0 60 60" className="block h-14 w-14">
-        <circle cx="30" cy="30" r={r} fill="none" stroke="var(--color-page)" strokeWidth={7} />
-        <circle
-          cx="30"
-          cy="30"
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={7}
-          strokeLinecap="round"
-          strokeDasharray={`${(c * p).toFixed(2)} ${c.toFixed(2)}`}
-          transform="rotate(-90 30 30)"
-          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.22,1,0.36,1)' }}
-        />
-        <text x="30" y="30" textAnchor="middle" dominantBaseline="central" className="fill-ink" style={{ fontSize: 13, fontWeight: 700 }}>
-          {Math.round(p * 100)}%
-        </text>
-      </svg>
-    </div>
-  )
-}
-
-// Two stacked bars — current month against the previous one.
-function CompareBars({ current, previous, color, fmt }: { current: number; previous: number; color: string; fmt: Kpi['fmt'] }) {
-  const max = Math.max(current, previous, 1)
-  const Row = ({ label, value, faded }: { label: string; value: number; faded?: boolean }) => (
-    <div className="flex items-center gap-2">
-      <span className="w-9 shrink-0 text-[0.5625rem] font-medium uppercase tracking-wide text-faint">{label}</span>
-      <div className="h-3 flex-1 overflow-hidden rounded-full bg-page">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${Math.max((value / max) * 100, value > 0 ? 4 : 0)}%`, background: faded ? withAlpha(color, 0.35) : color, transition: 'width 0.55s cubic-bezier(0.22,1,0.36,1)' }}
-        />
-      </div>
-      <span className="w-12 shrink-0 text-right text-[0.625rem] tabular-nums text-muted">{formatValue(value, fmt)}</span>
-    </div>
-  )
-  return (
-    <div className="flex h-12 flex-col justify-center gap-1.5">
-      <Row label="This" value={current} />
-      <Row label="Last" value={previous} faded />
-    </div>
-  )
-}
-
-// Bullet — value placed within the month's min–max range, avg marked.
-function BulletBar({ value, min, max, avg, color }: { value: number; min: number; max: number; avg: number; color: string }) {
-  const range = max - min || 1
-  const pos = (v: number) => Math.max(0, Math.min(100, ((v - min) / range) * 100))
-  return (
-    <div className="flex h-12 flex-col justify-center gap-1.5">
-      <div className="relative h-3 rounded-full" style={{ background: withAlpha(color, 0.14) }}>
-        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pos(value)}%`, background: color, transition: 'width 0.55s cubic-bezier(0.22,1,0.36,1)' }} />
-        {/* average marker */}
-        <span className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-ink/40" style={{ left: `${pos(avg)}%` }} />
-      </div>
-      <div className="flex justify-between text-[0.5625rem] font-medium uppercase tracking-wide text-faint">
-        <span>min</span>
-        <span>avg</span>
-        <span>max</span>
       </div>
     </div>
   )
