@@ -45,6 +45,7 @@ export const MACHINE_CARDS: MachineCard[] = [
 export const SETTINGS_TABS = [
   'General',
   'Work Schedule',
+  'Availability',
   'Machines & Equipment',
   'Performance & OEE Rules',
   'Notifications & Alerts',
