@@ -13,9 +13,10 @@ interface CalendarProps {
   dayMap: Map<number, DayRollup>
   avgMass: number
   onDetails: (day: number, data: DayRollup) => void
+  availByDay?: Map<number, number> // optional per-day availability %
 }
 
-export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass, onDetails }: CalendarProps) {
+export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass, onDetails, availByDay }: CalendarProps) {
   const weeks = buildWeeks(year, month)
   const safe = Math.min(weekIdx, weeks.length - 1)
   const visibleWeeks = period === 'weekly' ? [weeks[safe]] : weeks
@@ -38,6 +39,7 @@ export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass
                 key={di}
                 day={day}
                 data={day ? dayMap.get(day) ?? null : null}
+                avail={day ? availByDay?.get(day) ?? null : null}
                 avgMass={avgMass}
                 tall={period === 'weekly'}
                 onDetails={onDetails}
@@ -53,13 +55,15 @@ export default function Calendar({ period, year, month, weekIdx, dayMap, avgMass
 interface DayCellProps {
   day: Cell
   data: DayRollup | null
+  avail: number | null
   avgMass: number
   tall: boolean
   onDetails: (day: number, data: DayRollup) => void
 }
 
-function DayCell({ day, data, avgMass, tall, onDetails }: DayCellProps) {
+function DayCell({ day, data, avail, avgMass, tall, onDetails }: DayCellProps) {
   const empty = !day || !data
+  const goodAvail = avail != null && avail >= 85
   return (
     <div
       className={`border-b border-r border-line last:border-r-0 ${tall ? 'min-h-[10.625rem]' : 'min-h-[7.5rem]'} ${
@@ -68,9 +72,21 @@ function DayCell({ day, data, avgMass, tall, onDetails }: DayCellProps) {
     >
       {day && (
         <div className="flex h-full flex-col">
-          <span className={`text-sm font-medium ${empty ? 'text-faint' : 'text-ink'}`}>
-            {String(day).padStart(2, '0')}
-          </span>
+          <div className="flex items-center justify-between">
+            <span className={`text-sm font-medium ${empty ? 'text-faint' : 'text-ink'}`}>
+              {String(day).padStart(2, '0')}
+            </span>
+            {avail != null && (
+              <span
+                className={`rounded px-1.5 py-0.5 text-[0.625rem] font-semibold ${
+                  goodAvail ? 'bg-primary-soft text-primary-700' : 'bg-[#fdeed6] text-warning'
+                }`}
+                title="Availability (planned vs executed)"
+              >
+                {avail}%
+              </span>
+            )}
+          </div>
 
           {data && (
             <div className="mt-2 flex flex-1 flex-col gap-1 text-xs text-muted">

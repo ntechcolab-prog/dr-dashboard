@@ -5,7 +5,7 @@ import { SETTINGS_TABS, MACHINE_CARDS, type MachineCard } from '../data/appData'
 import AvailabilitySettingsTab from './settings/AvailabilitySettingsTab'
 
 export default function SettingsScreen() {
-  const [tab, setTab] = useState('Machines & Equipment')
+  const [tab, setTab] = useState('General')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
 

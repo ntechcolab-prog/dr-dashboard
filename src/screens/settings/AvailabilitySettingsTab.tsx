@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { FormSection, Field, SelectInput } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
-import { Sun, Info, Calendar } from '../../icons/Icons'
+import { Sun, Info, Calendar, Plus, Trash, Download } from '../../icons/Icons'
 import {
   PLANNING_GRANULARITIES,
   WEEKDAYS,
@@ -36,6 +36,34 @@ export default function AvailabilitySettingsTab() {
   const [month, setMonth] = useState(now.getMonth())
 
   const holidays = useHolidays(year)
+
+  // Add-holiday form + import status (TASK: Add Holiday / Import holidays).
+  const [showAddHoliday, setShowAddHoliday] = useState(false)
+  const [newHolidayDate, setNewHolidayDate] = useState('')
+  const [newHolidayName, setNewHolidayName] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importMsg, setImportMsg] = useState<string | null>(null)
+
+  const addHoliday = () => {
+    if (!newHolidayDate) return
+    holidays.add(newHolidayDate, newHolidayName || 'Custom holiday')
+    setNewHolidayDate('')
+    setNewHolidayName('')
+    setShowAddHoliday(false)
+  }
+
+  const importHolidays = async () => {
+    setImporting(true)
+    setImportMsg(null)
+    try {
+      const n = await holidays.importYear(year)
+      setImportMsg(n > 0 ? `Imported ${n} holiday${n === 1 ? '' : 's'} for ${year}.` : `No new holidays to import for ${year}.`)
+    } catch {
+      setImportMsg('Could not reach the holidays service. Check your connection and try again.')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   // --- Configuration setters (updater form) ---
   const toggleWorkingDay = (d: Weekday) =>
@@ -177,33 +205,95 @@ export default function AvailabilitySettingsTab() {
       <FormSection
         title={`Holidays · ${year}`}
         action={
-          <span className="flex items-center gap-1.5 text-xs text-muted">
-            <Info size={14} />
-            {settings.operateOnHolidays ? 'Counted as worked' : 'Treated as days off'}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={importHolidays}
+              disabled={importing}
+              className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
+            >
+              <Download size={14} />
+              {importing ? 'Importing…' : 'Import holidays'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddHoliday((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700"
+            >
+              <Plus size={14} />
+              Add Holiday
+            </button>
+          </div>
         }
       >
-        <p className="mb-4 flex items-start gap-2 text-sm text-muted">
+        <p className="mb-3 flex items-start gap-2 text-sm text-muted">
           <Info size={15} className="mt-0.5 shrink-0 text-primary" />
-          These national holidays are reflected automatically in the planning calendar below.
+          These holidays are days off in the planning calendar below
+          {settings.operateOnHolidays ? ' (currently counted as worked days)' : ''}. Add your own, or import the
+          public list for {year}.
         </p>
+
+        {importMsg && <p className="mb-3 rounded-lg bg-page px-3 py-2 text-xs text-muted">{importMsg}</p>}
+
+        {/* Add-holiday form */}
+        {showAddHoliday && (
+          <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-page/60 p-3">
+            <Field label="Date" className="w-44">
+              <input
+                type="date"
+                value={newHolidayDate}
+                onChange={(e) => setNewHolidayDate(e.target.value)}
+                className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+              />
+            </Field>
+            <Field label="Name" className="min-w-[12rem] flex-1">
+              <input
+                type="text"
+                value={newHolidayName}
+                onChange={(e) => setNewHolidayName(e.target.value)}
+                placeholder="e.g. Company anniversary"
+                className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
+              />
+            </Field>
+            <button
+              type="button"
+              onClick={addHoliday}
+              disabled={!newHolidayDate}
+              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
+        )}
+
         {holidays.holidays.length === 0 ? (
-          <p className="text-sm text-faint">No holidays loaded for {year}.</p>
+          <p className="text-sm text-faint">No holidays for {year}. Add one or import the public list.</p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {holidays.holidays.map((h) => {
               const d = parseISO(h.date)
               const label = `${WEEKDAY_LONG[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+              const custom = holidays.isCustom(h.date)
               return (
                 <li
                   key={h.date}
-                  className="flex items-center gap-3 rounded-lg border border-line bg-white px-3 py-2.5"
+                  className="group flex items-center gap-3 rounded-lg border border-line bg-white px-3 py-2.5"
                 >
                   <Sun size={16} className="shrink-0 text-warning" />
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{h.name}</p>
                     <p className="text-xs text-muted">{label}</p>
                   </div>
+                  {custom && (
+                    <button
+                      type="button"
+                      onClick={() => holidays.remove(h.date)}
+                      aria-label={`Remove ${h.name}`}
+                      className="shrink-0 rounded p-1 text-faint transition-colors hover:bg-page hover:text-down"
+                    >
+                      <Trash size={15} />
+                    </button>
+                  )}
                 </li>
               )
             })}
@@ -231,6 +321,8 @@ export default function AvailabilitySettingsTab() {
           setPlan={setPlan}
           confirm={confirm}
           setConfirm={setConfirm}
+          holidaySet={holidays.set}
+          holidayName={holidays.nameOf}
         />
       </FormSection>
     </div>

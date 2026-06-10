@@ -47,15 +47,30 @@ export default function AvailabilityGauge({ value, label = 'Availability', goal,
           style={{ transition: 'stroke-dasharray 0.9s cubic-bezier(0.22,1,0.36,1)' }}
         />
       </g>
+      {/* target marker — a labelled tick so it's unmistakably the goal */}
       {goal != null && (
-        <circle cx={gx} cy={gy} r={3.5} fill="#fff" stroke="#5c5f62" strokeWidth={2} />
+        <g>
+          <circle cx={gx} cy={gy} r={6} fill="#fff" stroke="#3a3d42" strokeWidth={2.5} />
+          <circle cx={gx} cy={gy} r={2} fill="#3a3d42" />
+        </g>
       )}
-      <text x="100" y="98" textAnchor="middle" className="fill-ink" style={{ fontSize: 34, fontWeight: 700 }}>
+      <text x="100" y="96" textAnchor="middle" className="fill-ink" style={{ fontSize: 34, fontWeight: 700 }}>
         {Math.round(v)}%
       </text>
-      <text x="100" y="118" textAnchor="middle" className="fill-muted" style={{ fontSize: 11, letterSpacing: 1 }}>
+      <text x="100" y="115" textAnchor="middle" className="fill-muted" style={{ fontSize: 11, letterSpacing: 1 }}>
         {label.toUpperCase()}
       </text>
+
+      {/* legend clarifying the marker = target */}
+      {goal != null && (
+        <g>
+          <circle cx={73} cy={135} r={4.5} fill="#fff" stroke="#3a3d42" strokeWidth={2} />
+          <circle cx={73} cy={135} r={1.5} fill="#3a3d42" />
+          <text x={84} y={139} className="fill-muted" style={{ fontSize: 11 }}>
+            Target {Math.round(goal)}%
+          </text>
+        </g>
+      )}
     </svg>
   )
 }

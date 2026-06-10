@@ -80,21 +80,22 @@ export async function fetchHolidaysFromApi(year: number, country = COUNTRY): Pro
   return data.map((h) => ({ date: h.date, name: h.localName || h.name }))
 }
 
-// Hook: synchronous embedded set, optional background API enrichment.
+// User-managed holidays (added/imported), persisted across years. Keyed by ISO
+// date so it merges cleanly with the embedded national list.
+type CustomMap = Record<string, string> // iso -> name
+
+// Hook: embedded national list + user-added/imported holidays for the year,
+// plus mutation helpers used by the Settings holidays section.
 export function useHolidays(year: number) {
-  const [extra, setExtra] = useLocalStorage<Record<number, Holiday[]>>('dr-holidays-cache', {})
-  const [holidays, setHolidays] = useState<Holiday[]>(() => getLocalHolidays(year))
+  const [custom, setCustom] = useLocalStorage<CustomMap>('dr-holidays-custom', {})
+  const [apiCache, setApiCache] = useState<Holiday[] | null>(null)
 
   useEffect(() => {
-    setHolidays(extra[year] ?? getLocalHolidays(year))
-    if (!USE_LIVE_API || extra[year]) return
+    setApiCache(null)
+    if (!USE_LIVE_API) return
     let alive = true
     fetchHolidaysFromApi(year)
-      .then((list) => {
-        if (!alive || !list.length) return
-        setHolidays(list)
-        setExtra((c) => ({ ...c, [year]: list }))
-      })
+      .then((list) => alive && list.length && setApiCache(list))
       .catch(() => {
         /* offline / API down — embedded list already in place */
       })
@@ -104,7 +105,48 @@ export function useHolidays(year: number) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year])
 
+  // Merge embedded (or API) + custom for this year, dedupe by date (custom wins).
+  const base = apiCache ?? getLocalHolidays(year)
+  const byDate = new Map<string, Holiday>()
+  for (const h of base) byDate.set(h.date, h)
+  for (const [date, name] of Object.entries(custom)) {
+    if (date.startsWith(`${year}-`)) byDate.set(date, { date, name })
+  }
+  const holidays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
+
   const set = new Set(holidays.map((h) => h.date))
   const nameOf = (iso: string) => holidays.find((h) => h.date === iso)?.name
-  return { holidays, set, nameOf } as const
+  const isCustom = (iso: string) => iso in custom
+
+  // Add a single user holiday (TASK: "Add Holiday").
+  const add = (date: string, name: string) =>
+    setCustom((c) => ({ ...c, [date]: name.trim() || 'Holiday' }))
+
+  // Remove a user-added holiday (only custom ones can be removed).
+  const remove = (date: string) =>
+    setCustom((c) => {
+      const next = { ...c }
+      delete next[date]
+      return next
+    })
+
+  // Import the year's public holidays from the API and persist them (TASK:
+  // "Import holidays"). Returns how many were added. Throws on network failure.
+  const importYear = async (y: number = year): Promise<number> => {
+    const list = await fetchHolidaysFromApi(y)
+    let added = 0
+    setCustom((c) => {
+      const next = { ...c }
+      for (const h of list) {
+        if (!(h.date in next)) {
+          next[h.date] = h.name
+          added++
+        }
+      }
+      return next
+    })
+    return added
+  }
+
+  return { holidays, set, nameOf, isCustom, add, remove, importYear } as const
 }

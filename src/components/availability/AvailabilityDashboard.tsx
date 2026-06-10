@@ -16,56 +16,11 @@ import Dropdown from '../Dropdown'
 import { Alarm, Pencil, ChevronLeft, ChevronRight, CheckCircle } from '../../icons/Icons'
 import ChartTypePicker from './ChartTypePicker'
 import ChartDetailPanel from './ChartDetailPanel'
-import { periodLabel, type PeriodState } from './PeriodFilter'
 
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-interface Props {
-  period: PeriodState
-}
-
-// Map the period range to a number of days back from "today" — used to window
-// the Month daily series so the dashboard responds to the chosen window.
-function rangeDays(period: PeriodState): number | null {
-  switch (period.range) {
-    case 'lastDay':
-      return 1
-    case 'lastWeek':
-      return 7
-    case 'last30':
-      return 30
-    case 'custom':
-      if (period.customStart && period.customEnd) {
-        const a = parseISO(period.customStart).getTime()
-        const b = parseISO(period.customEnd).getTime()
-        return Math.max(1, Math.round((b - a) / 86400000) + 1)
-      }
-      return null
-  }
-}
-
-// Slice a daily SeriesResult to only the last `days` points (or a date window).
-function windowSeries(s: SeriesResult, lastN: number | null): SeriesResult {
-  if (lastN == null || lastN >= s.labels.length) return s
-  const start = Math.max(0, s.labels.length - lastN)
-  const slice = <T,>(arr: T[]) => arr.slice(start)
-  const planned = slice(s.planned)
-  const executed = slice(s.executed)
-  const totalPlanned = planned.reduce((a, b) => a + b, 0)
-  const totalExecuted = executed.reduce((a, b) => a + b, 0)
-  return {
-    labels: slice(s.labels),
-    planned,
-    executed,
-    pct: slice(s.pct),
-    totalPlanned,
-    totalExecuted,
-    overallPct: totalPlanned > 0 ? Math.round((totalExecuted / totalPlanned) * 100) : 0,
-  }
-}
-
-export default function AvailabilityDashboard({ period }: Props) {
+export default function AvailabilityDashboard() {
   const [settings] = useAvailabilitySettings()
   const [plan] = useAvailabilityPlan()
   const { typeFor, setCard } = useDashboardPrefs()
@@ -99,15 +54,10 @@ export default function AvailabilityDashboard({ period }: Props) {
     [yIso, plan, settings, hToday.set]
   )
 
-  const lastN = rangeDays(period)
-
-  const monthSeriesFull = useMemo(
+  const monthSeries = useMemo(
     () => availabilityService.monthSeries(viewMonthYear, viewMonth, plan, settings, hMonth.set),
     [viewMonthYear, viewMonth, plan, settings, hMonth.set]
   )
-  // Window the daily series by the selected range (only when viewing the
-  // current month — windowing a historical month back-counts from its end).
-  const monthSeries = useMemo(() => windowSeries(monthSeriesFull, lastN), [monthSeriesFull, lastN])
 
   const yearSeries = useMemo(
     () => availabilityService.yearSeries(viewYear, plan, settings, hYear.set),
@@ -149,11 +99,11 @@ export default function AvailabilityDashboard({ period }: Props) {
   return (
     <div>
       {/* dashboard toolbar */}
-      <div className="no-print mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted">{periodLabel(period)}</p>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Availability</h3>
         <button
           onClick={() => setEditMode((v) => !v)}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`no-print flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
             editMode
               ? 'border-primary bg-primary-soft text-primary'
               : 'border-line text-muted hover:text-ink'
@@ -316,7 +266,7 @@ export default function AvailabilityDashboard({ period }: Props) {
         open={detail === 'month'}
         onClose={() => setDetail(null)}
         title={`${MONTH_LABELS[viewMonth]} ${viewMonthYear} · Daily availability`}
-        subtitle={periodLabel(period)}
+        subtitle={`Planned vs executed · ${monthSeries.overallPct}% overall`}
         series={monthSeries}
         type={monthType}
         goal={goal}
@@ -326,7 +276,7 @@ export default function AvailabilityDashboard({ period }: Props) {
         open={detail === 'year'}
         onClose={() => setDetail(null)}
         title={`${viewYear} · Monthly availability`}
-        subtitle={periodLabel(period)}
+        subtitle={`Planned vs executed · ${yearSeries.overallPct}% overall`}
         series={yearSeries}
         type={yearType}
         goal={goal}

@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp, ArrowDown } from '../icons/Icons'
+import { ArrowUp, ArrowDown, Sparkle, BarsGlyph, LineGlyph, AreaGlyph } from '../icons/Icons'
 import { formatValue, type Kpi } from '../lib/compute'
 import { CardViz, VIZ_CAPTION, metaFor, withAlpha } from './metricViz'
+import { useLocalStorage } from '../lib/useLocalStorage'
+import type { ChartType } from '../lib/availability'
+
+// Per-card chart-style override (empty string = the metric's auto viz).
+type StyleMap = Record<string, ChartType | ''>
+const STYLE_OPTIONS: { key: ChartType | ''; Glyph: (p: { size?: number }) => React.ReactElement; label: string }[] = [
+  { key: '', Glyph: Sparkle, label: 'Auto' },
+  { key: 'bar', Glyph: BarsGlyph, label: 'Bars' },
+  { key: 'line', Glyph: LineGlyph, label: 'Line' },
+  { key: 'area', Glyph: AreaGlyph, label: 'Area' },
+]
 
 interface MetricsGridV2Props {
   kpis: Kpi[]
@@ -22,6 +33,10 @@ export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [confirming, setConfirming] = useState(false)
+  const [styleMap, setStyleMap] = useLocalStorage<StyleMap>('dr-metrics-viz-style', {})
+
+  const setStyle = (key: string, style: ChartType | '') =>
+    setStyleMap((m) => ({ ...m, [key]: style }))
 
   const enterEdit = () => {
     setSnapshot({ hidden: new Set(hidden), order: [...order] })
@@ -169,6 +184,8 @@ export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2
             editing={editing}
             jiggleAlt={i % 2 === 1}
             dragging={dragKey === k.key}
+            style={styleMap[k.key] ?? ''}
+            onStyle={(s) => setStyle(k.key, s)}
             onRemove={() => hide(k.key)}
             onDetails={() => onDetails?.(k)}
             onDragStart={() => setDragKey(k.key)}
@@ -188,6 +205,8 @@ interface KpiCardV2Props {
   editing: boolean
   jiggleAlt: boolean
   dragging: boolean
+  style: ChartType | ''
+  onStyle: (s: ChartType | '') => void
   onRemove: () => void
   onDetails: () => void
   onDragStart: () => void
@@ -201,6 +220,8 @@ function KpiCardV2({
   editing,
   jiggleAlt,
   dragging,
+  style,
+  onStyle,
   onRemove,
   onDetails,
   onDragStart,
@@ -271,9 +292,35 @@ function KpiCardV2({
             </p>
           </div>
           <div className="col-span-3 h-20 overflow-hidden">
-            <CardViz kpi={kpi} series={series} color={accent} />
+            <CardViz kpi={kpi} series={series} color={accent} override={style || undefined} />
           </div>
         </div>
+
+        {/* edit mode — chart-style picker (TASK: choose chart style on batches) */}
+        {editing && (
+          <div className="mt-3 flex items-center gap-1 rounded-lg bg-page p-1">
+            {STYLE_OPTIONS.map(({ key, Glyph, label }) => {
+              const active = (style || '') === key
+              return (
+                <button
+                  key={label}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onStyle(key)
+                  }}
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={active}
+                  className={`flex h-6 flex-1 items-center justify-center rounded-md transition-colors ${
+                    active ? 'bg-white text-primary shadow-card' : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <Glyph size={14} />
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* footer — caption + details */}
         <div className="mt-auto flex items-center justify-between pt-3">

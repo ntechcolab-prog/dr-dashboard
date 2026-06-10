@@ -24,7 +24,6 @@ import {
   type ConfirmMap,
   type Weekday,
 } from '../../lib/availability'
-import { useHolidays } from '../../lib/holidays'
 import { parseAssistant, type ParsedRule } from './assistantParser'
 
 interface Props {
@@ -37,6 +36,8 @@ interface Props {
   setPlan: (updater: (prev: PlanMap) => PlanMap) => void
   confirm: ConfirmMap
   setConfirm: (updater: (prev: ConfirmMap) => ConfirmMap) => void
+  holidaySet: Set<string> // single source of truth, passed from the tab
+  holidayName: (iso: string) => string | undefined
 }
 
 const MONTH_NAMES = [
@@ -67,8 +68,9 @@ export default function PlanningCalendar({
   setPlan,
   confirm,
   setConfirm,
+  holidaySet,
+  holidayName,
 }: Props) {
-  const holidays = useHolidays(year)
   const weeks = useMemo(() => buildWeeks(year, month), [year, month])
 
   const [assistantOpen, setAssistantOpen] = useState(false)
@@ -82,7 +84,7 @@ export default function PlanningCalendar({
   const defaultFor = (day: number): number => {
     const iso = isoOf(year, month, day)
     const weekday = new Date(year, month, day).getDay() as Weekday
-    if (holidays.set.has(iso) && !settings.operateOnHolidays) return 0
+    if (holidaySet.has(iso) && !settings.operateOnHolidays) return 0
     if (!settings.workingDays.includes(weekday)) return 0
     return settings.defaultHoursByWeekday[weekday] ?? 0
   }
@@ -108,7 +110,7 @@ export default function PlanningCalendar({
       for (let d = 1; d <= n; d++) {
         const wd = new Date(year, month, d).getDay() as Weekday
         if (wd in firstByWeekday) continue
-        firstByWeekday[wd] = plannedHoursForDay(isoOf(year, month, d), prev, settings, holidays.set)
+        firstByWeekday[wd] = plannedHoursForDay(isoOf(year, month, d), prev, settings, holidaySet)
       }
       for (let d = 1; d <= n; d++) {
         const wd = new Date(year, month, d).getDay() as Weekday
@@ -124,7 +126,7 @@ export default function PlanningCalendar({
     const prevMonth = month === 0 ? 11 : month - 1
     const prevYear = month === 0 ? year - 1 : year
     // Source holidays are only on hand when last month is in the loaded year.
-    const srcHolidays = prevYear === year ? holidays.set : new Set<string>()
+    const srcHolidays = prevYear === year ? holidaySet : new Set<string>()
     setPlan((prev) => {
       const next = { ...prev }
       const n = daysInMonth(year, month)
@@ -174,6 +176,37 @@ export default function PlanningCalendar({
 
   const toggleWeek = (wk: string) =>
     setConfirm((prev) => ({ ...prev, [wk]: !prev[wk] }))
+
+  // --- Derived: heatmap scale + month summary (for the new clearer UI) ---
+  const totalDays = daysInMonth(year, month)
+  const maxHours = useMemo(() => {
+    const defaults = Object.values(settings.defaultHoursByWeekday)
+    const planned = Object.entries(plan)
+      .filter(([iso]) => iso.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
+      .map(([, h]) => h)
+    return Math.max(8, ...defaults, ...planned)
+  }, [settings.defaultHoursByWeekday, plan, year, month])
+
+  const summary = useMemo(() => {
+    let planned = 0
+    let workingDays = 0
+    let holidayCount = 0
+    let offDays = 0
+    for (let d = 1; d <= totalDays; d++) {
+      const iso = isoOf(year, month, d)
+      const h = plannedHoursForDay(iso, plan, settings, holidaySet)
+      if (holidaySet.has(iso)) holidayCount++
+      if (h > 0) {
+        planned += h
+        workingDays++
+      } else {
+        offDays++
+      }
+    }
+    return { planned, workingDays, holidayCount, offDays }
+  }, [year, month, totalDays, plan, settings, holidaySet])
+
+  const todayIso = isoOf(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())
 
   return (
     <div>
@@ -298,21 +331,29 @@ export default function PlanningCalendar({
         </div>
       )}
 
+      {/* Summary strip — read the month at a glance */}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <SummaryStat label="Planned hours" value={`${summary.planned}h`} tone="primary" />
+        <SummaryStat label="Working days" value={String(summary.workingDays)} />
+        <SummaryStat label="Days off" value={String(summary.offDays)} />
+        <SummaryStat label="Holidays" value={String(summary.holidayCount)} tone="warning" />
+      </div>
+
       {/* Calendar grid */}
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div className="overflow-hidden rounded-xl border border-line">
         {/* Weekday header */}
-        <div className="grid grid-cols-[repeat(7,minmax(0,1fr))_4.5rem] border-b border-line bg-page">
+        <div className="grid grid-cols-[repeat(7,minmax(0,1fr))_3.75rem] border-b border-line bg-page">
           {WEEKDAY_LABELS.map((w, i) => (
             <div
               key={w}
-              className={`px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide ${
-                settings.workingDays.includes(i as Weekday) ? 'text-muted' : 'text-faint'
+              className={`px-2 py-2.5 text-center text-[0.6875rem] font-semibold uppercase tracking-wide ${
+                settings.workingDays.includes(i as Weekday) ? 'text-ink' : 'text-faint'
               }`}
             >
               {w}
             </div>
           ))}
-          <div className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted">
+          <div className="px-1 py-2.5 text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">
             OK
           </div>
         </div>
@@ -325,49 +366,34 @@ export default function PlanningCalendar({
           return (
             <div
               key={wi}
-              className={`grid grid-cols-[repeat(7,minmax(0,1fr))_4.5rem] ${
+              className={`grid grid-cols-[repeat(7,minmax(0,1fr))_3.75rem] ${
                 wi < weeks.length - 1 ? 'border-b border-line' : ''
-              } ${weekConfirmed ? 'bg-primary-soft/30' : ''}`}
+              } ${weekConfirmed ? 'bg-primary-soft/20' : ''}`}
             >
               {week.map((day, di) => {
                 if (day == null) {
-                  return <div key={di} className="min-h-[4.25rem] border-r border-line bg-page/40 last:border-r-0" />
+                  return <div key={di} className="min-h-[5.5rem] border-r border-line bg-page/30 last:border-r-0" />
                 }
                 const iso = isoOf(year, month, day)
                 const weekday = di as Weekday
-                const isHoliday = holidays.set.has(iso)
+                const isHoliday = holidaySet.has(iso)
                 const isWorking = settings.workingDays.includes(weekday)
                 const countsAsOff = (isHoliday && !settings.operateOnHolidays) || !isWorking
-                const hours = plannedHoursForDay(iso, plan, settings, holidays.set)
+                const hours = plannedHoursForDay(iso, plan, settings, holidaySet)
                 return (
-                  <div
+                  <DayPlanCell
                     key={di}
-                    className={`min-h-[4.25rem] border-r border-line p-1.5 ${
-                      countsAsOff ? 'bg-page/50' : ''
-                    }`}
-                    title={isHoliday ? holidays.nameOf(iso) : undefined}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-xs font-medium ${countsAsOff ? 'text-faint' : 'text-ink'}`}>
-                        {day}
-                      </span>
-                      {isHoliday && <Sun size={13} className="text-warning" />}
-                    </div>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      value={hours}
-                      disabled={locked}
-                      onChange={(e) => {
-                        const v = e.target.value === '' ? 0 : Number(e.target.value)
-                        setDay(iso, Number.isFinite(v) ? Math.max(0, v) : 0)
-                      }}
-                      className={`mt-1.5 w-full rounded border border-line bg-white px-1 py-1 text-center text-xs tabular-nums text-ink outline-none focus:border-primary disabled:cursor-not-allowed disabled:bg-page disabled:text-muted ${
-                        countsAsOff ? 'text-muted' : ''
-                      }`}
-                    />
-                  </div>
+                    day={day}
+                    hours={hours}
+                    editable={!countsAsOff}
+                    isHoliday={isHoliday}
+                    holidayLabel={isHoliday ? holidayName(iso) : undefined}
+                    isOverride={iso in plan}
+                    isToday={iso === todayIso}
+                    locked={locked}
+                    maxHours={maxHours}
+                    onSet={(h) => setDay(iso, h)}
+                  />
                 )
               })}
               {/* Week confirm cell */}
@@ -376,13 +402,14 @@ export default function PlanningCalendar({
                   <button
                     onClick={() => toggleWeek(wk)}
                     aria-label={weekConfirmed ? 'Un-confirm week' : 'Confirm week'}
-                    className={`grid h-8 w-12 place-items-center rounded-md text-xs font-semibold transition-colors ${
+                    title={weekConfirmed ? 'Confirmed — click to unlock' : 'Confirm this week'}
+                    className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-semibold transition-colors ${
                       weekConfirmed
                         ? 'bg-primary text-white'
                         : 'border border-line text-muted hover:border-primary hover:text-primary'
                     }`}
                   >
-                    {weekConfirmed ? <CalendarCheck size={15} /> : 'OK'}
+                    {weekConfirmed ? <CalendarCheck size={16} /> : 'OK'}
                   </button>
                 )}
               </div>
@@ -392,17 +419,146 @@ export default function PlanningCalendar({
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm" style={{ background: 'rgba(70,170,159,0.4)' }} /> Planned hours
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-sm border border-dashed border-faint bg-white" /> Not set yet
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full bg-primary" /> Edited
+        </span>
         <span className="flex items-center gap-1.5">
           <Sun size={13} className="text-warning" /> Holiday
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm bg-page" /> Non-working / off
+          <span className="inline-block h-3 w-3 rounded-sm bg-page" /> Day off
         </span>
         <span className="flex items-center gap-1.5">
-          <CalendarCheck size={13} className="text-primary" /> Confirmed (locked for edits)
+          <CalendarCheck size={13} className="text-primary" /> Confirmed (locked)
         </span>
       </div>
+    </div>
+  )
+}
+
+// Stat chip for the month summary strip.
+function SummaryStat({ label, value, tone }: { label: string; value: string; tone?: 'primary' | 'warning' }) {
+  const color = tone === 'primary' ? 'text-primary' : tone === 'warning' ? 'text-warning' : 'text-ink'
+  return (
+    <div className="rounded-xl border border-line bg-white px-3.5 py-2.5">
+      <p className="text-[0.625rem] font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className={`mt-0.5 text-xl font-bold tabular-nums ${color}`}>{value}</p>
+    </div>
+  )
+}
+
+// One day in the planning grid. Clear state: heatmap-filled when hours are set,
+// dashed "set" hint when a working day is still 0h, distinct off/holiday chips,
+// an "edited" dot for explicit overrides, +/- steppers and a direct input.
+function DayPlanCell({
+  day,
+  hours,
+  editable,
+  isHoliday,
+  holidayLabel,
+  isOverride,
+  isToday,
+  locked,
+  maxHours,
+  onSet,
+}: {
+  day: number
+  hours: number
+  editable: boolean
+  isHoliday: boolean
+  holidayLabel?: string
+  isOverride: boolean
+  isToday: boolean
+  locked: boolean
+  maxHours: number
+  onSet: (h: number) => void
+}) {
+  const hasHours = hours > 0
+  // Heatmap tint for working days that have hours.
+  const tint = editable && hasHours ? `rgba(70,170,159,${(0.12 + 0.32 * Math.min(1, hours / maxHours)).toFixed(3)})` : undefined
+
+  const ring = isToday ? 'ring-2 ring-inset ring-primary/60' : ''
+
+  return (
+    <div
+      className={`relative min-h-[5.5rem] border-r border-line p-2 last:border-r-0 ${ring} ${
+        isHoliday && !editable ? 'bg-[#fdf3e2]' : !editable ? 'bg-page/50' : ''
+      }`}
+      style={{ background: tint }}
+      title={holidayLabel}
+    >
+      {/* day number + markers */}
+      <div className="flex items-center justify-between">
+        <span className={`text-xs font-semibold ${editable ? 'text-ink' : 'text-faint'}`}>
+          {String(day).padStart(2, '0')}
+        </span>
+        <span className="flex items-center gap-1">
+          {isOverride && editable && <span className="h-1.5 w-1.5 rounded-full bg-primary" title="Edited" />}
+          {isHoliday && <Sun size={13} className="text-warning" />}
+          {locked && <CalendarCheck size={12} className="text-primary/70" />}
+        </span>
+      </div>
+
+      {/* body */}
+      {!editable ? (
+        <div className="mt-2 flex flex-col">
+          <span className="text-[0.6875rem] font-medium text-faint">{isHoliday ? 'Holiday' : 'Day off'}</span>
+          {isHoliday && holidayLabel && (
+            <span className="mt-0.5 truncate text-[0.625rem] text-muted">{holidayLabel}</span>
+          )}
+        </div>
+      ) : locked ? (
+        <div className="mt-2 flex items-baseline gap-0.5">
+          <span className="text-lg font-bold tabular-nums text-ink">{hours}</span>
+          <span className="text-xs text-muted">h</span>
+        </div>
+      ) : (
+        <div className="mt-1.5">
+          <div
+            className={`flex items-center justify-center gap-1 rounded-lg ${
+              hasHours ? '' : 'border border-dashed border-faint'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => onSet(Math.max(0, Math.round((hours - 1) * 2) / 2))}
+              aria-label="Decrease hours"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
+            >
+              <span className="text-base leading-none">−</span>
+            </button>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={hours}
+              onChange={(e) => {
+                const v = e.target.value === '' ? 0 : Number(e.target.value)
+                onSet(Number.isFinite(v) ? Math.max(0, v) : 0)
+              }}
+              className={`w-9 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
+                hasHours ? 'text-ink' : 'text-faint'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => onSet(Math.round((hours + 1) * 2) / 2)}
+              aria-label="Increase hours"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
+            >
+              <span className="text-base leading-none">+</span>
+            </button>
+          </div>
+          {!hasHours && <p className="mt-1 text-center text-[0.5625rem] text-faint">not set</p>}
+        </div>
+      )}
     </div>
   )
 }
