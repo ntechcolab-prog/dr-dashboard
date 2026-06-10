@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import Tabs, { type TabDef } from '../components/Tabs'
 import Filters, { type Period } from '../components/Filters'
-import MetricsGrid from '../components/MetricsGrid'
+import MetricsGridV2 from '../components/MetricsGridV2'
 import Calendar from '../components/Calendar'
 import Rankings from '../components/Rankings'
 import InOperation from '../components/InOperation'
 import DetailsDrawer, { type DrawerData } from '../components/DetailsDrawer'
 import MachineTab from '../components/MachineTab'
 import EmptyState from '../components/EmptyState'
+import ExportMenu from '../components/ExportMenu'
+import { AnalysisIcon } from '../icons/Icons'
+import type { Sheet } from '../lib/exportData'
 import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
+import { useAvailabilitySettings, useAvailabilityPlan } from '../lib/availability'
+import { useHolidays } from '../lib/holidays'
+import { availabilityService } from '../data/availabilityData'
 import {
   filterBatches,
   buildKpis,
@@ -17,6 +23,7 @@ import {
   metricByDaySeries,
   metricByMachine,
   metricByRecipe,
+  formatValue,
   type Kpi,
   type DayRollup,
 } from '../lib/compute'
@@ -34,7 +41,13 @@ const CLOSED_DRAWER: DrawerData = {
   batches: [],
 }
 
-export default function DashboardScreen() {
+interface DashboardScreenProps {
+  onNavigate?: (key: string) => void
+}
+
+const BATCHES_PRINT_ID = 'batches-print'
+
+export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [tab, setTab] = useState('batches')
   const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
   const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
@@ -75,6 +88,31 @@ export default function DashboardScreen() {
   const dayMap = useMemo(() => byDay(monthBatches), [monthBatches])
   const rankings = useMemo(() => buildRankings(monthBatches), [monthBatches])
 
+  // Per-metric daily series for the (now shared) rich metric cards.
+  const seriesByKey = useMemo(() => {
+    const daysInMonth = new Date(monthMeta.year, monthMeta.month + 1, 0).getDate()
+    const out: Record<string, number[]> = {}
+    for (const k of kpis) out[k.key] = metricByDaySeries(monthBatches, k.key, daysInMonth).data
+    return out
+  }, [kpis, monthBatches, monthMeta])
+
+  // Per-day availability % for the calendar, from the availability service.
+  const [availSettings] = useAvailabilitySettings()
+  const [availPlan] = useAvailabilityPlan()
+  const availHolidays = useHolidays(monthMeta.year)
+  const availByDay = useMemo(() => {
+    const ms = availabilityService.monthSeries(
+      monthMeta.year,
+      monthMeta.month,
+      availPlan,
+      availSettings,
+      availHolidays.set
+    )
+    const map = new Map<number, number>()
+    ms.pct.forEach((p, i) => map.set(i + 1, p))
+    return map
+  }, [monthMeta, availPlan, availSettings, availHolidays.set])
+
   const avgMass = useMemo(() => {
     const days = [...dayMap.values()]
     if (!days.length) return 0
@@ -109,11 +147,40 @@ export default function DashboardScreen() {
       daily: metricByDaySeries(monthBatches, kpi.key, daysInMonth),
       byMachine: metricByMachine(monthBatches, kpi.key),
       byRecipe: metricByRecipe(monthBatches, kpi.key),
+      richViz: true,
     })
   }
 
   const hasMachine = machines.length > 0
   const hasData = hasMachine && monthBatches.length > 0
+
+  // Export sheets reflect the current filters (machines/recipes/month).
+  const buildBatchesSheets = (): Sheet[] => {
+    const metrics: Sheet = {
+      name: 'Metrics',
+      rows: [
+        ['Metric', 'Value', 'Unit', 'Δ vs last month (%)'],
+        ...kpis.map((k) => [k.label, formatValue(k.value, k.fmt), k.unit, Math.round(k.delta)]),
+      ],
+    }
+    const batchRows: Sheet = {
+      name: 'Batches',
+      rows: [
+        ['ID', 'Day', 'Machine', 'Recipe', 'Line', 'Mass (ton)', 'Energy (kWh)', 'Status'],
+        ...monthBatches.map((b) => [
+          b.id,
+          b.day,
+          b.machine,
+          b.recipe,
+          b.productionLine,
+          b.mass,
+          b.energy,
+          b.status,
+        ]),
+      ],
+    }
+    return [metrics, batchRows]
+  }
 
   return (
     <div className="mx-auto flex max-w-[75rem] flex-col gap-5 p-5">
@@ -121,7 +188,23 @@ export default function DashboardScreen() {
 
       {tab === 'batches' ? (
         <>
-          <div className="overflow-hidden rounded-xl bg-card shadow-card">
+          <div className="no-print flex items-center justify-end gap-2">
+            <ExportMenu
+              title={`Batches · ${monthMeta.label} · ${machines.length ? machines.join(', ') : 'All machines'}`}
+              printId={BATCHES_PRINT_ID}
+              filenameBase={`batches-${monthMeta.key}`}
+              sheets={buildBatchesSheets}
+            />
+            <button
+              onClick={() => onNavigate?.('analysis')}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            >
+              <AnalysisIcon size={16} />
+              Generate Analysis
+            </button>
+          </div>
+
+          <div id={BATCHES_PRINT_ID} className="overflow-hidden rounded-xl bg-card shadow-card">
             <Filters
               machines={machines}
               recipes={recipes}
@@ -139,7 +222,7 @@ export default function DashboardScreen() {
             />
             {hasData ? (
               <div className="border-t border-line/70 pt-4">
-                <MetricsGrid kpis={kpis} onDetails={openKpiDetails} />
+                <MetricsGridV2 kpis={kpis} series={seriesByKey} onDetails={openKpiDetails} />
                 <Calendar
                   period={period}
                   year={monthMeta.year}
@@ -148,6 +231,7 @@ export default function DashboardScreen() {
                   dayMap={dayMap}
                   avgMass={avgMass}
                   onDetails={openDayDetails}
+                  availByDay={availByDay}
                 />
               </div>
             ) : (
@@ -169,7 +253,7 @@ export default function DashboardScreen() {
         </>
       ) : (
         <div className="overflow-hidden rounded-xl bg-card shadow-card">
-          <MachineTab />
+          <MachineTab onNavigate={onNavigate} />
         </div>
       )}
 

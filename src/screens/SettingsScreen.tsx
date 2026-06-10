@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import SubHeader from '../components/SubHeader'
 import { Gear, Search, ChevronDown } from '../icons/Icons'
 import { SETTINGS_TABS, MACHINE_CARDS, type MachineCard } from '../data/appData'
+import AvailabilitySettingsTab from './settings/AvailabilitySettingsTab'
 
 export default function SettingsScreen() {
-  const [tab, setTab] = useState('Machines & Equipment')
+  const [tab, setTab] = useState('General')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
 
@@ -37,7 +38,9 @@ export default function SettingsScreen() {
         ))}
       </div>
 
-      {tab === 'Machines & Equipment' ? (
+      {tab === 'Availability' ? (
+        <AvailabilitySettingsTab />
+      ) : tab === 'Machines & Equipment' ? (
         <section className="rounded-xl bg-card p-6 shadow-card">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-ink">Machines</h2>

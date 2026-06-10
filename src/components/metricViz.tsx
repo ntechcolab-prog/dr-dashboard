@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import LineChart from './LineChart'
 import { formatValue, type Kpi } from '../lib/compute'
+import type { ChartType } from '../lib/availability'
 
 // ── Shared metric visualization language ─────────────────────────────────────
 // One viz per metric, used in two sizes: compact (KPI card) and detail (drawer).
@@ -51,7 +52,14 @@ export const withAlpha = (hex: string, a: number) => {
 const prevOf = (kpi: Kpi) => (kpi.delta <= -100 ? 0 : kpi.value / (1 + kpi.delta / 100))
 
 // ── Compact viz for the KPI card ─────────────────────────────────────────────
-export function CardViz({ kpi, series, color }: { kpi: Kpi; series: number[]; color: string }) {
+// `override` lets the user force a universal style (bar/line/area) per card,
+// otherwise the per-metric default viz is used.
+export function CardViz({ kpi, series, color, override }: { kpi: Kpi; series: number[]; color: string; override?: ChartType }) {
+  if (override) {
+    if (override === 'bar') return <Columns data={series} color={color} className="h-full" />
+    if (override === 'line') return <Line data={series} color={color} className="h-full" />
+    return <Area data={series} color={color} className="h-full" />
+  }
   const kind = VIZ[kpi.key] ?? 'area'
   switch (kind) {
     case 'column':
@@ -190,6 +198,23 @@ function Area({ data, color, className }: { data: number[]; color: string; class
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#spark-${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
+
+// Line sparkline (no fill) — the 'line' override style.
+function Line({ data, color, className }: { data: number[]; color: string; className?: string }) {
+  if (data.length < 2) return <div className={className} />
+  const max = Math.max(...data)
+  const min = Math.min(...data)
+  const range = max - min || 1
+  const n = data.length
+  const x = (i: number) => (i / (n - 1)) * 100
+  const y = (v: number) => 30 - ((v - min) / range) * 26 + 2
+  const line = data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(2)} ${y(v).toFixed(2)}`).join(' ')
+  return (
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className={`block w-full ${className ?? ''}`}>
       <path d={line} fill="none" stroke={color} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   )
