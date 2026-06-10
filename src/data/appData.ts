@@ -47,7 +47,6 @@ export const SETTINGS_TABS = [
   'Work Schedule',
   'Machines & Equipment',
   'Performance & OEE Rules',
-  'User & Access Control',
   'Notifications & Alerts',
   'Data Export',
 ]
