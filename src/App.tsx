@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AppHeader from './components/AppHeader'
 import Sidebar from './components/Sidebar'
 import DashboardScreen from './screens/DashboardScreen'
+import DashboardV2Screen from './screens/DashboardV2Screen'
 import RegistryScreen from './screens/RegistryScreen'
 import AnalysisScreen from './screens/AnalysisScreen'
 import SettingsScreen from './screens/SettingsScreen'
@@ -25,6 +26,7 @@ export default function App() {
 
         <main className="flex-1 overflow-auto">
           {activeNav === 'dashboard' && <DashboardScreen />}
+          {activeNav === 'dashboard-v2' && <DashboardV2Screen />}
           {activeNav === 'registry' && <RegistryScreen />}
           {activeNav === 'analysis' && <AnalysisScreen />}
           {activeNav === 'settings' && <SettingsScreen />}

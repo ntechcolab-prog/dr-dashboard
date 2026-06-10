@@ -64,6 +64,17 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
             </button>
           )
         })}
+
+        {/* Hidden entry — "Dashboard V2 (test)". Intentionally invisible: no
+            label, icon or hover affordance. It's the full-width row directly
+            below Settings; click it to open the experimental dashboard. */}
+        <button
+          onClick={() => onSelect('dashboard-v2')}
+          aria-hidden="true"
+          tabIndex={-1}
+          title=""
+          className="h-10 w-full cursor-default bg-transparent"
+        />
       </nav>
     </aside>
   )

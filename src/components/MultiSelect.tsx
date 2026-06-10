@@ -37,6 +37,19 @@ export default function MultiSelect({
 
   const available = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
 
+  // "Select all" acts on whatever the search currently shows (all options when
+  // there's no query). It's additive — selecting all keeps anything already
+  // picked outside the current filter.
+  const allShownSelected = available.length > 0 && available.every((o) => selected.includes(o))
+  const toggleAll = () => {
+    if (allShownSelected) {
+      const drop = new Set(available)
+      onChange(selected.filter((o) => !drop.has(o)))
+    } else {
+      onChange([...new Set([...selected, ...available])])
+    }
+  }
+
   return (
     <div className="relative min-w-0" ref={ref}>
       <label className="mb-1 block text-xs font-medium text-primary">{label}</label>
@@ -84,6 +97,31 @@ export default function MultiSelect({
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-auto rounded-lg border border-line bg-white py-1 shadow-pop">
+          {available.length > 0 && (
+            <>
+              <button
+                onClick={toggleAll}
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-primary hover:bg-page"
+              >
+                <span className="flex items-center gap-2.5">
+                  <span
+                    className={`grid h-4 w-4 place-items-center rounded border ${
+                      allShownSelected ? 'border-primary bg-primary text-white' : 'border-faint'
+                    }`}
+                  >
+                    {allShownSelected && (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </span>
+                  {allShownSelected ? 'Clear all' : 'Select all'}
+                </span>
+                <span className="text-xs text-muted">{available.length}</span>
+              </button>
+              <div className="my-1 border-t border-line" />
+            </>
+          )}
           {available.length === 0 && (
             <p className="px-3 py-2 text-sm text-muted">No matches</p>
           )}
