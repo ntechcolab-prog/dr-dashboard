@@ -223,3 +223,79 @@ export const ExampleIcon = (p: IconProps) => (
     <line x1="7.5" y1="14" x2="16.5" y2="14" />
   </Svg>
 )
+
+// --- Availability planning + dashboard glyphs ---
+
+// Chart-type picker glyphs (TASK-19)
+export const BarsGlyph = (p: IconProps) => (
+  <Svg {...p}>
+    <line x1="6" y1="20" x2="6" y2="12" />
+    <line x1="12" y1="20" x2="12" y2="6" />
+    <line x1="18" y1="20" x2="18" y2="10" />
+  </Svg>
+)
+
+export const LineGlyph = (p: IconProps) => (
+  <Svg {...p}>
+    <polyline points="3 15 8 9 13 13 21 5" />
+  </Svg>
+)
+
+export const AreaGlyph = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 16 8 10l5 4 8-8v9H3Z" />
+  </Svg>
+)
+
+export const Alarm = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </Svg>
+)
+
+export const CalendarCheck = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="8" y1="2" x2="8" y2="5" />
+    <line x1="16" y1="2" x2="16" y2="5" />
+    <polyline points="9 15 11 17 15 13" />
+  </Svg>
+)
+
+export const Wand = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M15 4V2M15 10V8M11 6H9M19 6h-2" />
+    <path d="m13 7 6 6-9 9-6-6 9-9Z" />
+  </Svg>
+)
+
+export const Copy = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="13" height="13" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Svg>
+)
+
+export const Sun = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+  </Svg>
+)
+
+export const FilePdf = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+    <polyline points="14 2 14 8 20 8" />
+    <path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9v-3Zm0 3v2" />
+  </Svg>
+)
+
+export const Sparkle = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
+  </Svg>
+)
