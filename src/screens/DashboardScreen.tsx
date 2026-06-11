@@ -12,7 +12,7 @@ import ExportMenu from '../components/ExportMenu'
 import { AnalysisIcon } from '../icons/Icons'
 import type { Sheet } from '../lib/exportData'
 import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
-import { useAvailabilitySettings, useAvailabilityPlan } from '../lib/availability'
+import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 import {
@@ -99,6 +99,7 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   // Per-day availability % for the calendar, from the availability service.
   const [availSettings] = useAvailabilitySettings()
   const [availPlan] = useAvailabilityPlan()
+  const availWh = useWorkingHolidays()
   const availHolidays = useHolidays(monthMeta.year)
   const availByDay = useMemo(() => {
     const ms = availabilityService.monthSeries(
@@ -106,12 +107,13 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
       monthMeta.month,
       availPlan,
       availSettings,
-      availHolidays.set
+      availHolidays.set,
+      availWh.set
     )
     const map = new Map<number, number>()
     ms.pct.forEach((p, i) => map.set(i + 1, p))
     return map
-  }, [monthMeta, availPlan, availSettings, availHolidays.set])
+  }, [monthMeta, availPlan, availSettings, availHolidays.set, availWh.set])
 
   const avgMass = useMemo(() => {
     const days = [...dayMap.values()]

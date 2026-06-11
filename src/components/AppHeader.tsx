@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AppsGrid, Menu, Calendar, Bell, ChevronDown } from '../icons/Icons'
+import { AppsGrid, PanelLeftCollapse, Calendar, Bell, ChevronDown } from '../icons/Icons'
 import { buildWeeks } from '../lib/weeks'
-import { useAvailabilitySettings, useAvailabilityPlan, isoOf } from '../lib/availability'
+import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays, isoOf } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 
@@ -52,7 +52,7 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
           className="grid h-9 w-9 place-items-center rounded-md text-white/80 hover:bg-white/10"
           aria-label="Collapse or expand menu"
         >
-          <Menu size={20} />
+          <PanelLeftCollapse size={20} />
         </button>
 
         {/* NETZSCH product launcher */}
@@ -178,29 +178,38 @@ function MiniCalendar() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
+  const [selected, setSelected] = useState<number | null>(null)
 
   const [settings] = useAvailabilitySettings()
-  const [plan] = useAvailabilityPlan()
+  const [plan, setPlan] = useAvailabilityPlan()
+  const wh = useWorkingHolidays()
   const holidays = useHolidays(year)
   const goal = settings.monthlyGoalPct
 
   const weeks = buildWeeks(year, month)
 
   const series = useMemo(
-    () => availabilityService.monthSeries(year, month, plan, settings, holidays.set),
-    [year, month, plan, settings, holidays.set]
+    () => availabilityService.monthSeries(year, month, plan, settings, holidays.set, wh.set),
+    [year, month, plan, settings, holidays.set, wh.set]
   )
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1)
     setYear(d.getFullYear())
     setMonth(d.getMonth())
+    setSelected(null)
   }
 
   const todayIso = isoOf(now.getFullYear(), now.getMonth(), now.getDate())
+  const setDayHours = (iso: string, h: number) => setPlan((prev) => ({ ...prev, [iso]: Math.max(0, h) }))
+
+  // Selected-day editor data
+  const selIso = selected != null ? isoOf(year, month, selected) : null
+  const selDay = selIso ? availabilityService.day(selIso, plan, settings, holidays.set, wh.set) : null
+  const selHoliday = selIso ? holidays.set.has(selIso) : false
 
   return (
-    <div className="p-3">
+    <div className="relative p-3">
       <div className="mb-2 flex items-center justify-between px-1">
         <button onClick={() => shift(-1)} className="grid h-7 w-7 place-items-center rounded-md text-muted hover:bg-page">‹</button>
         <span className="text-sm font-semibold">{MONTH_NAMES[month]} {year}</span>
@@ -233,11 +242,16 @@ function MiniCalendar() {
           if (hasPlan) tip += ` · Availability ${pct}% (${executed}h/${planned}h) · ${met ? `goal met (≥${goal}%)` : `below goal (${goal}%)`}`
           else if (!isHoliday) tip += ' · Day off'
 
+          const isSelected = selected === day
           return (
-            <div
+            <button
               key={i}
+              type="button"
               title={tip}
-              className={`relative grid h-9 cursor-default place-items-center rounded-md ${
+              onClick={() => setSelected(day)}
+              className={`relative grid h-9 place-items-center rounded-md ${
+                isSelected ? 'ring-2 ring-inset ring-primary' : ''
+              } ${
                 isToday ? 'bg-primary font-semibold text-white' : isHoliday ? 'bg-[#fdf3e2] text-ink' : 'text-ink hover:bg-page'
               }`}
             >
@@ -245,7 +259,7 @@ function MiniCalendar() {
               {dot && !isToday && (
                 <span className={`absolute bottom-1 h-1 w-1 rounded-full ${dot}`} />
               )}
-            </div>
+            </button>
           )
         })}
       </div>
@@ -256,6 +270,60 @@ function MiniCalendar() {
         <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warning" /> Below</span>
         <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#fdf3e2] ring-1 ring-warning/40" /> Holiday</span>
       </div>
+
+      {/* quick-edit mini modal — writes to the shared plan, so Settings reflects it */}
+      {selected != null && selIso && selDay && (
+        <>
+          <div className="absolute inset-0 z-10 rounded-xl bg-ink/10" onClick={() => setSelected(null)} />
+          <div className="absolute inset-x-2 top-10 z-20 rounded-xl border border-line bg-white p-3 shadow-pop">
+            <div className="mb-2 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-ink">{MONTH_NAMES[month]} {selected}, {year}</p>
+                <p className="text-[0.6875rem] text-muted">
+                  {selHoliday ? `Holiday: ${holidays.nameOf(selIso) ?? 'Holiday'}` : WEEKDAY_LONG[new Date(year, month, selected).getDay()]}
+                </p>
+              </div>
+              <button onClick={() => setSelected(null)} className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-page" aria-label="Close">✕</button>
+            </div>
+
+            {selHoliday && (
+              <button
+                type="button"
+                onClick={() => wh.setWorking(selIso, !wh.set.has(selIso))}
+                className="mb-3 flex w-full items-center justify-between rounded-lg bg-page px-3 py-2 text-xs font-medium text-ink"
+              >
+                Working day
+                <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${wh.set.has(selIso) ? 'bg-primary' : 'bg-line'}`}>
+                  <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${wh.set.has(selIso) ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                </span>
+              </button>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-muted">Planned hours</span>
+              <div className="flex items-center gap-1 rounded-lg border border-line">
+                <button onClick={() => setDayHours(selIso, Math.max(0, Math.round((selDay.planned - 1) * 2) / 2))} className="grid h-7 w-7 place-items-center text-muted hover:text-ink" aria-label="Decrease">−</button>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={selDay.planned}
+                  onChange={(e) => setDayHours(selIso, e.target.value === '' ? 0 : Number(e.target.value))}
+                  className="no-spin w-10 bg-transparent text-center text-sm font-bold tabular-nums text-ink outline-none"
+                />
+                <button onClick={() => setDayHours(selIso, Math.round((selDay.planned + 1) * 2) / 2)} className="grid h-7 w-7 place-items-center text-muted hover:text-ink" aria-label="Increase">+</button>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between border-t border-line pt-2 text-xs">
+              <span className="text-muted">Availability</span>
+              <span className={`font-semibold ${selDay.planned > 0 && selDay.pct >= goal ? 'text-up' : selDay.planned > 0 ? 'text-warning' : 'text-faint'}`}>
+                {selDay.planned > 0 ? `${Math.round(selDay.pct)}% · ${selDay.executed}h/${selDay.planned}h` : 'Day off'}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -338,7 +406,7 @@ const PRODUCTS: Product[] = [
   {
     name: 'IRIS Cloud',
     desc: 'HMI & visualization',
-    href: '#',
+    href: 'http://iris-cloud.netzsch.com/',
     color: '#3b82f6',
     glyph: (
       <>
@@ -349,7 +417,7 @@ const PRODUCTS: Product[] = [
   {
     name: 'Production Monitoring',
     desc: 'Live line monitoring',
-    href: '#',
+    href: 'http://pm.iris-cloud.netzsch.com/',
     color: '#f19909',
     glyph: (
       <>
@@ -393,8 +461,8 @@ function ProductLauncher({ onPick }: { onPick: () => void }) {
                 </svg>
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-ink">{p.name}</span>
-                <span className="block truncate text-[0.6875rem] text-muted">{p.desc}</span>
+                <span className="block text-[0.8125rem] font-semibold leading-tight text-ink">{p.name}</span>
+                <span className="mt-0.5 block text-[0.6875rem] leading-tight text-muted">{p.desc}</span>
               </span>
               {p.current && (
                 <span className="absolute right-2 top-2 rounded-full bg-primary px-1.5 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-white">

@@ -4,7 +4,7 @@ import AvailabilityDashboard from './availability/AvailabilityDashboard'
 import ExportMenu from './ExportMenu'
 import { AnalysisIcon } from '../icons/Icons'
 import { PRODUCTION_LINES, MACHINE_NAMES } from '../data/appData'
-import { useAvailabilitySettings, useAvailabilityPlan } from '../lib/availability'
+import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 import type { Sheet } from '../lib/exportData'
@@ -22,6 +22,7 @@ export default function MachineTab({ onNavigate }: Props) {
 
   const [settings] = useAvailabilitySettings()
   const [plan] = useAvailabilityPlan()
+  const wh = useWorkingHolidays()
   const now = new Date()
   const holidays = useHolidays(now.getFullYear())
 
@@ -29,8 +30,8 @@ export default function MachineTab({ onNavigate }: Props) {
   const buildSheets = (): Sheet[] => {
     const y = now.getFullYear()
     const m = now.getMonth()
-    const ms = availabilityService.monthSeries(y, m, plan, settings, holidays.set)
-    const ys = availabilityService.yearSeries(y, plan, settings, holidays.set)
+    const ms = availabilityService.monthSeries(y, m, plan, settings, holidays.set, wh.set)
+    const ys = availabilityService.yearSeries(y, plan, settings, holidays.set, wh.set)
     const daily: Sheet = {
       name: `${MONTH_LABELS[m]} ${y}`,
       rows: [

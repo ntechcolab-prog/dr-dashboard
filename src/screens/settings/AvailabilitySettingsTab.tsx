@@ -7,10 +7,12 @@ import {
   WEEKDAY_LABELS,
   WEEKDAY_LONG,
   parseISO,
+  toISO,
   plannedHoursForMonth,
   useAvailabilitySettings,
   useAvailabilityPlan,
   useAvailabilityConfirm,
+  useWorkingHolidays,
   type Weekday,
 } from '../../lib/availability'
 import { useHolidays } from '../../lib/holidays'
@@ -25,6 +27,32 @@ export default function AvailabilitySettingsTab() {
   const [month, setMonth] = useState(now.getMonth())
 
   const holidays = useHolidays(year)
+  const workingHols = useWorkingHolidays()
+
+  // Apply-over-range (working schedule → plan).
+  const [applyStart, setApplyStart] = useState('')
+  const [applyEnd, setApplyEnd] = useState('')
+
+  const applyRange = () => {
+    if (!applyStart || !applyEnd) return
+    const start = parseISO(applyStart)
+    const end = parseISO(applyEnd)
+    if (end < start) return
+    setPlan((prev) => {
+      const next = { ...prev }
+      const cur = new Date(start)
+      while (cur <= end) {
+        const iso = toISO(cur)
+        const wd = cur.getDay() as Weekday
+        let h = 0
+        if (holidays.set.has(iso)) h = workingHols.set.has(iso) ? settings.defaultHoursByWeekday[wd] ?? 0 : 0
+        else if (settings.workingDays.includes(wd)) h = settings.defaultHoursByWeekday[wd] ?? 0
+        next[iso] = h
+        cur.setDate(cur.getDate() + 1)
+      }
+      return next
+    })
+  }
 
   // Add-holiday form + import status (Add Holiday / Import holidays).
   const [showAddHoliday, setShowAddHoliday] = useState(false)
@@ -69,7 +97,7 @@ export default function AvailabilitySettingsTab() {
       defaultHoursByWeekday: { ...prev.defaultHoursByWeekday, [d]: hours },
     }))
 
-  const monthTotal = plannedHoursForMonth(year, month, plan, settings, holidays.set)
+  const monthTotal = plannedHoursForMonth(year, month, plan, settings, holidays.set, workingHols.set)
 
   const prevMonth = () =>
     setMonth((m) => {
@@ -138,6 +166,41 @@ export default function AvailabilitySettingsTab() {
             </div>
           )}
         </div>
+
+        {/* Apply the working schedule across a date range */}
+        <div className="mt-6 border-t border-line pt-4">
+          <p className="mb-2 text-sm text-muted">Apply schedule to a period</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label="Start" className="w-44">
+              <input
+                type="date"
+                value={applyStart}
+                onChange={(e) => setApplyStart(e.target.value)}
+                className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+              />
+            </Field>
+            <Field label="End" className="w-44">
+              <input
+                type="date"
+                value={applyEnd}
+                onChange={(e) => setApplyEnd(e.target.value)}
+                className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+              />
+            </Field>
+            <button
+              type="button"
+              onClick={applyRange}
+              disabled={!applyStart || !applyEnd}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+            >
+              Apply
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Fills every day in the range with its weekday’s default hours (non-working days and holidays stay off
+            unless marked as working).
+          </p>
+        </div>
       </FormSection>
 
       {/* Planning calendar */}
@@ -162,6 +225,8 @@ export default function AvailabilitySettingsTab() {
           setConfirm={setConfirm}
           holidaySet={holidays.set}
           holidayName={holidays.nameOf}
+          workingHolidays={workingHols.set}
+          onToggleWorkingHoliday={workingHols.setWorking}
         />
       </FormSection>
 

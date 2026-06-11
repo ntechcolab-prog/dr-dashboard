@@ -72,15 +72,16 @@ export function executedHours(iso: string, planned: number): number {
 }
 
 export interface AvailabilityService {
-  day(iso: string, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>): DayAvailability
+  day(iso: string, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): DayAvailability
   monthSeries(
     year: number,
     month: number,
     plan: PlanMap,
     settings: AvailabilitySettings,
-    holidays: Set<string>
+    holidays: Set<string>,
+    workingHolidays?: Set<string>
   ): SeriesResult
-  yearSeries(year: number, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>): SeriesResult
+  yearSeries(year: number, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): SeriesResult
   alarmsByDay(year: number, month: number): { day: number; iso: string; count: number }[]
 }
 
@@ -98,9 +99,10 @@ function dayAvailability(
   iso: string,
   plan: PlanMap,
   settings: AvailabilitySettings,
-  holidays: Set<string>
+  holidays: Set<string>,
+  workingHolidays?: Set<string>
 ): DayAvailability {
-  const planned = plannedHoursForDay(iso, plan, settings, holidays)
+  const planned = plannedHoursForDay(iso, plan, settings, holidays, workingHolidays)
   const executed = executedHours(iso, planned)
   return { iso, day: parseISO(iso).getDate(), planned, executed, pct: availabilityPct(planned, executed) }
 }
@@ -116,14 +118,14 @@ const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 export const availabilityService: AvailabilityService = {
   day: dayAvailability,
 
-  monthSeries(year, month, plan, settings, holidays) {
+  monthSeries(year, month, plan, settings, holidays, workingHolidays) {
     const n = daysInMonth(year, month)
     const labels: string[] = []
     const planned: number[] = []
     const executed: number[] = []
     const pct: number[] = []
     for (let d = 1; d <= n; d++) {
-      const da = dayAvailability(isoOf(year, month, d), plan, settings, holidays)
+      const da = dayAvailability(isoOf(year, month, d), plan, settings, holidays, workingHolidays)
       labels.push(String(d).padStart(2, '0'))
       planned.push(round1(da.planned))
       executed.push(round1(da.executed))
@@ -132,13 +134,13 @@ export const availabilityService: AvailabilityService = {
     return { labels, planned, executed, pct, ...overall(planned, executed) }
   },
 
-  yearSeries(year, plan, settings, holidays) {
+  yearSeries(year, plan, settings, holidays, workingHolidays) {
     const labels: string[] = []
     const planned: number[] = []
     const executed: number[] = []
     const pct: number[] = []
     for (let m = 0; m < 12; m++) {
-      const ms = this.monthSeries(year, m, plan, settings, holidays)
+      const ms = this.monthSeries(year, m, plan, settings, holidays, workingHolidays)
       labels.push(MONTH_SHORT[m])
       planned.push(round1(ms.totalPlanned))
       executed.push(round1(ms.totalExecuted))

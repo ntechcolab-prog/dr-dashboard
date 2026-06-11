@@ -4,6 +4,7 @@ import {
   useAvailabilitySettings,
   useAvailabilityPlan,
   useDashboardPrefs,
+  useWorkingHolidays,
   toISO,
   parseISO,
 } from '../../lib/availability'
@@ -23,6 +24,7 @@ const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 export default function AvailabilityDashboard() {
   const [settings] = useAvailabilitySettings()
   const [plan] = useAvailabilityPlan()
+  const wh = useWorkingHolidays()
   const { typeFor, setCard } = useDashboardPrefs()
 
   const now = new Date()
@@ -46,22 +48,22 @@ export default function AvailabilityDashboard() {
   const goal = settings.monthlyGoalPct
 
   const today = useMemo(
-    () => availabilityService.day(todayIso, plan, settings, hToday.set),
-    [todayIso, plan, settings, hToday.set]
+    () => availabilityService.day(todayIso, plan, settings, hToday.set, wh.set),
+    [todayIso, plan, settings, hToday.set, wh.set]
   )
   const yesterday = useMemo(
-    () => availabilityService.day(yIso, plan, settings, hToday.set),
-    [yIso, plan, settings, hToday.set]
+    () => availabilityService.day(yIso, plan, settings, hToday.set, wh.set),
+    [yIso, plan, settings, hToday.set, wh.set]
   )
 
   const monthSeries = useMemo(
-    () => availabilityService.monthSeries(viewMonthYear, viewMonth, plan, settings, hMonth.set),
-    [viewMonthYear, viewMonth, plan, settings, hMonth.set]
+    () => availabilityService.monthSeries(viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set),
+    [viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set]
   )
 
   const yearSeries = useMemo(
-    () => availabilityService.yearSeries(viewYear, plan, settings, hYear.set),
-    [viewYear, plan, settings, hYear.set]
+    () => availabilityService.yearSeries(viewYear, plan, settings, hYear.set, wh.set),
+    [viewYear, plan, settings, hYear.set, wh.set]
   )
 
   const alarms = useMemo(

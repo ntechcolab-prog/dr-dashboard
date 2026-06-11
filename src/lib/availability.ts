@@ -5,7 +5,10 @@
 // the swappable service in `src/data/availabilityData.ts`. Keeping the two apart
 // means replacing the mock source with a real API later touches only that file.
 
+import { useMemo } from 'react'
 import { useLocalStorage } from './useLocalStorage'
+
+const EMPTY_SET: Set<string> = new Set()
 
 // --- Planning period granularity (TASK-1) ---
 
@@ -86,6 +89,21 @@ export function useAvailabilityConfirm() {
   return useLocalStorage<ConfirmMap>(CONFIRM_KEY, {})
 }
 
+// --- Holidays explicitly marked as working days (per ISO date) ---
+// Independent of the day's hours, so the toggle can be turned off without
+// zeroing the number.
+
+const WORKING_HOLIDAYS_KEY = 'dr-working-holidays'
+
+export function useWorkingHolidays() {
+  const [list, setList] = useLocalStorage<string[]>(WORKING_HOLIDAYS_KEY, [])
+  const set = useMemo(() => new Set(list), [list])
+  const isWorking = (iso: string) => set.has(iso)
+  const setWorking = (iso: string, next: boolean) =>
+    setList((prev) => (next ? (prev.includes(iso) ? prev : [...prev, iso]) : prev.filter((x) => x !== iso)))
+  return { set, isWorking, setWorking } as const
+}
+
 // --- Dashboard chart-type preferences (TASK-19), persisted per user ---
 
 export type ChartType = 'bar' | 'line' | 'area'
@@ -153,26 +171,36 @@ export function plannedHoursForDay(
   iso: string,
   plan: PlanMap,
   settings: AvailabilitySettings,
-  holidays: Set<string>
+  holidays: Set<string>,
+  workingHolidays: Set<string> = EMPTY_SET
 ): number {
-  if (iso in plan) return plan[iso]
   const weekday = parseISO(iso).getDay() as Weekday
-  if (holidays.has(iso) && !settings.operateOnHolidays) return 0
+  if (holidays.has(iso)) {
+    // A holiday is off unless explicitly marked a working day for that date.
+    // This is independent of the hours value, so you can toggle it off without
+    // losing the number you typed.
+    if (!workingHolidays.has(iso)) return 0
+    if (iso in plan) return plan[iso]
+    return settings.defaultHoursByWeekday[weekday] ?? 0
+  }
+  if (iso in plan) return plan[iso]
   if (!settings.workingDays.includes(weekday)) return 0
   return settings.defaultHoursByWeekday[weekday] ?? 0
 }
 
-// Total *default* planned hours for a month (used by the Settings preview).
+// Total planned hours for a month (used by the Settings preview).
 export function plannedHoursForMonth(
   year: number,
   month: number,
   plan: PlanMap,
   settings: AvailabilitySettings,
-  holidays: Set<string>
+  holidays: Set<string>,
+  workingHolidays: Set<string> = EMPTY_SET
 ): number {
   let total = 0
   const n = daysInMonth(year, month)
-  for (let d = 1; d <= n; d++) total += plannedHoursForDay(isoOf(year, month, d), plan, settings, holidays)
+  for (let d = 1; d <= n; d++)
+    total += plannedHoursForDay(isoOf(year, month, d), plan, settings, holidays, workingHolidays)
   return total
 }
 

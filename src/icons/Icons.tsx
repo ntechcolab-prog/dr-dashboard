@@ -299,3 +299,12 @@ export const Sparkle = (p: IconProps) => (
     <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />
   </Svg>
 )
+
+// Panel with a left rail + left chevron — "collapse the side menu".
+export const PanelLeftCollapse = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="9" y1="3" x2="9" y2="21" />
+    <polyline points="16 9 13 12 16 15" />
+  </Svg>
+)

@@ -36,6 +36,8 @@ interface Props {
   setConfirm: (updater: (prev: ConfirmMap) => ConfirmMap) => void
   holidaySet: Set<string> // single source of truth, passed from the tab
   holidayName: (iso: string) => string | undefined
+  workingHolidays: Set<string> // holidays explicitly marked as working days
+  onToggleWorkingHoliday: (iso: string, next: boolean) => void
 }
 
 const MONTH_NAMES = [
@@ -68,6 +70,8 @@ export default function PlanningCalendar({
   setConfirm,
   holidaySet,
   holidayName,
+  workingHolidays,
+  onToggleWorkingHoliday,
 }: Props) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month])
 
@@ -78,18 +82,12 @@ export default function PlanningCalendar({
   const setDay = (iso: string, hours: number) =>
     setPlan((prev) => ({ ...prev, [iso]: hours }))
 
-  const removeDay = (iso: string) =>
-    setPlan((prev) => {
-      const next = { ...prev }
-      delete next[iso]
-      return next
-    })
-
-  // Resolve the default hours a working day would receive (holiday-aware).
+  // Resolve the default hours a day would receive (holiday-aware: a holiday is
+  // off unless it's been marked a working day).
   const defaultFor = (day: number): number => {
     const iso = isoOf(year, month, day)
     const weekday = new Date(year, month, day).getDay() as Weekday
-    if (holidaySet.has(iso) && !settings.operateOnHolidays) return 0
+    if (holidaySet.has(iso)) return workingHolidays.has(iso) ? settings.defaultHoursByWeekday[weekday] ?? 0 : 0
     if (!settings.workingDays.includes(weekday)) return 0
     return settings.defaultHoursByWeekday[weekday] ?? 0
   }
@@ -115,7 +113,7 @@ export default function PlanningCalendar({
       for (let d = 1; d <= n; d++) {
         const wd = new Date(year, month, d).getDay() as Weekday
         if (wd in firstByWeekday) continue
-        firstByWeekday[wd] = plannedHoursForDay(isoOf(year, month, d), prev, settings, holidaySet)
+        firstByWeekday[wd] = plannedHoursForDay(isoOf(year, month, d), prev, settings, holidaySet, workingHolidays)
       }
       for (let d = 1; d <= n; d++) {
         const wd = new Date(year, month, d).getDay() as Weekday
@@ -139,7 +137,7 @@ export default function PlanningCalendar({
       for (let d = 1; d <= n; d++) {
         if (d > prevN) continue
         const srcIso = isoOf(prevYear, prevMonth, d)
-        next[isoOf(year, month, d)] = plannedHoursForDay(srcIso, prev, settings, srcHolidays)
+        next[isoOf(year, month, d)] = plannedHoursForDay(srcIso, prev, settings, srcHolidays, workingHolidays)
       }
       return next
     })
@@ -197,7 +195,7 @@ export default function PlanningCalendar({
     let offDays = 0
     for (let d = 1; d <= totalDays; d++) {
       const iso = isoOf(year, month, d)
-      const h = plannedHoursForDay(iso, plan, settings, holidaySet)
+      const h = plannedHoursForDay(iso, plan, settings, holidaySet, workingHolidays)
       if (holidaySet.has(iso)) holidayCount++
       if (h > 0) {
         planned += h
@@ -381,11 +379,11 @@ export default function PlanningCalendar({
                 const weekday = di as Weekday
                 const isHoliday = holidaySet.has(iso)
                 const isWorkingWeekday = settings.workingDays.includes(weekday)
-                const hours = plannedHoursForDay(iso, plan, settings, holidaySet)
-                // A holiday is a working day only when explicitly given hours.
-                const holidayWorking = isHoliday && hours > 0
+                // A holiday is a working day only when explicitly toggled on —
+                // independent of the hours, so toggling off keeps the number.
+                const holidayWorking = isHoliday && workingHolidays.has(iso)
                 const editable = isHoliday ? holidayWorking : isWorkingWeekday
-                const weekdayDefault = settings.defaultHoursByWeekday[weekday] || 8
+                const hours = plannedHoursForDay(iso, plan, settings, holidaySet, workingHolidays)
                 return (
                   <DayPlanCell
                     key={di}
@@ -399,9 +397,7 @@ export default function PlanningCalendar({
                     locked={locked}
                     maxHours={maxHours}
                     onSet={(h) => setDay(iso, h)}
-                    onToggleHolidayWorking={
-                      isHoliday ? (next) => (next ? setDay(iso, weekdayDefault) : removeDay(iso)) : undefined
-                    }
+                    onToggleHolidayWorking={isHoliday ? (next) => onToggleWorkingHoliday(iso, next) : undefined}
                   />
                 )
               })}
