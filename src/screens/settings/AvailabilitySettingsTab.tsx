@@ -174,7 +174,17 @@ export default function AvailabilitySettingsTab() {
 
         {scheduleMode === 'manual' ? (
           <>
-            <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted">Working days · select a day to set its hours</p>
+              <button
+                type="button"
+                onClick={() => setShowApplyPeriod((v) => !v)}
+                className="flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-primary hover:text-primary"
+              >
+                <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
+                Apply schedule to a period
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((d) => {
                 const on = settings.workingDays.includes(d)
@@ -210,51 +220,40 @@ export default function AvailabilitySettingsTab() {
             </div>
 
             {/* Apply the working schedule across a date range (revealed on click) */}
-            <div className="mt-6 border-t border-line pt-4">
-              <button
-                type="button"
-                onClick={() => setShowApplyPeriod((v) => !v)}
-                className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink transition-colors hover:border-primary hover:text-primary"
-              >
-                <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
-                Apply schedule to a period
-              </button>
-
-              {showApplyPeriod && (
-                <div className="mt-4">
-                  <div className="flex flex-wrap items-end gap-3">
-                    <Field label="Start" className="w-44">
-                      <input
-                        type="date"
-                        value={applyStart}
-                        onChange={(e) => setApplyStart(e.target.value)}
-                        className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
-                      />
-                    </Field>
-                    <Field label="End" className="w-44">
-                      <input
-                        type="date"
-                        value={applyEnd}
-                        onChange={(e) => setApplyEnd(e.target.value)}
-                        className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
-                      />
-                    </Field>
-                    <button
-                      type="button"
-                      onClick={applyRange}
-                      disabled={!applyStart || !applyEnd}
-                      className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted">
-                    Fills every day in the range with its weekday’s hours (non-working days and holidays stay off
-                    unless marked as working).
-                  </p>
+            {showApplyPeriod && (
+              <div className="mt-5 border-t border-line pt-4">
+                <div className="flex flex-wrap items-end gap-3">
+                  <Field label="Start" className="w-44">
+                    <input
+                      type="date"
+                      value={applyStart}
+                      onChange={(e) => setApplyStart(e.target.value)}
+                      className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+                    />
+                  </Field>
+                  <Field label="End" className="w-44">
+                    <input
+                      type="date"
+                      value={applyEnd}
+                      onChange={(e) => setApplyEnd(e.target.value)}
+                      className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+                    />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={applyRange}
+                    disabled={!applyStart || !applyEnd}
+                    className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    Apply
+                  </button>
                 </div>
-              )}
-            </div>
+                <p className="mt-2 text-xs text-muted">
+                  Fills every day in the range with its weekday’s hours (non-working days and holidays stay off
+                  unless marked as working).
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <div>
