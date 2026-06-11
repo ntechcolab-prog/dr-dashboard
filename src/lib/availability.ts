@@ -170,22 +170,16 @@ export function isoWeekKey(date: Date): string {
 export function plannedHoursForDay(
   iso: string,
   plan: PlanMap,
-  settings: AvailabilitySettings,
+  _settings: AvailabilitySettings,
   holidays: Set<string>,
   workingHolidays: Set<string> = EMPTY_SET
 ): number {
-  const weekday = parseISO(iso).getDay() as Weekday
-  if (holidays.has(iso)) {
-    // A holiday is off unless explicitly marked a working day for that date.
-    // This is independent of the hours value, so you can toggle it off without
-    // losing the number you typed.
-    if (!workingHolidays.has(iso)) return 0
-    if (iso in plan) return plan[iso]
-    return settings.defaultHoursByWeekday[weekday] ?? 0
-  }
-  if (iso in plan) return plan[iso]
-  if (!settings.workingDays.includes(weekday)) return 0
-  return settings.defaultHoursByWeekday[weekday] ?? 0
+  // The plan is the single source of truth — the working schedule is only a
+  // template applied via "Apply" / "Fill", never an automatic fallback. So a
+  // day shows hours only when it has an explicit plan entry (any day, including
+  // weekends). A holiday counts only when toggled to a working day.
+  if (holidays.has(iso) && !workingHolidays.has(iso)) return 0
+  return iso in plan ? plan[iso] : 0
 }
 
 // Total planned hours for a month (used by the Settings preview).

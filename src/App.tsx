@@ -19,10 +19,10 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      <AppHeader onToggleSidebar={() => setSidebarOpen((v) => !v)} name={appName} icon={appIcon} />
+      <AppHeader name={appName} icon={appIcon} />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar open={sidebarOpen} active={activeNav} onSelect={setActiveNav} />
+        <Sidebar open={sidebarOpen} active={activeNav} onSelect={setActiveNav} onToggle={() => setSidebarOpen((v) => !v)} />
 
         <main className="flex-1 overflow-auto">
           {activeNav === 'dashboard' && <DashboardScreen onNavigate={setActiveNav} />}

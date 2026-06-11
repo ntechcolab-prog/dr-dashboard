@@ -8,6 +8,8 @@ import {
   WEEKDAY_LONG,
   parseISO,
   toISO,
+  isoOf,
+  daysInMonth,
   plannedHoursForMonth,
   useAvailabilitySettings,
   useAvailabilityPlan,
@@ -16,6 +18,12 @@ import {
   type Weekday,
 } from '../../lib/availability'
 import { useHolidays } from '../../lib/holidays'
+import { parseAssistant, type ParsedRule } from '../../components/planning/assistantParser'
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
 
 export default function AvailabilitySettingsTab() {
   const [settings, setSettings] = useAvailabilitySettings()
@@ -32,6 +40,27 @@ export default function AvailabilitySettingsTab() {
   // Apply-over-range (working schedule → plan).
   const [applyStart, setApplyStart] = useState('')
   const [applyEnd, setApplyEnd] = useState('')
+
+  // Planning assistant (natural language → plan for the viewed month).
+  const [assistantText, setAssistantText] = useState('')
+  const [preview, setPreview] = useState<ParsedRule | null>(null)
+  const parseAssistantNow = () => setPreview(parseAssistant(assistantText))
+  const applyAssistant = () => {
+    if (!preview) return
+    setPlan((prev) => {
+      const next = { ...prev }
+      const n = daysInMonth(year, month)
+      const bound = preview.untilDay ?? n
+      for (let d = 1; d <= Math.min(bound, n); d++) {
+        const wd = new Date(year, month, d).getDay() as Weekday
+        const h = preview.hoursByWeekday[wd]
+        if (h != null) next[isoOf(year, month, d)] = h
+      }
+      return next
+    })
+    setPreview(null)
+    setAssistantText('')
+  }
 
   const applyRange = () => {
     if (!applyStart || !applyEnd) return
@@ -118,58 +147,46 @@ export default function AvailabilitySettingsTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Working schedule — defines what the calendar fills with */}
+      {/* Working schedule */}
       <FormSection title="Working schedule">
-        <p className="mb-2 text-sm text-muted">Working days</p>
+        <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
         <div className="flex flex-wrap gap-2">
           {WEEKDAYS.map((d) => {
             const on = settings.workingDays.includes(d)
             return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => toggleWorkingDay(d)}
-                className={`min-w-[3.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                  on
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-line text-muted hover:border-primary hover:text-primary'
-                }`}
-              >
-                {WEEKDAY_LABELS[d]}
-              </button>
+              <div key={d} className="flex w-[4.75rem] flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => toggleWorkingDay(d)}
+                  className={`rounded-lg border px-2 py-2 text-sm font-medium transition-colors ${
+                    on
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-line text-muted hover:border-primary hover:text-primary'
+                  }`}
+                >
+                  {WEEKDAY_LABELS[d]}
+                </button>
+                {on && (
+                  <div className="flex items-center rounded-lg border border-line bg-white px-2 py-1.5 focus-within:border-primary">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={settings.defaultHoursByWeekday[d] ?? 0}
+                      onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
+                      className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
+                    />
+                    <span className="text-xs text-muted">h</span>
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
 
-        <div className="mt-6">
-          <p className="mb-2 text-sm text-muted">Default time per day</p>
-          {settings.workingDays.length === 0 ? (
-            <p className="text-sm text-faint">Select at least one working day above.</p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {[...settings.workingDays]
-                .sort((a, b) => a - b)
-                .map((d) => (
-                  <div key={d} className="flex items-center gap-2">
-                    <span className="w-9 text-sm text-ink">{WEEKDAY_LABELS[d]}</span>
-                    <div className="w-24">
-                      <NumberBox
-                        value={settings.defaultHoursByWeekday[d] ?? 0}
-                        suffix="h"
-                        min={0}
-                        step={0.5}
-                        onChange={(n) => setDefaultHours(d, n)}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-
         {/* Apply the working schedule across a date range */}
         <div className="mt-6 border-t border-line pt-4">
-          <p className="mb-2 text-sm text-muted">Apply schedule to a period</p>
+          <p className="mb-2 text-sm font-medium text-ink">Apply schedule to a period</p>
           <div className="flex flex-wrap items-end gap-3">
             <Field label="Start" className="w-44">
               <input
@@ -197,9 +214,74 @@ export default function AvailabilitySettingsTab() {
             </button>
           </div>
           <p className="mt-2 text-xs text-muted">
-            Fills every day in the range with its weekday’s default hours (non-working days and holidays stay off
-            unless marked as working).
+            Fills every day in the range with its weekday’s hours (non-working days and holidays stay off unless
+            marked as working).
           </p>
+        </div>
+
+        {/* or — Planning assistant (always open) */}
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-line" />
+          <span className="text-xs font-medium uppercase tracking-wide text-faint">or</span>
+          <div className="h-px flex-1 bg-line" />
+        </div>
+
+        <div className="mt-4">
+          <p className="mb-1 text-sm font-medium text-ink">Use the Planning assistant</p>
+          <p className="mb-3 text-xs text-muted">
+            Describe the plan in plain English — applied to {MONTH_NAMES[month]} {year} (the month shown in the calendar below).
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              value={assistantText}
+              onChange={(e) => {
+                setAssistantText(e.target.value)
+                setPreview(null)
+              }}
+              placeholder="Mondays, Tuesdays and Wednesdays for 8h, Thursdays and Fridays for 4h until day 20"
+              className="min-w-0 flex-1 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={parseAssistantNow}
+              disabled={!assistantText.trim()}
+              className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            >
+              Parse
+            </button>
+          </div>
+
+          {preview && (
+            <div className="mt-3 rounded-lg border border-line bg-page/50 p-3">
+              {Object.keys(preview.hoursByWeekday).length === 0 ? (
+                <p className="text-sm text-down">Couldn’t read any weekday + hours from that.</p>
+              ) : (
+                <>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Parsed plan</p>
+                  <ul className="flex flex-wrap gap-2 text-sm">
+                    {(Object.entries(preview.hoursByWeekday) as [string, number][])
+                      .sort((a, b) => Number(a[0]) - Number(b[0]))
+                      .map(([wd, h]) => (
+                        <li key={wd} className="rounded-md bg-primary-soft px-2.5 py-1 font-medium text-primary">
+                          {WEEKDAY_LONG[Number(wd)]} · {h}h
+                        </li>
+                      ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-muted">
+                    {preview.untilDay ? `Applies to days 1–${preview.untilDay}.` : 'Applies to the whole month.'}
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button type="button" onClick={applyAssistant} className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                      Apply
+                    </button>
+                    <button type="button" onClick={() => setPreview(null)} className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-muted hover:text-ink">
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </FormSection>
 
@@ -330,38 +412,3 @@ export default function AvailabilitySettingsTab() {
 }
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-// Number input matching the FormControls field box, but value-as-number.
-function NumberBox({
-  value,
-  onChange,
-  suffix,
-  min,
-  max,
-  step,
-}: {
-  value: number
-  onChange: (n: number) => void
-  suffix?: string
-  min?: number
-  max?: number
-  step?: number
-}) {
-  return (
-    <div className="flex w-full items-center gap-2 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink transition-colors focus-within:border-primary">
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => {
-          const n = e.target.value === '' ? 0 : Number(e.target.value)
-          onChange(Number.isFinite(n) ? n : 0)
-        }}
-        className="min-w-0 flex-1 bg-transparent tabular-nums outline-none"
-      />
-      {suffix && <span className="shrink-0 text-muted">{suffix}</span>}
-    </div>
-  )
-}

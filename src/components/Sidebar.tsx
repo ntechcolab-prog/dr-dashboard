@@ -1,4 +1,4 @@
-import { DashboardIcon, RegistryIcon, AnalysisIcon, ExampleIcon, Gear, type IconProps } from '../icons/Icons'
+import { DashboardIcon, RegistryIcon, AnalysisIcon, ExampleIcon, Gear, PanelLeftCollapse, type IconProps } from '../icons/Icons'
 import type { ComponentType } from 'react'
 
 interface NavItem {
@@ -20,17 +20,18 @@ interface SidebarProps {
   open: boolean
   active: string
   onSelect: (key: string) => void
+  onToggle: () => void
 }
 
 // Expanded (264px, icon + label) or collapsed to an icon rail (72px).
-export default function Sidebar({ open, active, onSelect }: SidebarProps) {
+export default function Sidebar({ open, active, onSelect, onToggle }: SidebarProps) {
   return (
     <aside
       className={`${
         open ? 'w-[16.5rem]' : 'w-[4.5rem]'
-      } shrink-0 overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
+      } flex shrink-0 flex-col overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
     >
-      <nav className="flex flex-col gap-1 p-3 pt-4">
+      <nav className="flex flex-1 flex-col gap-1 p-3 pt-4">
         {NAV.map(({ key, label, Icon, disabled }) => {
           const isActive = key === active
           return (
@@ -76,6 +77,21 @@ export default function Sidebar({ open, active, onSelect }: SidebarProps) {
           className="h-10 w-full cursor-default bg-transparent"
         />
       </nav>
+
+      {/* Collapse / expand control, pinned to the bottom of the side menu */}
+      <div className="border-t border-white/10 p-3">
+        <button
+          onClick={onToggle}
+          title={open ? 'Collapse menu' : 'Expand menu'}
+          aria-label={open ? 'Collapse menu' : 'Expand menu'}
+          className={`flex w-full items-center gap-3 rounded-md py-2.5 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white ${
+            open ? 'px-3' : 'justify-center px-0'
+          }`}
+        >
+          <PanelLeftCollapse size={20} className={`shrink-0 transition-transform ${open ? '' : 'rotate-180'}`} />
+          {open && <span className="truncate">Collapse</span>}
+        </button>
+      </div>
     </aside>
   )
 }

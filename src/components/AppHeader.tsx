@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AppsGrid, PanelLeftCollapse, Calendar, Bell, ChevronDown } from '../icons/Icons'
+import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
 import { buildWeeks } from '../lib/weeks'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays, isoOf } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 
 interface AppHeaderProps {
-  onToggleSidebar: () => void
   name: string
   icon: string | null
 }
@@ -39,22 +38,13 @@ const INITIAL_NOTIFS: Notification[] = [
   { id: 4, text: 'Monthly report for March is ready.', time: 'Yesterday', read: true },
 ]
 
-export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProps) {
+export default function AppHeader({ name, icon }: AppHeaderProps) {
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS)
   const unread = notifs.filter((n) => !n.read).length
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between bg-header px-4 text-white">
       <div className="flex items-center gap-1.5">
-        {/* Collapse / expand the side menu */}
-        <button
-          onClick={onToggleSidebar}
-          className="grid h-9 w-9 place-items-center rounded-md text-white/80 hover:bg-white/10"
-          aria-label="Collapse or expand menu"
-        >
-          <PanelLeftCollapse size={20} />
-        </button>
-
         {/* NETZSCH product launcher */}
         <Popover
           icon={<AppsGrid size={20} />}

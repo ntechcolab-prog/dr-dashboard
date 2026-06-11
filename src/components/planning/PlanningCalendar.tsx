@@ -1,18 +1,7 @@
-import { useMemo, useState } from 'react'
-import {
-  ChevronLeft,
-  ChevronRight,
-  Wand,
-  Copy,
-  Refresh,
-  Sun,
-  CalendarCheck,
-  CheckCircle,
-  Close,
-} from '../../icons/Icons'
+import { useMemo } from 'react'
+import { ChevronLeft, ChevronRight, Sun, CalendarCheck } from '../../icons/Icons'
 import {
   WEEKDAY_LABELS,
-  WEEKDAY_LONG,
   daysInMonth,
   isoOf,
   monthKey,
@@ -22,7 +11,6 @@ import {
   type ConfirmMap,
   type Weekday,
 } from '../../lib/availability'
-import { parseAssistant, type ParsedRule } from './assistantParser'
 
 interface Props {
   year: number
@@ -75,101 +63,12 @@ export default function PlanningCalendar({
 }: Props) {
   const weeks = useMemo(() => buildWeeks(year, month), [year, month])
 
-  const [assistantOpen, setAssistantOpen] = useState(false)
-  const [assistantText, setAssistantText] = useState('')
-  const [preview, setPreview] = useState<ParsedRule | null>(null)
-
   const setDay = (iso: string, hours: number) =>
     setPlan((prev) => ({ ...prev, [iso]: hours }))
 
-  // Resolve the default hours a day would receive (holiday-aware: a holiday is
-  // off unless it's been marked a working day).
-  const defaultFor = (day: number): number => {
-    const iso = isoOf(year, month, day)
-    const weekday = new Date(year, month, day).getDay() as Weekday
-    if (holidaySet.has(iso)) return workingHolidays.has(iso) ? settings.defaultHoursByWeekday[weekday] ?? 0 : 0
-    if (!settings.workingDays.includes(weekday)) return 0
-    return settings.defaultHoursByWeekday[weekday] ?? 0
-  }
-
-  // --- Toolbar actions ---
-
-  // TASK-7: fill every day of the month with its weekday default (holidays→0).
-  const fillWithDefault = () => {
-    setPlan((prev) => {
-      const next = { ...prev }
-      const n = daysInMonth(year, month)
-      for (let d = 1; d <= n; d++) next[isoOf(year, month, d)] = defaultFor(d)
-      return next
-    })
-  }
-
-  // TASK-8: for each weekday, take its first occurrence's hours and apply to all.
-  const replicateWeekday = () => {
-    setPlan((prev) => {
-      const next = { ...prev }
-      const n = daysInMonth(year, month)
-      const firstByWeekday: Partial<Record<Weekday, number>> = {}
-      for (let d = 1; d <= n; d++) {
-        const wd = new Date(year, month, d).getDay() as Weekday
-        if (wd in firstByWeekday) continue
-        firstByWeekday[wd] = plannedHoursForDay(isoOf(year, month, d), prev, settings, holidaySet, workingHolidays)
-      }
-      for (let d = 1; d <= n; d++) {
-        const wd = new Date(year, month, d).getDay() as Weekday
-        const h = firstByWeekday[wd]
-        if (h != null) next[isoOf(year, month, d)] = h
-      }
-      return next
-    })
-  }
-
-  // TASK-10: copy previous month's plan by day-of-month into this month.
-  const copyFromLastMonth = () => {
-    const prevMonth = month === 0 ? 11 : month - 1
-    const prevYear = month === 0 ? year - 1 : year
-    // Source holidays are only on hand when last month is in the loaded year.
-    const srcHolidays = prevYear === year ? holidaySet : new Set<string>()
-    setPlan((prev) => {
-      const next = { ...prev }
-      const n = daysInMonth(year, month)
-      const prevN = daysInMonth(prevYear, prevMonth)
-      for (let d = 1; d <= n; d++) {
-        if (d > prevN) continue
-        const srcIso = isoOf(prevYear, prevMonth, d)
-        next[isoOf(year, month, d)] = plannedHoursForDay(srcIso, prev, settings, srcHolidays, workingHolidays)
-      }
-      return next
-    })
-  }
-
-  // TASK-9: assistant — parse text into a rule preview.
-  const runAssistantParse = () => setPreview(parseAssistant(assistantText))
-
-  const applyAssistant = () => {
-    if (!preview) return
-    setPlan((prev) => {
-      const next = { ...prev }
-      const n = daysInMonth(year, month)
-      const bound = preview.untilDay ?? n
-      for (let d = 1; d <= Math.min(bound, n); d++) {
-        const wd = new Date(year, month, d).getDay() as Weekday
-        const h = preview.hoursByWeekday[wd]
-        if (h != null) next[isoOf(year, month, d)] = h
-      }
-      return next
-    })
-    setPreview(null)
-    setAssistantText('')
-    setAssistantOpen(false)
-  }
-
-  // --- Confirmation (TASK-11) ---
+  // --- Confirmation (per week) ---
 
   const monthMk = monthKey(year, month)
-  const monthConfirmed = !!confirm[monthMk]
-  const toggleMonth = () =>
-    setConfirm((prev) => ({ ...prev, [monthMk]: !prev[monthMk] }))
 
   // One key per calendar row of the month — unique so confirming one week never
   // bleeds into another (ISO week numbers collide across Sunday-started rows).
@@ -232,105 +131,7 @@ export default function PlanningCalendar({
             <ChevronRight size={16} />
           </button>
         </div>
-
-        <button
-          onClick={toggleMonth}
-          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            monthConfirmed
-              ? 'bg-primary text-white'
-              : 'border border-primary text-primary hover:bg-primary-soft'
-          }`}
-        >
-          <CalendarCheck size={16} />
-          {monthConfirmed ? 'Month confirmed' : 'OK month'}
-        </button>
       </div>
-
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <ToolbarButton icon={<CheckCircle size={15} />} label="Fill with default" onClick={fillWithDefault} />
-        <ToolbarButton icon={<Refresh size={15} />} label="Replicate weekday" onClick={replicateWeekday} />
-        <ToolbarButton icon={<Copy size={15} />} label="Copy from last month" onClick={copyFromLastMonth} />
-        <ToolbarButton
-          icon={<Wand size={15} />}
-          label="Planning assistant"
-          onClick={() => setAssistantOpen((v) => !v)}
-          active={assistantOpen}
-        />
-      </div>
-
-      {/* Assistant panel */}
-      {assistantOpen && (
-        <div className="mb-4 rounded-lg border border-primary/40 bg-primary-soft/40 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-ink">
-            <Wand size={16} className="text-primary" />
-            Planning assistant
-          </div>
-          <p className="mt-1 text-xs text-muted">
-            Describe the plan in plain English. The rule is applied to {MONTH_NAMES[month]} {year}.
-          </p>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              value={assistantText}
-              onChange={(e) => {
-                setAssistantText(e.target.value)
-                setPreview(null)
-              }}
-              placeholder="Mondays, Tuesdays and Wednesdays for 8h, Thursdays and Fridays for 4h until day 20"
-              className="min-w-0 flex-1 rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
-            />
-            <button
-              onClick={runAssistantParse}
-              className="shrink-0 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
-            >
-              Parse
-            </button>
-          </div>
-
-          {preview && (
-            <div className="mt-3 rounded-lg border border-line bg-white p-3">
-              {Object.keys(preview.hoursByWeekday).length === 0 ? (
-                <p className="text-sm text-down">Couldn't read any weekday + hours from that.</p>
-              ) : (
-                <>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Parsed plan</p>
-                  <ul className="flex flex-wrap gap-2 text-sm text-ink">
-                    {(Object.entries(preview.hoursByWeekday) as [string, number][])
-                      .sort((a, b) => Number(a[0]) - Number(b[0]))
-                      .map(([wd, h]) => (
-                        <li
-                          key={wd}
-                          className="rounded-md bg-primary-soft px-2.5 py-1 font-medium text-primary"
-                        >
-                          {WEEKDAY_LONG[Number(wd)]} · {h}h
-                        </li>
-                      ))}
-                  </ul>
-                  <p className="mt-2 text-xs text-muted">
-                    {preview.untilDay
-                      ? `Applied to days 1–${preview.untilDay} of the month.`
-                      : 'Applied to the whole month.'}
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={applyAssistant}
-                      className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-                    >
-                      <CheckCircle size={15} /> Apply
-                    </button>
-                    <button
-                      onClick={() => setPreview(null)}
-                      className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-medium text-muted hover:text-ink"
-                    >
-                      <Close size={15} /> Cancel
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Summary strip — read the month at a glance */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -363,7 +164,7 @@ export default function PlanningCalendar({
         {weeks.map((week, wi) => {
           const wk = weekKeyOf(wi)
           const weekConfirmed = !!confirm[wk]
-          const locked = weekConfirmed || monthConfirmed
+          const locked = weekConfirmed
           return (
             <div
               key={wi}
@@ -382,7 +183,9 @@ export default function PlanningCalendar({
                 // A holiday is a working day only when explicitly toggled on —
                 // independent of the hours, so toggling off keeps the number.
                 const holidayWorking = isHoliday && workingHolidays.has(iso)
-                const editable = isHoliday ? holidayWorking : isWorkingWeekday
+                // Any non-holiday day with planned hours is shown/editable — even
+                // weekends, so hours added from the header reflect here too.
+                const editable = isHoliday ? holidayWorking : isWorkingWeekday || (plan[iso] ?? 0) > 0
                 const hours = plannedHoursForDay(iso, plan, settings, holidaySet, workingHolidays)
                 return (
                   <DayPlanCell
@@ -595,28 +398,3 @@ function DayPlanCell({
   )
 }
 
-function ToolbarButton({
-  icon,
-  label,
-  onClick,
-  active,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  active?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-        active
-          ? 'border-primary bg-primary-soft text-primary'
-          : 'border-line text-muted hover:border-primary hover:text-primary'
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
-  )
-}
