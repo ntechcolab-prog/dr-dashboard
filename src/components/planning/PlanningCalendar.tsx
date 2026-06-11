@@ -78,6 +78,13 @@ export default function PlanningCalendar({
   const setDay = (iso: string, hours: number) =>
     setPlan((prev) => ({ ...prev, [iso]: hours }))
 
+  const removeDay = (iso: string) =>
+    setPlan((prev) => {
+      const next = { ...prev }
+      delete next[iso]
+      return next
+    })
+
   // Resolve the default hours a working day would receive (holiday-aware).
   const defaultFor = (day: number): number => {
     const iso = isoOf(year, month, day)
@@ -373,15 +380,18 @@ export default function PlanningCalendar({
                 const iso = isoOf(year, month, day)
                 const weekday = di as Weekday
                 const isHoliday = holidaySet.has(iso)
-                const isWorking = settings.workingDays.includes(weekday)
-                const countsAsOff = (isHoliday && !settings.operateOnHolidays) || !isWorking
+                const isWorkingWeekday = settings.workingDays.includes(weekday)
                 const hours = plannedHoursForDay(iso, plan, settings, holidaySet)
+                // A holiday is a working day only when explicitly given hours.
+                const holidayWorking = isHoliday && hours > 0
+                const editable = isHoliday ? holidayWorking : isWorkingWeekday
+                const weekdayDefault = settings.defaultHoursByWeekday[weekday] || 8
                 return (
                   <DayPlanCell
                     key={di}
                     day={day}
                     hours={hours}
-                    editable={!countsAsOff}
+                    editable={editable}
                     isHoliday={isHoliday}
                     holidayLabel={isHoliday ? holidayName(iso) : undefined}
                     isOverride={iso in plan}
@@ -389,6 +399,9 @@ export default function PlanningCalendar({
                     locked={locked}
                     maxHours={maxHours}
                     onSet={(h) => setDay(iso, h)}
+                    onToggleHolidayWorking={
+                      isHoliday ? (next) => (next ? setDay(iso, weekdayDefault) : removeDay(iso)) : undefined
+                    }
                   />
                 )
               })}
@@ -464,6 +477,7 @@ function DayPlanCell({
   locked,
   maxHours,
   onSet,
+  onToggleHolidayWorking,
 }: {
   day: number
   hours: number
@@ -475,6 +489,7 @@ function DayPlanCell({
   locked: boolean
   maxHours: number
   onSet: (h: number) => void
+  onToggleHolidayWorking?: (next: boolean) => void
 }) {
   const hasHours = hours > 0
   // Heatmap tint for working days that have hours.
@@ -484,7 +499,7 @@ function DayPlanCell({
 
   return (
     <div
-      className={`relative min-h-[5.5rem] border-r border-line p-2 last:border-r-0 ${ring} ${
+      className={`relative flex min-h-[6rem] flex-col border-r border-line p-2 last:border-r-0 ${ring} ${
         isHoliday && !editable ? 'bg-[#fdf3e2]' : !editable ? 'bg-page/50' : ''
       }`}
       style={{ background: tint }}
@@ -503,58 +518,83 @@ function DayPlanCell({
       </div>
 
       {/* body */}
-      {!editable ? (
-        <div className="mt-2 flex flex-col">
-          <span className="text-[0.6875rem] font-medium text-faint">{isHoliday ? 'Holiday' : 'Day off'}</span>
-          {isHoliday && holidayLabel && (
-            <span className="mt-0.5 truncate text-[0.625rem] text-muted">{holidayLabel}</span>
-          )}
-        </div>
-      ) : locked ? (
-        <div className="mt-2 flex items-baseline gap-0.5">
-          <span className="text-lg font-bold tabular-nums text-ink">{hours}</span>
-          <span className="text-xs text-muted">h</span>
-        </div>
-      ) : (
-        <div className="mt-1.5">
-          <div
-            className={`flex items-center justify-center gap-1 rounded-lg ${
-              hasHours ? '' : 'border border-dashed border-faint'
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => onSet(Math.max(0, Math.round((hours - 1) * 2) / 2))}
-              aria-label="Decrease hours"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
-            >
-              <span className="text-base leading-none">−</span>
-            </button>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={hours}
-              onChange={(e) => {
-                const v = e.target.value === '' ? 0 : Number(e.target.value)
-                onSet(Number.isFinite(v) ? Math.max(0, v) : 0)
-              }}
-              className={`w-9 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
-                hasHours ? 'text-ink' : 'text-faint'
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => onSet(Math.round((hours + 1) * 2) / 2)}
-              aria-label="Increase hours"
-              className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
-            >
-              <span className="text-base leading-none">+</span>
-            </button>
+      <div className="flex flex-1 flex-col">
+        {!editable ? (
+          <div className="mt-1.5 flex flex-col">
+            <span className="text-[0.6875rem] font-medium text-faint">{isHoliday ? 'Holiday' : 'Day off'}</span>
+            {isHoliday && holidayLabel && (
+              <span className="mt-0.5 truncate text-[0.625rem] text-muted">{holidayLabel}</span>
+            )}
           </div>
-          {!hasHours && <p className="mt-1 text-center text-[0.5625rem] text-faint">not set</p>}
-        </div>
-      )}
+        ) : locked ? (
+          <div className="mt-2 flex items-baseline gap-0.5">
+            <span className="text-lg font-bold tabular-nums text-ink">{hours}</span>
+            <span className="text-xs text-muted">h</span>
+          </div>
+        ) : (
+          <div className="mt-1.5">
+            <div
+              className={`flex items-center justify-center gap-1 rounded-lg ${
+                hasHours ? '' : 'border border-dashed border-faint'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => onSet(Math.max(0, Math.round((hours - 1) * 2) / 2))}
+                aria-label="Decrease hours"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
+              >
+                <span className="text-base leading-none">−</span>
+              </button>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={hours}
+                onChange={(e) => {
+                  const v = e.target.value === '' ? 0 : Number(e.target.value)
+                  onSet(Number.isFinite(v) ? Math.max(0, v) : 0)
+                }}
+                className={`no-spin w-10 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
+                  hasHours ? 'text-ink' : 'text-faint'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => onSet(Math.round((hours + 1) * 2) / 2)}
+                aria-label="Increase hours"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
+              >
+                <span className="text-base leading-none">+</span>
+              </button>
+            </div>
+            {!hasHours && <p className="mt-1 text-center text-[0.5625rem] text-faint">not set</p>}
+          </div>
+        )}
+
+        {/* per-holiday "this is a working day" toggle (replaces the global setting) */}
+        {isHoliday && !locked && onToggleHolidayWorking && (
+          <button
+            type="button"
+            onClick={() => onToggleHolidayWorking(!editable)}
+            className="mt-auto flex items-center gap-1.5 pt-1.5 text-[0.625rem] font-medium text-muted hover:text-ink"
+            title={editable ? 'Holiday set as a working day — click to make it a day off' : 'Make this holiday a working day'}
+          >
+            <span
+              className={`relative inline-flex h-3.5 w-6 shrink-0 items-center rounded-full transition-colors ${
+                editable ? 'bg-primary' : 'bg-line'
+              }`}
+            >
+              <span
+                className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow transition-transform ${
+                  editable ? 'translate-x-3' : 'translate-x-0.5'
+                }`}
+              />
+            </span>
+            Working day
+          </button>
+        )}
+      </div>
     </div>
   )
 }

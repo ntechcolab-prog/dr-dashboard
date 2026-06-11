@@ -107,6 +107,17 @@ body {
   @page { margin: 14mm; }
 }
 
+/* hide native number-input spinners (custom +/- steppers handle increment) */
+.no-spin::-webkit-inner-spin-button,
+.no-spin::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* thin scrollbars to match a product chrome */
 * {
   scrollbar-width: thin;

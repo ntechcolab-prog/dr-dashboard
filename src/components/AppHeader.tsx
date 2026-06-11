@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
+import { AppsGrid, Menu, Calendar, Bell, ChevronDown } from '../icons/Icons'
 import { buildWeeks } from '../lib/weeks'
+import { useAvailabilitySettings, useAvailabilityPlan, isoOf } from '../lib/availability'
+import { useHolidays } from '../lib/holidays'
+import { availabilityService } from '../data/availabilityData'
 
 interface AppHeaderProps {
   onToggleSidebar: () => void
@@ -42,14 +45,25 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between bg-header px-4 text-white">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5">
+        {/* Collapse / expand the side menu */}
         <button
           onClick={onToggleSidebar}
           className="grid h-9 w-9 place-items-center rounded-md text-white/80 hover:bg-white/10"
-          aria-label="Toggle menu"
+          aria-label="Collapse or expand menu"
         >
-          <AppsGrid size={20} />
+          <Menu size={20} />
         </button>
+
+        {/* NETZSCH product launcher */}
+        <Popover
+          icon={<AppsGrid size={20} />}
+          align="left"
+          panelClassName="w-80"
+          render={(close) => <ProductLauncher onPick={close} />}
+        />
+
+        <div className="ml-1 flex items-center gap-3">
         {icon ? (
           <img src={icon} alt="" className="h-8 w-auto max-w-[10rem] object-contain" />
         ) : (
@@ -58,6 +72,7 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
           </div>
         )}
         <span className="text-base font-medium tracking-tight">{name}</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-1">
@@ -154,18 +169,35 @@ function Popover({ icon, trigger, badge, align = 'right', panelClassName = '', r
   )
 }
 
+const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// Header mini-calendar wired to availability: each planned day shows whether it
+// met the monthly goal (teal) or fell short (amber); holidays get a dot; hover
+// surfaces a rich tooltip (availability %, planned vs executed, goal, holiday).
 function MiniCalendar() {
-  // April 2026 by default; navigable.
-  const [year, setYear] = useState(2026)
-  const [month, setMonth] = useState(3)
-  const today = { y: 2026, m: 3, d: 17 }
+  const now = new Date()
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth())
+
+  const [settings] = useAvailabilitySettings()
+  const [plan] = useAvailabilityPlan()
+  const holidays = useHolidays(year)
+  const goal = settings.monthlyGoalPct
+
   const weeks = buildWeeks(year, month)
+
+  const series = useMemo(
+    () => availabilityService.monthSeries(year, month, plan, settings, holidays.set),
+    [year, month, plan, settings, holidays.set]
+  )
 
   const shift = (delta: number) => {
     const d = new Date(year, month + delta, 1)
     setYear(d.getFullYear())
     setMonth(d.getMonth())
   }
+
+  const todayIso = isoOf(now.getFullYear(), now.getMonth(), now.getDate())
 
   return (
     <div className="p-3">
@@ -181,22 +213,48 @@ function MiniCalendar() {
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center text-xs">
         {weeks.flat().map((day, i) => {
-          const isToday = day === today.d && month === today.m && year === today.y
+          if (day == null) return <div key={i} className="h-9" />
+          const iso = isoOf(year, month, day)
+          const planned = series.planned[day - 1] ?? 0
+          const executed = series.executed[day - 1] ?? 0
+          const pct = series.pct[day - 1] ?? 0
+          const isHoliday = holidays.set.has(iso)
+          const isToday = iso === todayIso
+          const hasPlan = planned > 0
+          const met = hasPlan && pct >= goal
+
+          let dot = ''
+          if (hasPlan) dot = met ? 'bg-primary' : 'bg-warning'
+
+          // rich tooltip
+          const dname = WEEKDAY_LONG[new Date(year, month, day).getDay()]
+          let tip = `${dname}, ${day} ${MONTH_NAMES[month]} ${year}`
+          if (isHoliday) tip += ` · Holiday: ${holidays.nameOf(iso) ?? 'Holiday'}`
+          if (hasPlan) tip += ` · Availability ${pct}% (${executed}h/${planned}h) · ${met ? `goal met (≥${goal}%)` : `below goal (${goal}%)`}`
+          else if (!isHoliday) tip += ' · Day off'
+
           return (
             <div
               key={i}
-              className={`grid h-8 place-items-center rounded-md ${
-                day == null
-                  ? ''
-                  : isToday
-                  ? 'bg-primary font-semibold text-white'
-                  : 'text-ink hover:bg-page'
+              title={tip}
+              className={`relative grid h-9 cursor-default place-items-center rounded-md ${
+                isToday ? 'bg-primary font-semibold text-white' : isHoliday ? 'bg-[#fdf3e2] text-ink' : 'text-ink hover:bg-page'
               }`}
             >
-              {day ?? ''}
+              <span className={isHoliday && !isToday ? 'text-warning' : ''}>{day}</span>
+              {dot && !isToday && (
+                <span className={`absolute bottom-1 h-1 w-1 rounded-full ${dot}`} />
+              )}
             </div>
           )
         })}
+      </div>
+
+      {/* legend */}
+      <div className="mt-2 flex items-center justify-center gap-3 border-t border-line pt-2 text-[0.625rem] text-muted">
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-primary" /> Goal met</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warning" /> Below</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#fdf3e2] ring-1 ring-warning/40" /> Holiday</span>
       </div>
     </div>
   )
@@ -246,6 +304,107 @@ function AccountMenu() {
       <MenuItem label="Profile" onClick={() => {}} />
       <div className="my-1 border-t border-line" />
       <MenuItem label="Sign out" onClick={() => {}} danger />
+    </div>
+  )
+}
+
+// Other NETZSCH products reachable from the 9-dot launcher. Real URLs go in
+// `href` (left as '#' placeholders until provided — those won't navigate).
+interface Product {
+  name: string
+  desc: string
+  href: string
+  color: string
+  glyph: ReactNode
+  current?: boolean
+}
+
+const PRODUCTS: Product[] = [
+  {
+    name: 'Digital Reports',
+    desc: 'Batch reports & analytics',
+    href: '#',
+    color: '#46aa9f',
+    current: true,
+    glyph: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="8" y1="13" x2="16" y2="13" />
+        <line x1="8" y1="17" x2="13" y2="17" />
+      </>
+    ),
+  },
+  {
+    name: 'IRIS Cloud',
+    desc: 'HMI & visualization',
+    href: '#',
+    color: '#3b82f6',
+    glyph: (
+      <>
+        <path d="M17.5 19a4.5 4.5 0 0 0 .5-8.96A6 6 0 0 0 6.3 9.5 4 4 0 0 0 7 19Z" />
+      </>
+    ),
+  },
+  {
+    name: 'Production Monitoring',
+    desc: 'Live line monitoring',
+    href: '#',
+    color: '#f19909',
+    glyph: (
+      <>
+        <path d="M3 12h4l2 6 4-14 2 8h4" />
+      </>
+    ),
+  },
+]
+
+function ProductLauncher({ onPick }: { onPick: () => void }) {
+  return (
+    <div className="p-3">
+      <p className="px-1 pb-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">
+        NETZSCH products
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {PRODUCTS.map((p) => {
+          const isPlaceholder = p.href === '#'
+          return (
+            <a
+              key={p.name}
+              href={p.href}
+              target={isPlaceholder ? undefined : '_blank'}
+              rel="noreferrer"
+              onClick={(e) => {
+                if (isPlaceholder) e.preventDefault()
+                onPick()
+              }}
+              className={`group relative flex flex-col items-start gap-2 rounded-xl border p-3 transition-colors ${
+                p.current
+                  ? 'border-primary/40 bg-primary-soft/50'
+                  : 'border-line hover:border-primary hover:bg-page'
+              }`}
+            >
+              <span
+                className="grid h-9 w-9 place-items-center rounded-lg text-white"
+                style={{ background: p.color }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  {p.glyph}
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-ink">{p.name}</span>
+                <span className="block truncate text-[0.6875rem] text-muted">{p.desc}</span>
+              </span>
+              {p.current && (
+                <span className="absolute right-2 top-2 rounded-full bg-primary px-1.5 py-0.5 text-[0.5625rem] font-semibold uppercase tracking-wide text-white">
+                  Current
+                </span>
+              )}
+            </a>
+          )
+        })}
+      </div>
     </div>
   )
 }

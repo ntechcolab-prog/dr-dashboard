@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { FormSection, Field, SelectInput } from '../../components/FormControls'
+import { FormSection, Field } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
 import { Sun, Info, Calendar, Plus, Trash, Download } from '../../icons/Icons'
 import {
-  PLANNING_GRANULARITIES,
   WEEKDAYS,
   WEEKDAY_LABELS,
   WEEKDAY_LONG,
@@ -12,19 +11,9 @@ import {
   useAvailabilitySettings,
   useAvailabilityPlan,
   useAvailabilityConfirm,
-  type PlanningGranularity,
   type Weekday,
 } from '../../lib/availability'
 import { useHolidays } from '../../lib/holidays'
-
-const GRANULARITY_NOUN: Record<PlanningGranularity, string> = {
-  Daily: 'day',
-  Weekly: 'week',
-  Monthly: 'month',
-  Bimonthly: 'two months',
-  Quarterly: 'quarter',
-  Biannual: 'half-year',
-}
 
 export default function AvailabilitySettingsTab() {
   const [settings, setSettings] = useAvailabilitySettings()
@@ -37,7 +26,7 @@ export default function AvailabilitySettingsTab() {
 
   const holidays = useHolidays(year)
 
-  // Add-holiday form + import status (TASK: Add Holiday / Import holidays).
+  // Add-holiday form + import status (Add Holiday / Import holidays).
   const [showAddHoliday, setShowAddHoliday] = useState(false)
   const [newHolidayDate, setNewHolidayDate] = useState('')
   const [newHolidayName, setNewHolidayName] = useState('')
@@ -65,7 +54,6 @@ export default function AvailabilitySettingsTab() {
     }
   }
 
-  // --- Configuration setters (updater form) ---
   const toggleWorkingDay = (d: Weekday) =>
     setSettings((prev) => {
       const has = prev.workingDays.includes(d)
@@ -81,7 +69,6 @@ export default function AvailabilitySettingsTab() {
       defaultHoursByWeekday: { ...prev.defaultHoursByWeekday, [d]: hours },
     }))
 
-  const periodNoun = GRANULARITY_NOUN[settings.granularity]
   const monthTotal = plannedHoursForMonth(year, month, plan, settings, holidays.set)
 
   const prevMonth = () =>
@@ -103,105 +90,32 @@ export default function AvailabilitySettingsTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* A. Configuration */}
-      <FormSection title="Planning configuration">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Field label="Planning granularity">
-            <SelectInput
-              value={settings.granularity}
-              options={PLANNING_GRANULARITIES as unknown as string[]}
-              onChange={(v) => setSettings((prev) => ({ ...prev, granularity: v as PlanningGranularity }))}
-            />
-          </Field>
-
-          <Field label={`Hours per ${periodNoun}`}>
-            <NumberBox
-              value={settings.hoursPerPeriod}
-              suffix="h"
-              onChange={(n) => setSettings((prev) => ({ ...prev, hoursPerPeriod: n }))}
-            />
-          </Field>
-
-          <Field label="Monthly availability goal">
-            <NumberBox
-              value={settings.monthlyGoalPct}
-              suffix="%"
-              min={0}
-              max={100}
-              onChange={(n) =>
-                setSettings((prev) => ({ ...prev, monthlyGoalPct: Math.max(0, Math.min(100, n)) }))
-              }
-            />
-          </Field>
-
-          <Field label="Operate on holidays">
-            <div className="flex items-center gap-3 pt-1">
-              <Toggle
-                on={settings.operateOnHolidays}
-                onChange={(on) => setSettings((prev) => ({ ...prev, operateOnHolidays: on }))}
-              />
-              <span className="text-sm text-muted">
-                {settings.operateOnHolidays
-                  ? 'Holidays count as worked days.'
-                  : 'Holidays are treated as days off.'}
-              </span>
-            </div>
-          </Field>
-        </div>
-
-        {/* Working days */}
-        <div className="mt-6">
-          <p className="mb-2 text-sm text-muted">Working days</p>
-          <div className="flex flex-wrap gap-2">
-            {WEEKDAYS.map((d) => {
-              const on = settings.workingDays.includes(d)
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => toggleWorkingDay(d)}
-                  className={`min-w-[3.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    on
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-line text-muted hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  {WEEKDAY_LABELS[d]}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Default time per working day */}
-        <div className="mt-6">
-          <p className="mb-2 text-sm text-muted">Default time per day</p>
-          {settings.workingDays.length === 0 ? (
-            <p className="text-sm text-faint">Select at least one working day above.</p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {[...settings.workingDays]
-                .sort((a, b) => a - b)
-                .map((d) => (
-                  <div key={d} className="flex items-center gap-2">
-                    <span className="w-9 text-sm text-ink">{WEEKDAY_LABELS[d]}</span>
-                    <div className="w-24">
-                      <NumberBox
-                        value={settings.defaultHoursByWeekday[d] ?? 0}
-                        suffix="h"
-                        min={0}
-                        step={0.5}
-                        onChange={(n) => setDefaultHours(d, n)}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
+      {/* 1. Planning calendar — the main thing, up top */}
+      <FormSection
+        title="Planning calendar"
+        action={
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <Calendar size={14} />
+            {monthTotal} h planned this month
+          </span>
+        }
+      >
+        <PlanningCalendar
+          year={year}
+          month={month}
+          onPrev={prevMonth}
+          onNext={nextMonth}
+          settings={settings}
+          plan={plan}
+          setPlan={setPlan}
+          confirm={confirm}
+          setConfirm={setConfirm}
+          holidaySet={holidays.set}
+          holidayName={holidays.nameOf}
+        />
       </FormSection>
 
-      {/* B. Holidays */}
+      {/* 2. Holidays */}
       <FormSection
         title={`Holidays · ${year}`}
         action={
@@ -228,14 +142,12 @@ export default function AvailabilitySettingsTab() {
       >
         <p className="mb-3 flex items-start gap-2 text-sm text-muted">
           <Info size={15} className="mt-0.5 shrink-0 text-primary" />
-          These holidays are days off in the planning calendar below
-          {settings.operateOnHolidays ? ' (currently counted as worked days)' : ''}. Add your own, or import the
-          public list for {year}.
+          Holidays are days off in the calendar above. Need to produce on one? Toggle
+          “Working day” on that day. Add your own holidays, or import the public list for {year}.
         </p>
 
         {importMsg && <p className="mb-3 rounded-lg bg-page px-3 py-2 text-xs text-muted">{importMsg}</p>}
 
-        {/* Add-holiday form */}
         {showAddHoliday && (
           <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-page/60 p-3">
             <Field label="Date" className="w-44">
@@ -275,10 +187,7 @@ export default function AvailabilitySettingsTab() {
               const label = `${WEEKDAY_LONG[d.getDay()]}, ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
               const custom = holidays.isCustom(h.date)
               return (
-                <li
-                  key={h.date}
-                  className="group flex items-center gap-3 rounded-lg border border-line bg-white px-3 py-2.5"
-                >
+                <li key={h.date} className="group flex items-center gap-3 rounded-lg border border-line bg-white px-3 py-2.5">
                   <Sun size={16} className="shrink-0 text-warning" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{h.name}</p>
@@ -301,29 +210,72 @@ export default function AvailabilitySettingsTab() {
         )}
       </FormSection>
 
-      {/* C. Planning calendar */}
-      <FormSection
-        title="Planning calendar"
-        action={
-          <span className="flex items-center gap-1.5 text-xs text-muted">
-            <Calendar size={14} />
-            {monthTotal} h planned this month
-          </span>
-        }
-      >
-        <PlanningCalendar
-          year={year}
-          month={month}
-          onPrev={prevMonth}
-          onNext={nextMonth}
-          settings={settings}
-          plan={plan}
-          setPlan={setPlan}
-          confirm={confirm}
-          setConfirm={setConfirm}
-          holidaySet={holidays.set}
-          holidayName={holidays.nameOf}
-        />
+      {/* 3. Working schedule */}
+      <FormSection title="Working schedule">
+        <p className="mb-2 text-sm text-muted">Working days</p>
+        <div className="flex flex-wrap gap-2">
+          {WEEKDAYS.map((d) => {
+            const on = settings.workingDays.includes(d)
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => toggleWorkingDay(d)}
+                className={`min-w-[3.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  on
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-line text-muted hover:border-primary hover:text-primary'
+                }`}
+              >
+                {WEEKDAY_LABELS[d]}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-2 text-sm text-muted">Default time per day</p>
+          {settings.workingDays.length === 0 ? (
+            <p className="text-sm text-faint">Select at least one working day above.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {[...settings.workingDays]
+                .sort((a, b) => a - b)
+                .map((d) => (
+                  <div key={d} className="flex items-center gap-2">
+                    <span className="w-9 text-sm text-ink">{WEEKDAY_LABELS[d]}</span>
+                    <div className="w-24">
+                      <NumberBox
+                        value={settings.defaultHoursByWeekday[d] ?? 0}
+                        suffix="h"
+                        min={0}
+                        step={0.5}
+                        onChange={(n) => setDefaultHours(d, n)}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </FormSection>
+
+      {/* 4. Availability goal — on its own */}
+      <FormSection title="Availability goal">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="w-40">
+            <NumberBox
+              value={settings.monthlyGoalPct}
+              suffix="%"
+              min={0}
+              max={100}
+              onChange={(n) => setSettings((prev) => ({ ...prev, monthlyGoalPct: Math.max(0, Math.min(100, n)) }))}
+            />
+          </div>
+          <p className="text-sm text-muted">
+            Monthly availability target. Shown as the dashed goal line on the dashboard charts and the gauge markers.
+          </p>
+        </div>
       </FormSection>
     </div>
   )
@@ -363,26 +315,5 @@ function NumberBox({
       />
       {suffix && <span className="shrink-0 text-muted">{suffix}</span>}
     </div>
-  )
-}
-
-// Simple accessible switch.
-function Toggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      onClick={() => onChange(!on)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-        on ? 'bg-primary' : 'bg-line'
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-          on ? 'translate-x-5' : 'translate-x-0.5'
-        }`}
-      />
-    </button>
   )
 }
