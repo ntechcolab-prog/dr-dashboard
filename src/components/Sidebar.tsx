@@ -89,7 +89,6 @@ export default function Sidebar({ open, active, onSelect, onToggle }: SidebarPro
           }`}
         >
           <PanelLeftCollapse size={20} className={`shrink-0 transition-transform ${open ? '' : 'rotate-180'}`} />
-          {open && <span className="truncate">Collapse</span>}
         </button>
       </div>
     </aside>

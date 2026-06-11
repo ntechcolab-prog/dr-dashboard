@@ -41,6 +41,9 @@ export default function AvailabilitySettingsTab() {
   const [applyStart, setApplyStart] = useState('')
   const [applyEnd, setApplyEnd] = useState('')
 
+  // Working-schedule mode: manual config vs. the planning assistant.
+  const [scheduleMode, setScheduleMode] = useState<'manual' | 'assistant'>('manual')
+
   // Planning assistant (natural language → plan for the viewed month).
   const [assistantText, setAssistantText] = useState('')
   const [preview, setPreview] = useState<ParsedRule | null>(null)
@@ -149,89 +152,104 @@ export default function AvailabilitySettingsTab() {
     <div className="flex flex-col gap-4">
       {/* Working schedule */}
       <FormSection title="Working schedule">
-        <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
-        <div className="flex flex-wrap gap-2">
-          {WEEKDAYS.map((d) => {
-            const on = settings.workingDays.includes(d)
-            return (
-              <div key={d} className="flex w-[4.75rem] flex-col gap-1.5">
+        {/* mode switch */}
+        <div className="mb-5 inline-flex rounded-lg bg-page p-1">
+          {([
+            ['manual', 'Manual configuration'],
+            ['assistant', 'Planning assistant'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setScheduleMode(key)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                scheduleMode === key ? 'bg-white text-primary shadow-card' : 'text-muted hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {scheduleMode === 'manual' ? (
+          <>
+            <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAYS.map((d) => {
+                const on = settings.workingDays.includes(d)
+                return (
+                  <div key={d} className="flex w-[4.75rem] flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleWorkingDay(d)}
+                      className={`rounded-lg border px-2 py-2 text-sm font-medium transition-colors ${
+                        on
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-line text-muted hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      {WEEKDAY_LABELS[d]}
+                    </button>
+                    {on && (
+                      <div className="flex items-center rounded-lg border border-line bg-white px-2 py-1.5 focus-within:border-primary">
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={settings.defaultHoursByWeekday[d] ?? 0}
+                          onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
+                          className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
+                        />
+                        <span className="text-xs text-muted">h</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Apply the working schedule across a date range */}
+            <div className="mt-6 border-t border-line pt-4">
+              <p className="mb-2 text-sm font-medium text-ink">Apply schedule to a period</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label="Start" className="w-44">
+                  <input
+                    type="date"
+                    value={applyStart}
+                    onChange={(e) => setApplyStart(e.target.value)}
+                    className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+                  />
+                </Field>
+                <Field label="End" className="w-44">
+                  <input
+                    type="date"
+                    value={applyEnd}
+                    onChange={(e) => setApplyEnd(e.target.value)}
+                    className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
+                  />
+                </Field>
                 <button
                   type="button"
-                  onClick={() => toggleWorkingDay(d)}
-                  className={`rounded-lg border px-2 py-2 text-sm font-medium transition-colors ${
-                    on
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-line text-muted hover:border-primary hover:text-primary'
-                  }`}
+                  onClick={applyRange}
+                  disabled={!applyStart || !applyEnd}
+                  className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
                 >
-                  {WEEKDAY_LABELS[d]}
+                  Apply
                 </button>
-                {on && (
-                  <div className="flex items-center rounded-lg border border-line bg-white px-2 py-1.5 focus-within:border-primary">
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      value={settings.defaultHoursByWeekday[d] ?? 0}
-                      onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
-                      className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
-                    />
-                    <span className="text-xs text-muted">h</span>
-                  </div>
-                )}
               </div>
-            )
-          })}
-        </div>
-
-        {/* Apply the working schedule across a date range */}
-        <div className="mt-6 border-t border-line pt-4">
-          <p className="mb-2 text-sm font-medium text-ink">Apply schedule to a period</p>
-          <div className="flex flex-wrap items-end gap-3">
-            <Field label="Start" className="w-44">
-              <input
-                type="date"
-                value={applyStart}
-                onChange={(e) => setApplyStart(e.target.value)}
-                className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
-              />
-            </Field>
-            <Field label="End" className="w-44">
-              <input
-                type="date"
-                value={applyEnd}
-                onChange={(e) => setApplyEnd(e.target.value)}
-                className="no-spin w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
-              />
-            </Field>
-            <button
-              type="button"
-              onClick={applyRange}
-              disabled={!applyStart || !applyEnd}
-              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
-            >
-              Apply
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            Fills every day in the range with its weekday’s hours (non-working days and holidays stay off unless
-            marked as working).
-          </p>
-        </div>
-
-        {/* or — Planning assistant (always open) */}
-        <div className="mt-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-line" />
-          <span className="text-xs font-medium uppercase tracking-wide text-faint">or</span>
-          <div className="h-px flex-1 bg-line" />
-        </div>
-
-        <div className="mt-4">
-          <p className="mb-1 text-sm font-medium text-ink">Use the Planning assistant</p>
-          <p className="mb-3 text-xs text-muted">
-            Describe the plan in plain English — applied to {MONTH_NAMES[month]} {year} (the month shown in the calendar below).
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
+              <p className="mt-2 text-xs text-muted">
+                Fills every day in the range with its weekday’s hours (non-working days and holidays stay off unless
+                marked as working).
+              </p>
+            </div>
+          </>
+        ) : (
+          <div>
+            <p className="mb-1 text-sm font-medium text-ink">Use the Planning assistant</p>
+            <p className="mb-3 text-xs text-muted">
+              Describe the plan in plain English — applied to {MONTH_NAMES[month]} {year} (the month shown in the calendar below).
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
             <input
               value={assistantText}
               onChange={(e) => {
@@ -282,7 +300,8 @@ export default function AvailabilitySettingsTab() {
               )}
             </div>
           )}
-        </div>
+          </div>
+        )}
       </FormSection>
 
       {/* Planning calendar */}
