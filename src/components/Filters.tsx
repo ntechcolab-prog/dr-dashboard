@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import MultiSelect from './MultiSelect'
 import { ChevronDown } from '../icons/Icons'
 import { MACHINES, RECIPES, MONTHS } from '../data/mockData'
@@ -20,6 +21,7 @@ interface FiltersProps {
   weekIdx: number
   setWeekIdx: (i: number) => void
   onClear: () => void
+  actions?: ReactNode // header-right actions (export, generate analysis)
 }
 
 export default function Filters({
@@ -36,10 +38,14 @@ export default function Filters({
   weekIdx,
   setWeekIdx,
   onClear,
+  actions,
 }: FiltersProps) {
   return (
     <section className="px-6 py-5">
-      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink">Filter</h3>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-ink">Filter</h3>
+        {actions && <div className="no-print flex items-center gap-2">{actions}</div>}
+      </div>
 
       <div className="grid grid-cols-1 gap-x-10 gap-y-4 md:grid-cols-2">
         <MultiSelect

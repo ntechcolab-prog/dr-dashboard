@@ -3,6 +3,7 @@ import SubHeader from '../components/SubHeader'
 import { Gear, Search, ChevronDown } from '../icons/Icons'
 import { SETTINGS_TABS, MACHINE_CARDS, type MachineCard } from '../data/appData'
 import AvailabilitySettingsTab from './settings/AvailabilitySettingsTab'
+import { GeneralSettings, OeeRulesSettings, NotificationsSettings, DataExportSettings } from './settings/MiscSettings'
 
 export default function SettingsScreen() {
   const [tab, setTab] = useState('General')
@@ -38,8 +39,16 @@ export default function SettingsScreen() {
         ))}
       </div>
 
-      {tab === 'Availability' ? (
+      {tab === 'General' ? (
+        <GeneralSettings />
+      ) : tab === 'Availability' ? (
         <AvailabilitySettingsTab />
+      ) : tab === 'Performance & OEE Rules' ? (
+        <OeeRulesSettings />
+      ) : tab === 'Notifications & Alerts' ? (
+        <NotificationsSettings />
+      ) : tab === 'Data Export' ? (
+        <DataExportSettings />
       ) : tab === 'Machines & Equipment' ? (
         <section className="rounded-xl bg-card p-6 shadow-card">
           <div className="mb-5 flex items-center justify-between">

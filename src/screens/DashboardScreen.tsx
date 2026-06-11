@@ -188,22 +188,6 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
 
       {tab === 'batches' ? (
         <>
-          <div className="no-print flex items-center justify-end gap-2">
-            <ExportMenu
-              title={`Batches · ${monthMeta.label} · ${machines.length ? machines.join(', ') : 'All machines'}`}
-              printId={BATCHES_PRINT_ID}
-              filenameBase={`batches-${monthMeta.key}`}
-              sheets={buildBatchesSheets}
-            />
-            <button
-              onClick={() => onNavigate?.('analysis')}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
-            >
-              <AnalysisIcon size={16} />
-              Generate Analysis
-            </button>
-          </div>
-
           <div id={BATCHES_PRINT_ID} className="overflow-hidden rounded-xl bg-card shadow-card">
             <Filters
               machines={machines}
@@ -219,6 +203,23 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
               weekIdx={weekIdx}
               setWeekIdx={setWeekIdx}
               onClear={clearFilters}
+              actions={
+                <>
+                  <ExportMenu
+                    title={`Batches · ${monthMeta.label} · ${machines.length ? machines.join(', ') : 'All machines'}`}
+                    printId={BATCHES_PRINT_ID}
+                    filenameBase={`batches-${monthMeta.key}`}
+                    sheets={buildBatchesSheets}
+                  />
+                  <button
+                    onClick={() => onNavigate?.('analysis')}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+                  >
+                    <AnalysisIcon size={16} />
+                    Generate Analysis
+                  </button>
+                </>
+              }
             />
             {hasData ? (
               <div className="border-t border-line/70 pt-4">

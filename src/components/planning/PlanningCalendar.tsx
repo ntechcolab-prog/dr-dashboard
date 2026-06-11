@@ -15,9 +15,7 @@ import {
   WEEKDAY_LONG,
   daysInMonth,
   isoOf,
-  parseISO,
   monthKey,
-  isoWeekKey,
   plannedHoursForDay,
   type AvailabilitySettings,
   type PlanMap,
@@ -168,11 +166,9 @@ export default function PlanningCalendar({
   const toggleMonth = () =>
     setConfirm((prev) => ({ ...prev, [monthMk]: !prev[monthMk] }))
 
-  const weekKeyOf = (week: (number | null)[]): string | null => {
-    const firstDay = week.find((d) => d != null)
-    if (firstDay == null) return null
-    return isoWeekKey(parseISO(isoOf(year, month, firstDay)))
-  }
+  // One key per calendar row of the month — unique so confirming one week never
+  // bleeds into another (ISO week numbers collide across Sunday-started rows).
+  const weekKeyOf = (wi: number): string => `${monthMk}-row${wi}`
 
   const toggleWeek = (wk: string) =>
     setConfirm((prev) => ({ ...prev, [wk]: !prev[wk] }))
@@ -360,8 +356,8 @@ export default function PlanningCalendar({
 
         {/* Week rows */}
         {weeks.map((week, wi) => {
-          const wk = weekKeyOf(week)
-          const weekConfirmed = wk ? !!confirm[wk] : false
+          const wk = weekKeyOf(wi)
+          const weekConfirmed = !!confirm[wk]
           const locked = weekConfirmed || monthConfirmed
           return (
             <div

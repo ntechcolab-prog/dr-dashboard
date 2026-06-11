@@ -51,7 +51,7 @@ export default function AppHeader({ onToggleSidebar, name, icon }: AppHeaderProp
           <AppsGrid size={20} />
         </button>
         {icon ? (
-          <img src={icon} alt="" className="h-8 w-8 rounded-full object-cover" />
+          <img src={icon} alt="" className="h-8 w-auto max-w-[10rem] object-contain" />
         ) : (
           <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[0.6875rem] font-bold">
             {initials(name)}
