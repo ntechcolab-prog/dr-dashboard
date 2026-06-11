@@ -9,6 +9,11 @@ import type { ChartType } from '../lib/availability'
 
 export type VizKind = 'column' | 'area' | 'gauge' | 'donut' | 'compare' | 'bullet'
 
+// Per-card chart-style override, persisted by the metrics grid and read back
+// by the Details drawer so both always show the same chart style.
+export type MetricStyleMap = Record<string, ChartType | ''>
+export const METRIC_STYLE_KEY = 'dr-metrics-viz-style'
+
 export const VIZ: Record<string, VizKind> = {
   production: 'column',
   size: 'area',
@@ -89,12 +94,19 @@ export function DetailViz({
   series,
   labels,
   color,
+  override,
 }: {
   kpi: Kpi
   series: number[]
   labels: string[]
   color: string
+  override?: ChartType
 }) {
+  // A user-chosen style on the card wins here too (bar/line/area).
+  if (override) {
+    if (override === 'bar') return <ColumnsDetail data={series} labels={labels} color={color} unit={kpi.unit} />
+    return <LineChart data={series} labels={labels} unit={kpi.unit} height={220} maxLabels={8} />
+  }
   const kind = VIZ[kpi.key] ?? 'area'
   switch (kind) {
     case 'column':

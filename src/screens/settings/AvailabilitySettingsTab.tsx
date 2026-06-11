@@ -13,7 +13,6 @@ import {
   plannedHoursForMonth,
   useAvailabilitySettings,
   useAvailabilityPlan,
-  useAvailabilityConfirm,
   useWorkingHolidays,
   type Weekday,
 } from '../../lib/availability'
@@ -28,7 +27,6 @@ const MONTH_NAMES = [
 export default function AvailabilitySettingsTab() {
   const [settings, setSettings] = useAvailabilitySettings()
   const [plan, setPlan] = useAvailabilityPlan()
-  const [confirm, setConfirm] = useAvailabilityConfirm()
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -174,17 +172,7 @@ export default function AvailabilitySettingsTab() {
 
         {scheduleMode === 'manual' ? (
           <>
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted">Working days · select a day to set its hours</p>
-              <button
-                type="button"
-                onClick={() => setShowApplyPeriod((v) => !v)}
-                className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-              >
-                <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
-                Apply schedule to a period
-              </button>
-            </div>
+            <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((d) => {
                 const on = settings.workingDays.includes(d)
@@ -219,9 +207,19 @@ export default function AvailabilitySettingsTab() {
               })}
             </div>
 
-            {/* Apply the working schedule across a date range (revealed on click) */}
+            {/* Apply the working schedule across a date range — pinned to the card footer */}
+            <div className="mt-5 border-t border-line pt-4">
+              <button
+                type="button"
+                onClick={() => setShowApplyPeriod((v) => !v)}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+              >
+                <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
+                Apply schedule to a period
+              </button>
+            </div>
             {showApplyPeriod && (
-              <div className="mt-5 border-t border-line pt-4">
+              <div className="mt-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <Field label="Start" className="w-44">
                     <input
@@ -334,8 +332,6 @@ export default function AvailabilitySettingsTab() {
           settings={settings}
           plan={plan}
           setPlan={setPlan}
-          confirm={confirm}
-          setConfirm={setConfirm}
           holidaySet={holidays.set}
           holidayName={holidays.nameOf}
           workingHolidays={workingHols.set}

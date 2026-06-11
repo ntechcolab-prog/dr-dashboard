@@ -56,10 +56,28 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
           return (
             <div
               key={d.label}
-              className="flex items-center gap-2.5"
+              className="relative flex items-center gap-2.5"
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
+              {/* rich hover tooltip (when the item carries extra rows) */}
+              {active && d.extra && d.extra.length > 0 && (
+                <div
+                  className={`pointer-events-none absolute left-6 z-20 w-52 rounded-lg border border-line bg-white p-3 shadow-pop ${
+                    i === 0 ? 'top-full mt-1.5' : 'bottom-full mb-1.5'
+                  }`}
+                >
+                  <p className="mb-1.5 truncate text-xs font-semibold text-ink">{d.label}</p>
+                  <dl className="space-y-1">
+                    {d.extra.map((row) => (
+                      <div key={row.label} className="flex items-baseline justify-between gap-3 text-[0.6875rem]">
+                        <dt className="text-muted">{row.label}</dt>
+                        <dd className="shrink-0 font-medium tabular-nums text-ink">{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
               <span className="w-3 shrink-0 text-right text-[0.6875rem] tabular-nums text-muted">{i + 1}</span>
               <div className="relative h-7 flex-1 overflow-hidden rounded-md bg-page">
                 <div

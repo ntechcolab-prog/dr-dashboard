@@ -24,6 +24,8 @@ export interface DayRollup {
 export interface RankItem {
   label: string
   value: number
+  // Extra label/value rows shown in the hover tooltip (rankings only).
+  extra?: { label: string; value: string }[]
 }
 
 export interface Rankings {
@@ -124,15 +126,40 @@ function rank(
   batches: Batch[],
   keys: string[],
   keyFn: (b: Batch) => string,
-  valueFn: (b: Batch) => number
+  valueFn: (b: Batch) => number,
+  extraFn?: (group: Batch[], value: number, total: number) => RankItem['extra']
 ): RankItem[] {
   const totals = new Map<string, number>(keys.map((k) => [k, 0]))
-  for (const b of batches) totals.set(keyFn(b), (totals.get(keyFn(b)) || 0) + valueFn(b))
+  const groups = new Map<string, Batch[]>(keys.map((k) => [k, []]))
+  for (const b of batches) {
+    const k = keyFn(b)
+    totals.set(k, (totals.get(k) || 0) + valueFn(b))
+    const g = groups.get(k)
+    if (g) g.push(b)
+    else groups.set(k, [b])
+  }
+  const total = [...totals.values()].reduce((a, v) => a + v, 0)
   return [...totals.entries()]
-    .map(([label, value]) => ({ label, value }))
+    .map(([label, value]) => ({
+      label,
+      value,
+      extra: extraFn?.(groups.get(label) ?? [], value, total),
+    }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 5)
 }
+
+// Most frequent machine within a group of batches.
+function topMachine(group: Batch[]): string {
+  const counts = new Map<string, number>()
+  for (const b of group) counts.set(b.machine, (counts.get(b.machine) || 0) + 1)
+  let best = '—'
+  let max = 0
+  for (const [m, c] of counts) if (c > max) { max = c; best = m }
+  return best
+}
+
+const sharePct = (value: number, total: number) => (total ? `${Math.round((value / total) * 100)}%` : '0%')
 
 // --- Per-metric drill-down (drives the KPI details drawer) ---
 
@@ -207,9 +234,43 @@ export function metricByRecipe(batches: Batch[], kpiKey: string): RankItem[] {
 
 export function buildRankings(batches: Batch[]): Rankings {
   return {
-    interruptions: rank(batches, INTERRUPTIONS, (b) => b.interruption, () => 1),
+    interruptions: rank(
+      batches,
+      INTERRUPTIONS,
+      (b) => b.interruption,
+      () => 1,
+      (group, value, total) => [
+        { label: 'Share of interruptions', value: sharePct(value, total) },
+        { label: 'Mass affected', value: `${formatValue(sum(group, (b) => b.mass), 'dec1')} ton` },
+        { label: 'Downtime (alarm)', value: `${Math.round(sum(group, (b) => b.alarmMin))} min` },
+        { label: 'Top machine', value: topMachine(group) },
+      ]
+    ),
     // recipes ranked by produced mass, expressed in kg
-    recipes: rank(batches, RECIPES, (b) => b.recipe, (b) => b.mass * 1000),
-    status: rank(batches, STATUSES, (b) => b.status, () => 1),
+    recipes: rank(
+      batches,
+      RECIPES,
+      (b) => b.recipe,
+      (b) => b.mass * 1000,
+      (group, value, total) => [
+        { label: 'Share of production', value: sharePct(value, total) },
+        { label: 'Batches', value: String(group.length) },
+        { label: 'Avg / batch', value: group.length ? `${Math.round(value / group.length)} kg` : '—' },
+        { label: 'Energy', value: `${formatValue(sum(group, (b) => b.energy), 'int')} kWh` },
+        { label: 'Top machine', value: topMachine(group) },
+      ]
+    ),
+    status: rank(
+      batches,
+      STATUSES,
+      (b) => b.status,
+      () => 1,
+      (group, value, total) => [
+        { label: 'Share of batches', value: sharePct(value, total) },
+        { label: 'Mass', value: `${formatValue(sum(group, (b) => b.mass), 'dec1')} ton` },
+        { label: 'Energy', value: `${formatValue(sum(group, (b) => b.energy), 'int')} kWh` },
+        { label: 'Avg grinding', value: group.length ? `${Math.round(sum(group, (b) => b.grindMin) / group.length)} min` : '—' },
+      ]
+    ),
   }
 }

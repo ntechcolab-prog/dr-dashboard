@@ -29,7 +29,7 @@ export default function Sidebar({ open, active, onSelect, onToggle }: SidebarPro
     <aside
       className={`${
         open ? 'w-[16.5rem]' : 'w-[4.5rem]'
-      } flex shrink-0 flex-col overflow-hidden bg-sidebar text-white transition-[width] duration-200`}
+      } flex shrink-0 flex-col overflow-hidden bg-sidebar text-white transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]`}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3 pt-4">
         {NAV.map(({ key, label, Icon, disabled }) => {
@@ -53,7 +53,7 @@ export default function Sidebar({ open, active, onSelect, onToggle }: SidebarPro
             >
               <Icon size={20} className="shrink-0" />
               {open && (
-                <span className="flex flex-1 items-center justify-between truncate">
+                <span className="sidebar-label flex flex-1 items-center justify-between truncate">
                   {label}
                   {disabled && (
                     <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-white/40">

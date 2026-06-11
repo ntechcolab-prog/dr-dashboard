@@ -79,6 +79,18 @@ body {
   .jiggle-alt { animation: none; }
 }
 
+/* sidebar labels ease in after the rail starts expanding (avoids the pop) */
+@keyframes sidebar-label-in {
+  from { opacity: 0; transform: translateX(-0.375rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.sidebar-label {
+  animation: sidebar-label-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-label { animation: none; }
+}
+
 /* chart entrance motion (ease-out quart) */
 @keyframes chart-draw {
   to { stroke-dashoffset: 0; }
@@ -116,6 +128,15 @@ body {
 .no-spin {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* scrollbar-less tracks (carousels use arrow buttons + snap instead) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* thin scrollbars to match a product chrome */

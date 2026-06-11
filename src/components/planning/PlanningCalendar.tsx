@@ -1,14 +1,12 @@
 import { useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Sun, CalendarCheck } from '../../icons/Icons'
+import { ChevronLeft, ChevronRight, Sun } from '../../icons/Icons'
 import {
   WEEKDAY_LABELS,
   daysInMonth,
   isoOf,
-  monthKey,
   plannedHoursForDay,
   type AvailabilitySettings,
   type PlanMap,
-  type ConfirmMap,
   type Weekday,
 } from '../../lib/availability'
 
@@ -20,8 +18,6 @@ interface Props {
   settings: AvailabilitySettings
   plan: PlanMap
   setPlan: (updater: (prev: PlanMap) => PlanMap) => void
-  confirm: ConfirmMap
-  setConfirm: (updater: (prev: ConfirmMap) => ConfirmMap) => void
   holidaySet: Set<string> // single source of truth, passed from the tab
   holidayName: (iso: string) => string | undefined
   workingHolidays: Set<string> // holidays explicitly marked as working days
@@ -54,8 +50,6 @@ export default function PlanningCalendar({
   settings,
   plan,
   setPlan,
-  confirm,
-  setConfirm,
   holidaySet,
   holidayName,
   workingHolidays,
@@ -65,17 +59,6 @@ export default function PlanningCalendar({
 
   const setDay = (iso: string, hours: number) =>
     setPlan((prev) => ({ ...prev, [iso]: hours }))
-
-  // --- Confirmation (per week) ---
-
-  const monthMk = monthKey(year, month)
-
-  // One key per calendar row of the month — unique so confirming one week never
-  // bleeds into another (ISO week numbers collide across Sunday-started rows).
-  const weekKeyOf = (wi: number): string => `${monthMk}-row${wi}`
-
-  const toggleWeek = (wk: string) =>
-    setConfirm((prev) => ({ ...prev, [wk]: !prev[wk] }))
 
   // --- Derived: heatmap scale + month summary (for the new clearer UI) ---
   const totalDays = daysInMonth(year, month)
@@ -144,7 +127,7 @@ export default function PlanningCalendar({
       {/* Calendar grid */}
       <div className="overflow-hidden rounded-xl border border-line">
         {/* Weekday header */}
-        <div className="grid grid-cols-[repeat(7,minmax(0,1fr))_3.75rem] border-b border-line bg-page">
+        <div className="grid grid-cols-7 border-b border-line bg-page">
           {WEEKDAY_LABELS.map((w, i) => (
             <div
               key={w}
@@ -155,22 +138,14 @@ export default function PlanningCalendar({
               {w}
             </div>
           ))}
-          <div className="px-1 py-2.5 text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">
-            OK
-          </div>
         </div>
 
         {/* Week rows */}
         {weeks.map((week, wi) => {
-          const wk = weekKeyOf(wi)
-          const weekConfirmed = !!confirm[wk]
-          const locked = weekConfirmed
           return (
             <div
               key={wi}
-              className={`grid grid-cols-[repeat(7,minmax(0,1fr))_3.75rem] ${
-                wi < weeks.length - 1 ? 'border-b border-line' : ''
-              } ${weekConfirmed ? 'bg-primary-soft/20' : ''}`}
+              className={`grid grid-cols-7 ${wi < weeks.length - 1 ? 'border-b border-line' : ''}`}
             >
               {week.map((day, di) => {
                 if (day == null) {
@@ -197,30 +172,12 @@ export default function PlanningCalendar({
                     holidayLabel={isHoliday ? holidayName(iso) : undefined}
                     isOverride={iso in plan}
                     isToday={iso === todayIso}
-                    locked={locked}
                     maxHours={maxHours}
                     onSet={(h) => setDay(iso, h)}
                     onToggleHolidayWorking={isHoliday ? (next) => onToggleWorkingHoliday(iso, next) : undefined}
                   />
                 )
               })}
-              {/* Week confirm cell */}
-              <div className="grid place-items-center border-l border-line p-1">
-                {wk && (
-                  <button
-                    onClick={() => toggleWeek(wk)}
-                    aria-label={weekConfirmed ? 'Un-confirm week' : 'Confirm week'}
-                    title={weekConfirmed ? 'Confirmed — click to unlock' : 'Confirm this week'}
-                    className={`grid h-9 w-9 place-items-center rounded-lg text-xs font-semibold transition-colors ${
-                      weekConfirmed
-                        ? 'bg-primary text-white'
-                        : 'border border-line text-muted hover:border-primary hover:text-primary'
-                    }`}
-                  >
-                    {weekConfirmed ? <CalendarCheck size={16} /> : 'OK'}
-                  </button>
-                )}
-              </div>
             </div>
           )
         })}
@@ -242,9 +199,6 @@ export default function PlanningCalendar({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm bg-page" /> Day off
-        </span>
-        <span className="flex items-center gap-1.5">
-          <CalendarCheck size={13} className="text-primary" /> Confirmed (locked)
         </span>
       </div>
     </div>
@@ -273,7 +227,6 @@ function DayPlanCell({
   holidayLabel,
   isOverride,
   isToday,
-  locked,
   maxHours,
   onSet,
   onToggleHolidayWorking,
@@ -285,7 +238,6 @@ function DayPlanCell({
   holidayLabel?: string
   isOverride: boolean
   isToday: boolean
-  locked: boolean
   maxHours: number
   onSet: (h: number) => void
   onToggleHolidayWorking?: (next: boolean) => void
@@ -312,7 +264,6 @@ function DayPlanCell({
         <span className="flex items-center gap-1">
           {isOverride && editable && <span className="h-1.5 w-1.5 rounded-full bg-primary" title="Edited" />}
           {isHoliday && <Sun size={13} className="text-warning" />}
-          {locked && <CalendarCheck size={12} className="text-primary/70" />}
         </span>
       </div>
 
@@ -324,11 +275,6 @@ function DayPlanCell({
             {isHoliday && holidayLabel && (
               <span className="mt-0.5 truncate text-[0.625rem] text-muted">{holidayLabel}</span>
             )}
-          </div>
-        ) : locked ? (
-          <div className="mt-2 flex items-baseline gap-0.5">
-            <span className="text-lg font-bold tabular-nums text-ink">{hours}</span>
-            <span className="text-xs text-muted">h</span>
           </div>
         ) : (
           <div className="mt-1.5">
@@ -372,7 +318,7 @@ function DayPlanCell({
         )}
 
         {/* per-holiday "this is a working day" toggle (replaces the global setting) */}
-        {isHoliday && !locked && onToggleHolidayWorking && (
+        {isHoliday && onToggleHolidayWorking && (
           <button
             type="button"
             onClick={() => onToggleHolidayWorking(!editable)}

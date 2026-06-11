@@ -52,7 +52,7 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
   const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
   const [period, setPeriod] = useState<Period>('monthly')
-  const [monthKey, setMonthKey] = useState('2026-04')
+  const [monthKey, setMonthKey] = useState('2026-06')
   const [weekIdx, setWeekIdx] = useState(0)
 
   // Reset the selected week whenever the month changes.

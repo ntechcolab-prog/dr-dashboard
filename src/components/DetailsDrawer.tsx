@@ -1,7 +1,8 @@
 import { Close, ArrowUp, ArrowDown } from '../icons/Icons'
 import LineChart from './LineChart'
 import BarChart from './BarChart'
-import { DetailViz, VIZ, metaFor } from './metricViz'
+import { DetailViz, VIZ, metaFor, METRIC_STYLE_KEY, type MetricStyleMap } from './metricViz'
+import { useLocalStorage } from '../lib/useLocalStorage'
 import type { Batch } from '../data/mockData'
 import { formatValue, type Kpi, type RankItem } from '../lib/compute'
 
@@ -91,11 +92,15 @@ function KpiDetail({
   byRecipe?: RankItem[]
   richViz?: boolean
 }) {
+  // The chart style chosen on the metric card carries over to the drawer.
+  const [styleMap] = useLocalStorage<MetricStyleMap>(METRIC_STYLE_KEY, {})
   if (!kpi) return null
+  const override = styleMap[kpi.key] || undefined
   const up = kpi.delta >= 0
   // Time-series viz read as a trend; the summary viz (gauge/donut/...) doesn't.
   const kind = VIZ[kpi.key]
-  const trendTitle = !richViz || kind === 'area' || kind === 'column' ? 'Daily trend' : 'Summary'
+  const trendTitle =
+    override || !richViz || kind === 'area' || kind === 'column' ? 'Daily trend' : 'Summary'
   return (
     <div className="space-y-6">
       {/* headline value */}
@@ -114,7 +119,13 @@ function KpiDetail({
       {daily && (
         <Section title={trendTitle}>
           {richViz ? (
-            <DetailViz kpi={kpi} series={daily.data} labels={daily.labels} color={metaFor(kpi.key).accent} />
+            <DetailViz
+              kpi={kpi}
+              series={daily.data}
+              labels={daily.labels}
+              color={metaFor(kpi.key).accent}
+              override={override}
+            />
           ) : (
             <LineChart data={daily.data} labels={daily.labels} unit={kpi.unit} height={220} maxLabels={8} />
           )}

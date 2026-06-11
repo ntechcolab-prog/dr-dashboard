@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, ArrowDown, Sparkle, BarsGlyph, LineGlyph, AreaGlyph } from '../icons/Icons'
 import { formatValue, type Kpi } from '../lib/compute'
-import { CardViz, VIZ_CAPTION, metaFor, withAlpha } from './metricViz'
+import { CardViz, VIZ_CAPTION, metaFor, withAlpha, METRIC_STYLE_KEY, type MetricStyleMap } from './metricViz'
 import { useLocalStorage } from '../lib/useLocalStorage'
 import type { ChartType } from '../lib/availability'
 
-// Per-card chart-style override (empty string = the metric's auto viz).
-type StyleMap = Record<string, ChartType | ''>
 const STYLE_OPTIONS: { key: ChartType | ''; Glyph: (p: { size?: number }) => React.ReactElement; label: string }[] = [
   { key: '', Glyph: Sparkle, label: 'Auto' },
   { key: 'bar', Glyph: BarsGlyph, label: 'Bars' },
@@ -33,7 +31,7 @@ export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [confirming, setConfirming] = useState(false)
-  const [styleMap, setStyleMap] = useLocalStorage<StyleMap>('dr-metrics-viz-style', {})
+  const [styleMap, setStyleMap] = useLocalStorage<MetricStyleMap>(METRIC_STYLE_KEY, {})
 
   const setStyle = (key: string, style: ChartType | '') =>
     setStyleMap((m) => ({ ...m, [key]: style }))
