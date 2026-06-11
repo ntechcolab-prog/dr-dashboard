@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { BatchForm } from '../../../data/batchForm'
 import { FormSection } from '../../../components/FormControls'
 import { SelectInput } from '../../../components/FormControls'
+import { useProductionMonitoring } from '../../settings/MiscSettings'
 import { Plus, Download, Refresh, Search, CheckCircle, ChevronLeft, ChevronRight } from '../../../icons/Icons'
 
 interface Props {
@@ -84,6 +85,9 @@ export default function ResumeTab({ form }: Props) {
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
 
+  // Alarms / Alerts / Action Log only exist in the Production Monitoring edition.
+  const pmOn = useProductionMonitoring()
+
   const activity = ACTIVITY.filter((r) =>
     query.trim() ? r.some((c) => c.toLowerCase().includes(query.trim().toLowerCase())) : true,
   )
@@ -130,9 +134,9 @@ export default function ResumeTab({ form }: Props) {
         </div>
       </FormSection>
 
-      {/* Additional Notes */}
+      {/* Notes */}
       <FormSection
-        title="Additional Notes"
+        title="Notes"
         action={
           <button className="flex items-center gap-1.5 rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary hover:bg-primary-soft/50">
             <Plus size={14} /> Add note
@@ -189,17 +193,22 @@ export default function ResumeTab({ form }: Props) {
         </div>
       </FormSection>
 
-      {/* Alarms */}
-      <FormSection title="Alarms">
-        <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" />
-      </FormSection>
+      {/* Alarms — Production Monitoring edition only */}
+      {pmOn && (
+        <FormSection title="Alarms">
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" />
+        </FormSection>
+      )}
 
-      {/* Alerts */}
-      <FormSection title="Alerts">
-        <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" />
-      </FormSection>
+      {/* Alerts — Production Monitoring edition only */}
+      {pmOn && (
+        <FormSection title="Alerts">
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" />
+        </FormSection>
+      )}
 
-      {/* Activity / Action log */}
+      {/* Activity / Action log — Production Monitoring edition only */}
+      {pmOn && (
       <FormSection
         title="Action Log"
         action={
@@ -235,6 +244,7 @@ export default function ResumeTab({ form }: Props) {
         </div>
         <Pagination count={activity.length} />
       </FormSection>
+      )}
     </div>
   )
 }

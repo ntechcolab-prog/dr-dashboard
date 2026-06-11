@@ -39,6 +39,13 @@ const GENERAL_DEFAULTS: General = {
   productionMonitoring: true,
 }
 
+// Read-only accessor for the edition flag — Production Monitoring features
+// (Remarks tab, Resume alarm/event/log sections) hide when it's off.
+export function useProductionMonitoring(): boolean {
+  const [s] = useLocalStorage<General>('dr-settings-general', GENERAL_DEFAULTS)
+  return s.productionMonitoring ?? true
+}
+
 export function GeneralSettings() {
   const [s, set] = useLocalStorage<General>('dr-settings-general', GENERAL_DEFAULTS)
   const f = <K extends keyof General>(k: K, v: General[K]) => set((p) => ({ ...p, [k]: v }))

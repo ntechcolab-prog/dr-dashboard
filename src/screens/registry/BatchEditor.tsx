@@ -6,11 +6,13 @@ import ProductTab from './tabs/ProductTab'
 import MachineFormTab from './tabs/MachineFormTab'
 import PeriodTab from './tabs/PeriodTab'
 import ResultsTab from './tabs/ResultsTab'
+import RemarksTab from './tabs/RemarksTab'
 import LogsTab from './tabs/LogsTab'
 import ReportsTab from './tabs/ReportsTab'
+import { useProductionMonitoring } from '../settings/MiscSettings'
 import { ChevronLeft, Save, Pencil, RegistryIcon } from '../../icons/Icons'
 
-const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Details', 'Reports', 'Example'] as const
+const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports', 'Example'] as const
 type Step = (typeof STEPS)[number]
 
 const DISABLED_STEPS: Step[] = ['Example']
@@ -23,8 +25,13 @@ interface Props {
 
 export default function BatchEditor({ initial, onBack, onSave }: Props) {
   const [form, setForm] = useState<BatchForm>(initial)
-  const [step, setStep] = useState<Step>('Resume')
+  const [rawStep, setStep] = useState<Step>('Resume')
   const [saved, setSaved] = useState(false)
+
+  // Production Monitoring edition: Remarks only exists when the flag is on.
+  const pmOn = useProductionMonitoring()
+  const visibleSteps = STEPS.filter((s) => pmOn || s !== 'Remarks')
+  const step: Step = !pmOn && rawStep === 'Remarks' ? 'Resume' : rawStep
 
   const update = <K extends keyof BatchForm>(key: K, val: BatchForm[K]) => setForm((f) => ({ ...f, [key]: val }))
 
@@ -71,7 +78,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
 
       {/* step tabs */}
       <div className="flex flex-wrap gap-1 pt-2">
-        {STEPS.map((s) => {
+        {visibleSteps.map((s) => {
           const disabled = DISABLED_STEPS.includes(s)
           return (
             <button
@@ -105,6 +112,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
         {step === 'Machine' && <MachineFormTab value={form.machine} onChange={(v) => update('machine', v)} />}
         {step === 'Period' && <PeriodTab value={form.period} onChange={(v) => update('period', v)} />}
         {step === 'Results' && <ResultsTab value={form.results} onChange={(v) => update('results', v)} />}
+        {step === 'Remarks' && pmOn && <RemarksTab value={form.remarks} onChange={(v) => update('remarks', v)} />}
         {step === 'Details' && <LogsTab />}
         {step === 'Reports' && <ReportsTab value={form.reports} onChange={(v) => update('reports', v)} />}
       </div>
@@ -115,7 +123,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
         className="fixed right-5 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-0.5 rounded-xl border border-line bg-white/95 p-1.5 shadow-pop backdrop-blur-sm xl:flex"
       >
         <p className="px-2.5 pb-1 pt-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-faint">Sections</p>
-        {STEPS.filter((s) => !DISABLED_STEPS.includes(s)).map((s) => (
+        {visibleSteps.filter((s) => !DISABLED_STEPS.includes(s)).map((s) => (
           <button
             key={s}
             onClick={() => setStep(s)}
