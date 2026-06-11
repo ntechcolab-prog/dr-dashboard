@@ -179,7 +179,7 @@ export default function AvailabilitySettingsTab() {
               <button
                 type="button"
                 onClick={() => setShowApplyPeriod((v) => !v)}
-                className="flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-primary hover:text-primary"
+                className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
               >
                 <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
                 Apply schedule to a period
