@@ -173,7 +173,7 @@ export default function AvailabilitySettingsTab() {
         {scheduleMode === 'manual' ? (
           <>
             <p className="mb-2 text-sm text-muted">Working days · select a day to set its hours</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               {WEEKDAYS.map((d) => {
                 const on = settings.workingDays.includes(d)
                 return (
@@ -205,21 +205,19 @@ export default function AvailabilitySettingsTab() {
                   </div>
                 )
               })}
-            </div>
-
-            {/* Apply the working schedule across a date range — pinned to the card footer */}
-            <div className="mt-5 border-t border-line pt-4">
+              {/* Apply-to-period sits on the same row as the weekday squares */}
               <button
                 type="button"
                 onClick={() => setShowApplyPeriod((v) => !v)}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                className="ml-auto flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
               >
                 <ChevronDown size={16} className={`transition-transform ${showApplyPeriod ? 'rotate-180' : ''}`} />
                 Apply schedule to a period
               </button>
             </div>
+
             {showApplyPeriod && (
-              <div className="mt-4">
+              <div className="mt-5 border-t border-line pt-4">
                 <div className="flex flex-wrap items-end gap-3">
                   <Field label="Start" className="w-44">
                     <input
