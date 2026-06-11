@@ -7,6 +7,8 @@ export interface HBarItem {
   value: number
   color?: string
   leftLabel?: string
+  // De-emphasize this bar (e.g. non-selected machines in the ranking).
+  dim?: boolean
 }
 
 interface HBarsProps {
@@ -40,11 +42,15 @@ export default function HBars({ items, axisMax, axisTicks, labelInside = true }:
           return (
             <div
               key={i}
-              className="flex items-center gap-2"
+              className={`flex items-center gap-2 transition-opacity ${it.dim ? 'opacity-35' : ''}`}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
-              <span className="w-6 shrink-0 text-right text-[0.6875rem] tabular-nums text-muted">
+              <span
+                className={`w-6 shrink-0 text-right text-[0.6875rem] tabular-nums ${
+                  it.dim === false ? 'font-semibold text-ink' : 'text-muted'
+                }`}
+              >
                 {it.leftLabel ?? i + 1}
               </span>
               <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-page">

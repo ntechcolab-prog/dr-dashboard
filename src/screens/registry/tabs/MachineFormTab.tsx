@@ -60,7 +60,7 @@ export default function MachineFormTab({ value, onChange }: Props) {
           <SelectInput value={value.bead1Size} options={['0.2', '0.4', '0.6', '0.8']} onChange={(v) => set('bead1Size', v)} />
         </Field>
         <Field label="Filling">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <TextInput value={value.bead1FillKg} onChange={(v) => set('bead1FillKg', v)} suffix="kg" />
             <TextInput value={value.bead1FillPct} onChange={(v) => set('bead1FillPct', v)} suffix="%" />
           </div>
@@ -73,7 +73,7 @@ export default function MachineFormTab({ value, onChange }: Props) {
           <SelectInput value={value.bead2Size} options={['0.2', '0.4', '0.6', '0.8']} onChange={(v) => set('bead2Size', v)} />
         </Field>
         <Field label="Filling">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <TextInput value={value.bead2FillKg} onChange={(v) => set('bead2FillKg', v)} suffix="kg" />
             <TextInput value={value.bead2FillPct} onChange={(v) => set('bead2FillPct', v)} suffix="%" />
           </div>

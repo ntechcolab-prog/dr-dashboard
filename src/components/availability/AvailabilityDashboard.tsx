@@ -25,7 +25,12 @@ const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 type CardKey = 'today' | 'yesterday' | 'goal' | 'month' | 'ranking' | 'year'
 const CARD_KEYS: CardKey[] = ['today', 'yesterday', 'goal', 'month', 'ranking', 'year']
 
-export default function AvailabilityDashboard() {
+interface Props {
+  // Machine picked in the Machine-tab dropdown — highlighted in the ranking.
+  selectedMachine?: string
+}
+
+export default function AvailabilityDashboard({ selectedMachine }: Props) {
   const [settings] = useAvailabilitySettings()
   const [plan] = useAvailabilityPlan()
   const wh = useWorkingHolidays()
@@ -126,10 +131,25 @@ export default function AvailabilityDashboard() {
     [viewYear, plan, settings, hYear.set, wh.set]
   )
 
-  // Machine performance ranking for the viewed month.
+  // Machine performance ranking — has its own month filter.
+  const [rankMonth, setRankMonth] = useState(now.getMonth())
+  const [rankYear, setRankYear] = useState(now.getFullYear())
+  const stepRankMonth = (dir: number) => {
+    let m = rankMonth + dir
+    let y = rankYear
+    if (m < 0) {
+      m = 11
+      y--
+    } else if (m > 11) {
+      m = 0
+      y++
+    }
+    setRankMonth(m)
+    setRankYear(y)
+  }
   const ranking = useMemo(
-    () => availabilityService.machineRanking(viewMonthYear, viewMonth, MACHINES),
-    [viewMonthYear, viewMonth]
+    () => availabilityService.machineRanking(rankYear, rankMonth, MACHINES),
+    [rankYear, rankMonth]
   )
 
   const monthType = typeFor('month')
@@ -247,10 +267,36 @@ export default function AvailabilityDashboard() {
     },
     ranking: {
       title: 'Machine Ranking',
+      toolbar: (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => stepRankMonth(-1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
+            aria-label="Previous month (ranking)"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="min-w-[4.5rem] text-center text-xs font-medium text-ink">
+            {MONTH_LABELS[rankMonth].slice(0, 3)} {rankYear}
+          </span>
+          <button
+            onClick={() => stepRankMonth(1)}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
+            aria-label="Next month (ranking)"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      ),
       body: (
         <>
           <p className="text-xs text-muted">
-            Performance in {MONTH_LABELS[viewMonth].slice(0, 3)} {viewMonthYear} · goal {goal}%
+            Performance vs goal {goal}%
+            {selectedMachine ? (
+              <>
+                {' '}· <span className="font-semibold text-primary">{selectedMachine}</span> highlighted
+              </>
+            ) : null}
           </p>
           <div className="mt-3">
             <HBars
@@ -259,6 +305,7 @@ export default function AvailabilityDashboard() {
                 value: r.pct,
                 leftLabel: `${r.pct}%`,
                 color: r.pct >= goal ? 'var(--color-primary)' : 'var(--color-warning)',
+                dim: selectedMachine ? r.machine !== selectedMachine : undefined,
               }))}
               axisMax={100}
             />

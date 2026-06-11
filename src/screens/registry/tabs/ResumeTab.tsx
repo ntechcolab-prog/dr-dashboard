@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { BatchForm } from '../../../data/batchForm'
 import { FormSection } from '../../../components/FormControls'
 import { SelectInput } from '../../../components/FormControls'
+import MultiSensorChart from '../../../components/MultiSensorChart'
 import { useProductionMonitoring } from '../../settings/MiscSettings'
-import { Plus, Download, Refresh, Search, CheckCircle, ChevronLeft, ChevronRight } from '../../../icons/Icons'
+import { Plus, Refresh, Search, CheckCircle, ChevronLeft, ChevronRight } from '../../../icons/Icons'
 
 interface Props {
   form: BatchForm
@@ -50,11 +51,26 @@ const SENSORS = [
   { name: 'Mill current', unit: 'kWh', color: '#e0489b', stats: [['Min', '20'], ['Max', '102'], ['Avg', '48']] },
 ]
 const SERIES = [
-  { color: '#f19909', data: [3, 5, 7, 8, 9, 9.5, 9, 8, 8.6, 9.4, 7.8, 6] },
-  { color: '#9b7fd4', data: [5, 6.4, 5.4, 7, 6, 5.2, 6.1, 7, 5.8, 5, 4.6, 4] },
-  { color: '#e0489b', data: [3, 3.2, 3.8, 4, 3.4, 4, 4.6, 4.1, 4, 3.4, 3.8, 3.2] },
+  { name: 'Energy', color: '#f19909', data: [3, 5, 7, 8, 9, 9.5, 9, 8, 8.6, 9.4, 7.8, 6] },
+  { name: 'Product flow', color: '#9b7fd4', data: [5, 6.4, 5.4, 7, 6, 5.2, 6.1, 7, 5.8, 5, 4.6, 4] },
+  { name: 'Mill current', color: '#e0489b', data: [3, 3.2, 3.8, 4, 3.4, 4, 4.6, 4.1, 4, 3.4, 3.8, 3.2] },
 ]
-const X_LABELS = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00']
+// One label per data point (08:00 → 13:30, 30-minute steps).
+const X_LABELS = SERIES[0].data.map((_, i) => {
+  const m = 8 * 60 + i * 30
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+})
+
+// ─── Floating quick-nav (Resume sections) ────────────────────────────────────
+const SECTIONS = [
+  { id: 'resume-status', label: 'Batch Status' },
+  { id: 'resume-details', label: 'Batch Details' },
+  { id: 'resume-machine', label: 'Machine Details' },
+  { id: 'resume-notes', label: 'Notes' },
+  { id: 'resume-alarms', label: 'Alarms', pmOnly: true },
+  { id: 'resume-alerts', label: 'Alerts', pmOnly: true },
+  { id: 'resume-log', label: 'Action Log', pmOnly: true },
+]
 
 // ─── Tables ──────────────────────────────────────────────────────────────────
 const ALARMS = [
@@ -84,9 +100,31 @@ export default function ResumeTab({ form }: Props) {
   const [period, setPeriod] = useState('Last 24 hours')
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
+  const [hoverSensor, setHoverSensor] = useState<number | null>(null)
 
   // Alarms / Alerts / Action Log only exist in the Production Monitoring edition.
   const pmOn = useProductionMonitoring()
+  const sections = SECTIONS.filter((s) => pmOn || !s.pmOnly)
+
+  // Scroll-spy: highlight the section currently in view on the floating nav.
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActiveSection(e.target.id)
+      },
+      { rootMargin: '-25% 0px -65% 0px' }
+    )
+    for (const s of sections) {
+      const el = document.getElementById(s.id)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pmOn])
+
+  const jumpTo = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const activity = ACTIVITY.filter((r) =>
     query.trim() ? r.some((c) => c.toLowerCase().includes(query.trim().toLowerCase())) : true,
@@ -94,7 +132,28 @@ export default function ResumeTab({ form }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Floating quick-nav — Resume sections, liquid-glass, fixed while scrolling */}
+      <nav
+        aria-label="Resume sections"
+        className="fixed right-5 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-0.5 rounded-2xl border border-white/60 bg-white/50 p-1.5 shadow-pop backdrop-blur-2xl backdrop-saturate-150 xl:flex"
+      >
+        <p className="px-2.5 pb-1 pt-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-faint">Sections</p>
+        {sections.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => jumpTo(s.id)}
+            aria-current={activeSection === s.id ? 'true' : undefined}
+            className={`rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${
+              activeSection === s.id ? 'bg-primary/90 text-white' : 'text-muted hover:bg-white/70 hover:text-ink'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+
       {/* Batch Status */}
+      <div id="resume-status" className="scroll-mt-4">
       <FormSection title="Batch Status">
         <div className="grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Status">
@@ -109,16 +168,20 @@ export default function ResumeTab({ form }: Props) {
           <Stat label="End Time" value="15 May, 2023, 12:30:21" />
         </div>
       </FormSection>
+      </div>
 
       {/* Batch Details */}
+      <div id="resume-details" className="scroll-mt-4">
       <FormSection title="Batch Details">
         <div className="grid gap-8 md:grid-cols-2">
           <KvGroup heading="Target" rows={TARGET_ROWS} />
           <KvGroup heading="Process" rows={PROCESS_ROWS} />
         </div>
       </FormSection>
+      </div>
 
       {/* Machine Details */}
+      <div id="resume-machine" className="scroll-mt-4">
       <FormSection title="Machine Details">
         <div className="rounded-xl border border-line p-5">
           <div className="grid gap-8 md:grid-cols-2">
@@ -133,8 +196,10 @@ export default function ResumeTab({ form }: Props) {
           </div>
         </div>
       </FormSection>
+      </div>
 
       {/* Notes */}
+      <div id="resume-notes" className="scroll-mt-4">
       <FormSection
         title="Notes"
         action={
@@ -158,9 +223,6 @@ export default function ResumeTab({ form }: Props) {
               />
             </div>
             <div className="flex items-center gap-2">
-              <button className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:bg-page">
-                <Download size={14} /> Export
-              </button>
               <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:bg-page">
                 <input type="checkbox" checked={showStatus} onChange={(e) => setShowStatus(e.target.checked)} className="accent-primary" />
                 Show Machine Status (Range)
@@ -171,11 +233,24 @@ export default function ResumeTab({ form }: Props) {
             </div>
           </div>
 
-          <SensorChart showStatus={showStatus} />
+          <MultiSensorChart
+            series={SERIES}
+            pointLabels={X_LABELS}
+            max={10}
+            height={260}
+            highlight={hoverSensor}
+            band={showStatus ? [2, 7] : null}
+          />
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {SENSORS.map((s) => (
-              <div key={s.name} className="rounded-lg border-l-4 bg-page/40 p-3" style={{ borderColor: s.color }}>
+            {SENSORS.map((s, i) => (
+              <div
+                key={s.name}
+                onMouseEnter={() => setHoverSensor(i)}
+                onMouseLeave={() => setHoverSensor(null)}
+                className="cursor-default rounded-lg border-l-4 bg-page/40 p-3 transition-shadow hover:shadow-card"
+                style={{ borderColor: s.color }}
+              >
                 <div className="flex items-baseline justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
                   <span className="text-[0.6875rem] text-faint">{s.unit}</span>
@@ -192,23 +267,29 @@ export default function ResumeTab({ form }: Props) {
           </div>
         </div>
       </FormSection>
+      </div>
 
       {/* Alarms — Production Monitoring edition only */}
       {pmOn && (
+        <div id="resume-alarms" className="scroll-mt-4">
         <FormSection title="Alarms">
           <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" />
         </FormSection>
+        </div>
       )}
 
       {/* Alerts — Production Monitoring edition only */}
       {pmOn && (
+        <div id="resume-alerts" className="scroll-mt-4">
         <FormSection title="Alerts">
           <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" />
         </FormSection>
+        </div>
       )}
 
       {/* Activity / Action log — Production Monitoring edition only */}
       {pmOn && (
+      <div id="resume-log" className="scroll-mt-4">
       <FormSection
         title="Action Log"
         action={
@@ -244,6 +325,7 @@ export default function ResumeTab({ form }: Props) {
         </div>
         <Pagination count={activity.length} />
       </FormSection>
+      </div>
       )}
     </div>
   )
@@ -319,59 +401,3 @@ function Pagination({ count }: { count: number }) {
   )
 }
 
-function SensorChart({ showStatus }: { showStatus: boolean }) {
-  const W = 880
-  const H = 260
-  const padL = 36
-  const padR = 12
-  const padT = 12
-  const padB = 28
-  const plotW = W - padL - padR
-  const plotH = H - padT - padB
-  const max = 10
-  const n = SERIES[0].data.length
-  const x = (i: number) => padL + (i / (n - 1)) * plotW
-  const y = (v: number) => padT + plotH - (v / max) * plotH
-
-  // optional machine-status band (a producing window highlight)
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
-      {showStatus && (
-        <rect x={x(2)} y={padT} width={x(7) - x(2)} height={plotH} fill="#59d66e" opacity={0.08} />
-      )}
-      {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
-        <line
-          key={i}
-          x1={padL}
-          x2={W - padR}
-          y1={padT + plotH * t}
-          y2={padT + plotH * t}
-          stroke="var(--color-line)"
-          strokeWidth={1}
-          strokeDasharray={i === 4 ? undefined : '2 6'}
-        />
-      ))}
-      {SERIES.map((s, si) => (
-        <polyline
-          key={si}
-          points={s.data.map((v, i) => `${x(i)},${y(v)}`).join(' ')}
-          fill="none"
-          stroke={s.color}
-          strokeWidth={2}
-          strokeLinejoin="round"
-          pathLength={1}
-          className="chart-line"
-          style={{ animationDelay: `${si * 90}ms` }}
-        />
-      ))}
-      {X_LABELS.map((lab, i) => {
-        const idx = Math.round((i / (X_LABELS.length - 1)) * (n - 1))
-        return (
-          <text key={i} x={x(idx)} y={H - 9} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
-            {lab}
-          </text>
-        )
-      })}
-    </svg>
-  )
-}

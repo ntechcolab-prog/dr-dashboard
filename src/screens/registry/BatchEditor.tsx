@@ -9,8 +9,12 @@ import ResultsTab from './tabs/ResultsTab'
 import RemarksTab from './tabs/RemarksTab'
 import LogsTab from './tabs/LogsTab'
 import ReportsTab from './tabs/ReportsTab'
+import ExportMenu from '../../components/ExportMenu'
+import type { Sheet } from '../../lib/exportData'
 import { useProductionMonitoring } from '../settings/MiscSettings'
 import { ChevronLeft, Save, Pencil, RegistryIcon } from '../../icons/Icons'
+
+const EDITOR_PRINT_ID = 'batch-editor-print'
 
 const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports', 'Example'] as const
 type Step = (typeof STEPS)[number]
@@ -41,9 +45,37 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
     window.setTimeout(() => setSaved(false), 2200)
   }
 
+  // Export reflects whatever is currently filled in the editor.
+  const buildSheets = (): Sheet[] => [
+    {
+      name: 'Batch',
+      rows: [
+        ['Field', 'Value'],
+        ['Batch ID', form.id],
+        ['Version', form.version],
+        ['Product information', form.product.details],
+        ['Start', `${form.period.startDate} ${form.period.startTime}`],
+        ['End', `${form.period.endDate} ${form.period.endTime}`],
+        ['Machine', form.machine.name],
+        ['Machine type', form.machine.machineType],
+      ],
+    },
+    {
+      name: 'Results',
+      rows: [
+        ['Date', 'Time', ...form.results.variables],
+        ...form.results.rows.map((r) => [r.date, r.time, ...form.results.variables.map((v) => r.values[v] ?? '')]),
+      ],
+    },
+    {
+      name: 'Notes',
+      rows: [['Date', 'Time', 'Comment'], ...form.remarks.notes.map((n) => [n.date, n.time, n.comment])],
+    },
+  ]
+
   return (
     <div className="mx-auto flex max-w-[75rem] flex-col gap-4 p-5">
-      {/* header — same pattern as the other screens, back = green arrow button */}
+      {/* header — back = green arrow button, title = the batch id itself */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
         <div className="flex items-center gap-3">
           <button
@@ -54,14 +86,18 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
           >
             <ChevronLeft size={18} />
           </button>
-          <SubHeader Icon={RegistryIcon} title="Batch Information" />
+          <SubHeader Icon={RegistryIcon} title={form.id} />
         </div>
         <div className="flex items-center gap-5">
-          <Meta label="Batch ID" value={form.id} />
-          <span className="h-8 w-px bg-line" />
           <Meta label="Version" value={form.version} />
           <div className="flex items-center gap-2">
             {saved && <span className="text-xs font-medium text-up">Saved ✓</span>}
+            <ExportMenu
+              title={`Batch ${form.id}`}
+              printId={EDITOR_PRINT_ID}
+              filenameBase={`batch-${form.id}`}
+              sheets={buildSheets}
+            />
             <button
               onClick={save}
               className="grid h-9 w-9 place-items-center rounded-lg border border-line text-muted hover:bg-page"
@@ -106,7 +142,7 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
         })}
       </div>
 
-      <div className="pt-1">
+      <div className="pt-1" id={EDITOR_PRINT_ID}>
         {step === 'Resume' && <ResumeTab form={form} />}
         {step === 'Product' && <ProductTab value={form.product} onChange={(v) => update('product', v)} />}
         {step === 'Machine' && <MachineFormTab value={form.machine} onChange={(v) => update('machine', v)} />}
@@ -116,26 +152,6 @@ export default function BatchEditor({ initial, onBack, onSave }: Props) {
         {step === 'Details' && <LogsTab />}
         {step === 'Reports' && <ReportsTab value={form.reports} onChange={(v) => update('reports', v)} />}
       </div>
-
-      {/* floating quick-nav — fixed on screen, jumps straight to a section */}
-      <nav
-        aria-label="Batch sections"
-        className="fixed right-5 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-0.5 rounded-xl border border-line bg-white/95 p-1.5 shadow-pop backdrop-blur-sm xl:flex"
-      >
-        <p className="px-2.5 pb-1 pt-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-faint">Sections</p>
-        {visibleSteps.filter((s) => !DISABLED_STEPS.includes(s)).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStep(s)}
-            aria-current={s === step ? 'true' : undefined}
-            className={`rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${
-              s === step ? 'bg-primary text-white' : 'text-muted hover:bg-page hover:text-ink'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
-      </nav>
     </div>
   )
 }

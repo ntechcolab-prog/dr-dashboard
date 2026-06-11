@@ -2,7 +2,8 @@ import { useState } from 'react'
 import Dropdown from './Dropdown'
 import AvailabilityDashboard from './availability/AvailabilityDashboard'
 import ExportMenu from './ExportMenu'
-import { PRODUCTION_LINES, MACHINE_NAMES } from '../data/appData'
+import { PRODUCTION_LINES } from '../data/appData'
+import { MACHINES } from '../data/mockData'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
@@ -13,7 +14,8 @@ const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'J
 
 export default function MachineTab() {
   const [line, setLine] = useState(PRODUCTION_LINES[0])
-  const [machine, setMachine] = useState(MACHINE_NAMES[0])
+  // Same machine list the ranking uses, so the selection always exists there.
+  const [machine, setMachine] = useState(MACHINES[0])
 
   const [settings] = useAvailabilitySettings()
   const [plan] = useAvailabilityPlan()
@@ -64,7 +66,7 @@ export default function MachineTab() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <Dropdown value={line} options={PRODUCTION_LINES} onChange={setLine} className="w-52" />
-          <Dropdown value={machine} options={MACHINE_NAMES} onChange={setMachine} className="w-44" />
+          <Dropdown value={machine} options={MACHINES} onChange={setMachine} className="w-44" />
         </div>
         <div className="no-print flex items-center gap-2">
           <ExportMenu
@@ -78,7 +80,7 @@ export default function MachineTab() {
 
       {/* printable region — reflects current line/machine + dashboard state */}
       <div id={MACHINE_PRINT_ID}>
-        <AvailabilityDashboard />
+        <AvailabilityDashboard selectedMachine={machine} />
       </div>
     </div>
   )

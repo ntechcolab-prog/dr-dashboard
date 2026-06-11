@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { SelectInput } from '../../../components/FormControls'
+import { useId, useState } from 'react'
 import { Close } from '../../../icons/Icons'
 import type { ResultsData, ResultRow } from '../../../data/batchForm'
 import { RESULT_VARIABLES } from '../../../data/batchForm'
+import { maskDate, maskTime } from '../../../lib/masks'
 
 interface Props {
   value: ResultsData
@@ -17,6 +17,8 @@ const emptyDraft = (vars: string[]): ResultRow => ({
 
 export default function ResultsTab({ value, onChange }: Props) {
   const [draft, setDraft] = useState<ResultRow>(emptyDraft(value.variables))
+  const [varDraft, setVarDraft] = useState('')
+  const datalistId = useId()
 
   const available = RESULT_VARIABLES.filter((v) => !value.variables.includes(v))
 
@@ -26,6 +28,14 @@ export default function ResultsTab({ value, onChange }: Props) {
       rows: value.rows.map((r) => ({ ...r, values: { ...r.values, [v]: '' } })),
     })
     setDraft((d) => ({ ...d, values: { ...d.values, [v]: '' } }))
+  }
+
+  // Picks a known variable or creates a brand-new one from free text.
+  const commitVariable = () => {
+    const v = varDraft.trim()
+    if (!v) return
+    if (!value.variables.some((x) => x.toLowerCase() === v.toLowerCase())) addVariable(v)
+    setVarDraft('')
   }
 
   const removeVariable = (v: string) => {
@@ -61,8 +71,29 @@ export default function ResultsTab({ value, onChange }: Props) {
 
       <div className="mt-5 flex items-end justify-between gap-4">
         <div className="w-full max-w-sm">
-          <label className="mb-1.5 block text-sm text-muted">Select Variable</label>
-          <SelectInput value="" options={available} onChange={addVariable} placeholder="Select a variable" />
+          <label className="mb-1.5 block text-sm text-muted">Variable · pick one or type a new one</label>
+          <div className="flex gap-2">
+            <input
+              list={datalistId}
+              value={varDraft}
+              onChange={(e) => setVarDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && commitVariable()}
+              placeholder="e.g. d50 — or type to create"
+              className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
+            />
+            <datalist id={datalistId}>
+              {available.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+            <button
+              onClick={commitVariable}
+              disabled={!varDraft.trim()}
+              className="shrink-0 rounded-lg border border-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary hover:bg-primary-soft disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
         </div>
         <button
           onClick={importSample}
@@ -112,16 +143,18 @@ export default function ResultsTab({ value, onChange }: Props) {
               <td className="px-3 py-2">
                 <input
                   value={draft.date}
-                  onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+                  onChange={(e) => setDraft({ ...draft, date: maskDate(e.target.value) })}
                   placeholder="DD/MM/YYYY"
+                  inputMode="numeric"
                   className="w-28 rounded-md border border-line bg-white px-2 py-1.5 text-sm outline-none focus:border-primary"
                 />
               </td>
               <td className="px-3 py-2">
                 <input
                   value={draft.time}
-                  onChange={(e) => setDraft({ ...draft, time: e.target.value })}
+                  onChange={(e) => setDraft({ ...draft, time: maskTime(e.target.value) })}
                   placeholder="00:00:00"
+                  inputMode="numeric"
                   className="w-24 rounded-md border border-line bg-white px-2 py-1.5 text-sm outline-none focus:border-primary"
                 />
               </td>
