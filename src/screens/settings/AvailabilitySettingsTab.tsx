@@ -90,7 +90,57 @@ export default function AvailabilitySettingsTab() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 1. Planning calendar — the main thing, up top */}
+      {/* Working schedule — defines what the calendar fills with */}
+      <FormSection title="Working schedule">
+        <p className="mb-2 text-sm text-muted">Working days</p>
+        <div className="flex flex-wrap gap-2">
+          {WEEKDAYS.map((d) => {
+            const on = settings.workingDays.includes(d)
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => toggleWorkingDay(d)}
+                className={`min-w-[3.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  on
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-line text-muted hover:border-primary hover:text-primary'
+                }`}
+              >
+                {WEEKDAY_LABELS[d]}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-2 text-sm text-muted">Default time per day</p>
+          {settings.workingDays.length === 0 ? (
+            <p className="text-sm text-faint">Select at least one working day above.</p>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              {[...settings.workingDays]
+                .sort((a, b) => a - b)
+                .map((d) => (
+                  <div key={d} className="flex items-center gap-2">
+                    <span className="w-9 text-sm text-ink">{WEEKDAY_LABELS[d]}</span>
+                    <div className="w-24">
+                      <NumberBox
+                        value={settings.defaultHoursByWeekday[d] ?? 0}
+                        suffix="h"
+                        min={0}
+                        step={0.5}
+                        onChange={(n) => setDefaultHours(d, n)}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </FormSection>
+
+      {/* Planning calendar */}
       <FormSection
         title="Planning calendar"
         action={
@@ -210,73 +260,6 @@ export default function AvailabilitySettingsTab() {
         )}
       </FormSection>
 
-      {/* 3. Working schedule */}
-      <FormSection title="Working schedule">
-        <p className="mb-2 text-sm text-muted">Working days</p>
-        <div className="flex flex-wrap gap-2">
-          {WEEKDAYS.map((d) => {
-            const on = settings.workingDays.includes(d)
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => toggleWorkingDay(d)}
-                className={`min-w-[3.25rem] rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                  on
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-line text-muted hover:border-primary hover:text-primary'
-                }`}
-              >
-                {WEEKDAY_LABELS[d]}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="mt-6">
-          <p className="mb-2 text-sm text-muted">Default time per day</p>
-          {settings.workingDays.length === 0 ? (
-            <p className="text-sm text-faint">Select at least one working day above.</p>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {[...settings.workingDays]
-                .sort((a, b) => a - b)
-                .map((d) => (
-                  <div key={d} className="flex items-center gap-2">
-                    <span className="w-9 text-sm text-ink">{WEEKDAY_LABELS[d]}</span>
-                    <div className="w-24">
-                      <NumberBox
-                        value={settings.defaultHoursByWeekday[d] ?? 0}
-                        suffix="h"
-                        min={0}
-                        step={0.5}
-                        onChange={(n) => setDefaultHours(d, n)}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </FormSection>
-
-      {/* 4. Availability goal — on its own */}
-      <FormSection title="Availability goal">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="w-40">
-            <NumberBox
-              value={settings.monthlyGoalPct}
-              suffix="%"
-              min={0}
-              max={100}
-              onChange={(n) => setSettings((prev) => ({ ...prev, monthlyGoalPct: Math.max(0, Math.min(100, n)) }))}
-            />
-          </div>
-          <p className="text-sm text-muted">
-            Monthly availability target. Shown as the dashed goal line on the dashboard charts and the gauge markers.
-          </p>
-        </div>
-      </FormSection>
     </div>
   )
 }
