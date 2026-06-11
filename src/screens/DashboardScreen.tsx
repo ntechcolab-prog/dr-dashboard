@@ -256,7 +256,7 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
         </>
       ) : (
         <div className="overflow-hidden rounded-xl bg-card shadow-card">
-          <MachineTab onNavigate={onNavigate} />
+          <MachineTab />
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
   useAvailabilitySettings,
@@ -10,16 +10,20 @@ import {
 } from '../../lib/availability'
 import { useHolidays } from '../../lib/holidays'
 import { availabilityService, type SeriesResult } from '../../data/availabilityData'
+import { MACHINES } from '../../data/mockData'
 import AvailabilityGauge from '../AvailabilityGauge'
 import AvailabilityChart from '../AvailabilityChart'
 import HBars from '../HBars'
 import Dropdown from '../Dropdown'
-import { Alarm, Pencil, ChevronLeft, ChevronRight, CheckCircle } from '../../icons/Icons'
+import { Pencil, ChevronLeft, ChevronRight } from '../../icons/Icons'
 import ChartTypePicker from './ChartTypePicker'
 import ChartDetailPanel from './ChartDetailPanel'
 
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+type CardKey = 'today' | 'yesterday' | 'goal' | 'month' | 'ranking' | 'year'
+const CARD_KEYS: CardKey[] = ['today', 'yesterday', 'goal', 'month', 'ranking', 'year']
 
 export default function AvailabilityDashboard() {
   const [settings] = useAvailabilitySettings()
@@ -37,8 +41,64 @@ export default function AvailabilityDashboard() {
   // Year card owns its own year selector.
   const [viewYear, setViewYear] = useState(now.getFullYear())
 
-  const [editMode, setEditMode] = useState(false)
   const [detail, setDetail] = useState<null | 'month' | 'year'>(null)
+
+  // Edit mode — same interaction as the Batches metrics grid: drag to
+  // reorder, remove cards, add them back, with cancel/discard protection.
+  const [editMode, setEditMode] = useState(false)
+  const [order, setOrder] = useState<CardKey[]>(CARD_KEYS)
+  const [hidden, setHidden] = useState<Set<CardKey>>(new Set())
+  const [dragKey, setDragKey] = useState<CardKey | null>(null)
+  const [snapshot, setSnapshot] = useState<{ order: CardKey[]; hidden: Set<CardKey> } | null>(null)
+  const [confirming, setConfirming] = useState(false)
+
+  const enterEdit = () => {
+    setSnapshot({ order: [...order], hidden: new Set(hidden) })
+    setEditMode(true)
+  }
+  const done = () => {
+    setEditMode(false)
+    setConfirming(false)
+    setSnapshot(null)
+  }
+  const dirty =
+    !!snapshot &&
+    (snapshot.order.join() !== order.join() ||
+      snapshot.hidden.size !== hidden.size ||
+      [...hidden].some((k) => !snapshot.hidden.has(k)))
+  const cancel = () => {
+    if (dirty) {
+      setConfirming(true)
+      return
+    }
+    done()
+  }
+  const discard = () => {
+    if (snapshot) {
+      setOrder([...snapshot.order])
+      setHidden(new Set(snapshot.hidden))
+    }
+    done()
+  }
+  const hide = (key: CardKey) => setHidden((s) => new Set(s).add(key))
+  const show = (key: CardKey) =>
+    setHidden((s) => {
+      const n = new Set(s)
+      n.delete(key)
+      return n
+    })
+  const reorder = (targetKey: CardKey) => {
+    if (!dragKey || dragKey === targetKey) return
+    setOrder((prev) => {
+      const from = prev.indexOf(dragKey)
+      const to = prev.indexOf(targetKey)
+      if (from < 0 || to < 0) return prev
+      const next = [...prev]
+      next.splice(from, 1)
+      next.splice(to, 0, dragKey)
+      return next
+    })
+  }
 
   // Holidays: gather for every year referenced so service math is consistent.
   const hToday = useHolidays(now.getFullYear())
@@ -66,12 +126,11 @@ export default function AvailabilityDashboard() {
     [viewYear, plan, settings, hYear.set, wh.set]
   )
 
-  const alarms = useMemo(
-    () => availabilityService.alarmsByDay(viewMonthYear, viewMonth),
+  // Machine performance ranking for the viewed month.
+  const ranking = useMemo(
+    () => availabilityService.machineRanking(viewMonthYear, viewMonth, MACHINES),
     [viewMonthYear, viewMonth]
   )
-  const totalAlarms = alarms.reduce((a, d) => a + d.count, 0)
-  const topAlarms = [...alarms].filter((d) => d.count > 0).sort((a, b) => b.count - a.count).slice(0, 5)
 
   const monthType = typeFor('month')
   const yearType = typeFor('year')
@@ -98,169 +157,260 @@ export default function AvailabilityDashboard() {
   // TASK-20: hover enrichment caption fields (avg availability + best/worst day).
   const monthCaption = useMemo(() => buildDailyCaption(monthSeries), [monthSeries])
 
+  // --- card registry (key → title/span/toolbar/body) ---
+
+  const cards: Record<CardKey, { title: string; className?: string; toolbar?: ReactNode; body: ReactNode }> = {
+    today: {
+      title: 'Today',
+      body: (
+        <>
+          <TodayBars planned={today.planned} executed={today.executed} pct={today.pct} />
+          <p className="mt-3 border-t border-line pt-2 text-center text-xs text-muted">
+            {WEEKDAY_LONG[parseISO(todayIso).getDay()]} · {today.executed}h of {today.planned}h planned
+          </p>
+        </>
+      ),
+    },
+    yesterday: {
+      title: 'Yesterday',
+      body: (
+        <>
+          <AvailabilityGauge value={yesterday.pct} label="Yesterday" goal={goal} />
+          <p className="mt-2 text-center text-xs text-muted">
+            {yesterday.executed}h executed · {yesterday.planned}h planned
+          </p>
+        </>
+      ),
+    },
+    goal: {
+      title: 'Goal',
+      body: (
+        <div className="flex h-full flex-col items-center justify-center py-4">
+          <p className="text-5xl font-bold text-primary">{goal}%</p>
+          <p className="mt-2 text-center text-sm text-muted">Monthly availability target</p>
+          <p className="mt-1 text-center text-xs text-faint">
+            Shown as the dashed line on the Month &amp; Year charts.
+          </p>
+        </div>
+      ),
+    },
+    month: {
+      title: 'Month',
+      className: 'lg:col-span-2',
+      toolbar: (
+        <div className="flex items-center gap-1.5">
+          {editMode && <ChartTypePicker value={monthType} onChange={(t) => setCard('month', t)} />}
+          <button
+            onClick={() => stepMonth(-1)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="min-w-[7.5rem] text-center text-sm font-medium text-ink">
+            {MONTH_LABELS[viewMonth]} {viewMonthYear}
+          </span>
+          <button
+            onClick={() => stepMonth(1)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
+            aria-label="Next month"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      ),
+      body: (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
+          <div className="flex flex-col items-center justify-center">
+            <AvailabilityGauge value={monthSeries.overallPct} label="Month" goal={goal} size="8rem" />
+          </div>
+          <button
+            type="button"
+            onClick={() => !editMode && setDetail('month')}
+            className={`block w-full text-left ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
+            title={editMode ? undefined : 'Open detail'}
+          >
+            <AvailabilityChart
+              labels={monthSeries.labels}
+              values={monthSeries.pct}
+              planned={monthSeries.planned}
+              executed={monthSeries.executed}
+              type={monthType}
+              goal={goal}
+              height={180}
+              maxLabels={15}
+            />
+            <p className="mt-1 text-center text-[0.6875rem] text-faint">{monthCaption}</p>
+          </button>
+        </div>
+      ),
+    },
+    ranking: {
+      title: 'Machine Ranking',
+      body: (
+        <>
+          <p className="text-xs text-muted">
+            Performance in {MONTH_LABELS[viewMonth].slice(0, 3)} {viewMonthYear} · goal {goal}%
+          </p>
+          <div className="mt-3">
+            <HBars
+              items={ranking.map((r) => ({
+                label: r.machine,
+                value: r.pct,
+                leftLabel: `${r.pct}%`,
+                color: r.pct >= goal ? 'var(--color-primary)' : 'var(--color-warning)',
+              }))}
+              axisMax={100}
+            />
+          </div>
+          <p className="mt-2 border-t border-line pt-2 text-center text-xs text-muted">
+            Best: <span className="font-semibold text-ink">{ranking[0]?.machine}</span> ({ranking[0]?.pct}%)
+          </p>
+        </>
+      ),
+    },
+    year: {
+      title: 'Year',
+      className: 'lg:col-span-3',
+      toolbar: (
+        <div className="flex items-center gap-1.5">
+          {editMode && <ChartTypePicker value={yearType} onChange={(t) => setCard('year', t)} />}
+          <Dropdown
+            value={String(viewYear)}
+            options={yearOptions}
+            onChange={(v) => setViewYear(Number(v))}
+            className="w-28"
+          />
+        </div>
+      ),
+      body: (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
+          <div className="flex flex-col items-center justify-center">
+            <AvailabilityGauge value={yearSeries.overallPct} label="Year" goal={goal} size="8rem" />
+          </div>
+          <button
+            type="button"
+            onClick={() => !editMode && setDetail('year')}
+            className={`block w-full text-left ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
+            title={editMode ? undefined : 'Open detail'}
+          >
+            <AvailabilityChart
+              labels={yearSeries.labels}
+              values={yearSeries.pct}
+              planned={yearSeries.planned}
+              executed={yearSeries.executed}
+              type={yearType}
+              goal={goal}
+              height={200}
+            />
+            <p className="mt-1 text-center text-[0.6875rem] text-faint">
+              {buildMonthlyCaption(yearSeries)}
+            </p>
+          </button>
+        </div>
+      ),
+    },
+  }
+
+  const visible = order.filter((k) => !hidden.has(k))
+  const hiddenCards = order.filter((k) => hidden.has(k))
+
   return (
     <div>
       {/* dashboard toolbar */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Availability</h3>
-        <button
-          onClick={() => setEditMode((v) => !v)}
-          className={`no-print flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-            editMode
-              ? 'border-primary bg-primary-soft text-primary'
-              : 'border-line text-muted hover:text-ink'
-          }`}
-        >
-          {editMode ? <CheckCircle size={15} /> : <Pencil size={15} />}
-          {editMode ? 'Done' : 'Edit'}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* TASK-14 — Today: planned vs executed two-bar comparison */}
-        <Card title="Today">
-          <TodayBars planned={today.planned} executed={today.executed} pct={today.pct} />
-          <p className="mt-3 border-t border-line pt-2 text-center text-xs text-muted">
-            {WEEKDAY_LONG[parseISO(todayIso).getDay()]} · {today.executed}h of {today.planned}h planned
-          </p>
-        </Card>
-
-        {/* TASK-15 — Yesterday gauge */}
-        <Card title="Yesterday">
-          <AvailabilityGauge value={yesterday.pct} label="Yesterday" goal={goal} />
-          <p className="mt-2 text-center text-xs text-muted">
-            {yesterday.executed}h executed · {yesterday.planned}h planned
-          </p>
-        </Card>
-
-        {/* TASK-18 — Goal card */}
-        <Card title="Goal">
-          <div className="flex h-full flex-col items-center justify-center py-4">
-            <p className="text-5xl font-bold text-primary">{goal}%</p>
-            <p className="mt-2 text-center text-sm text-muted">Monthly availability target</p>
-            <p className="mt-1 text-center text-xs text-faint">
-              Shown as the dashed line on the Month &amp; Year charts.
-            </p>
-          </div>
-        </Card>
-
-        {/* TASK-16 — Month: gauge + daily chart, own month/year selector */}
-        <Card
-          title="Month"
-          className="lg:col-span-2"
-          toolbar={
-            <div className="flex items-center gap-1.5">
-              {editMode && <ChartTypePicker value={monthType} onChange={(t) => setCard('month', t)} />}
-              <button
-                onClick={() => stepMonth(-1)}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
-                aria-label="Previous month"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="min-w-[7.5rem] text-center text-sm font-medium text-ink">
-                {MONTH_LABELS[viewMonth]} {viewMonthYear}
-              </span>
-              <button
-                onClick={() => stepMonth(1)}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-page hover:text-ink"
-                aria-label="Next month"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          }
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
-            <div className="flex flex-col items-center justify-center">
-              <AvailabilityGauge value={monthSeries.overallPct} label="Month" goal={goal} size="8rem" />
-            </div>
+        {editMode ? (
+          <div className="no-print relative flex items-center gap-3">
             <button
-              type="button"
-              onClick={() => !editMode && setDetail('month')}
-              className={`block w-full text-left ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
-              title={editMode ? undefined : 'Open detail'}
+              onClick={cancel}
+              className="text-xs font-semibold uppercase tracking-wide text-muted hover:text-ink"
             >
-              <AvailabilityChart
-                labels={monthSeries.labels}
-                values={monthSeries.pct}
-                planned={monthSeries.planned}
-                executed={monthSeries.executed}
-                type={monthType}
-                goal={goal}
-                height={180}
-                maxLabels={15}
-              />
-              <p className="mt-1 text-center text-[0.6875rem] text-faint">{monthCaption}</p>
+              Cancel
             </button>
-          </div>
-        </Card>
-
-        {/* TASK-21 — Total Alarms */}
-        <Card title="Total Alarms">
-          <div className="flex items-center gap-2">
-            <Alarm size={22} className="text-warning" />
-            <span className="text-4xl font-bold text-ink">{totalAlarms}</span>
-            <span className="text-xs text-muted">in {MONTH_LABELS[viewMonth].slice(0, 3)}</span>
-          </div>
-          <div className="mt-3 border-t border-line pt-3">
-            {topAlarms.length ? (
-              <HBars
-                items={topAlarms.map((d) => ({
-                  label: `Day ${String(d.day).padStart(2, '0')}`,
-                  value: d.count,
-                  leftLabel: String(d.day).padStart(2, '0'),
-                  color: 'var(--color-warning)',
-                }))}
-                axisMax={Math.max(...topAlarms.map((d) => d.count)) + 1}
-              />
-            ) : (
-              <p className="py-3 text-center text-xs text-muted">No alarms this month</p>
+            <button
+              onClick={done}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white hover:bg-primary-700"
+            >
+              Done
+            </button>
+            {confirming && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-line bg-white p-4 text-left shadow-pop">
+                <p className="text-sm font-semibold text-ink">Discard changes?</p>
+                <p className="mt-1 text-xs text-muted">
+                  Your layout changes (removed, added or reordered cards) won't be saved.
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:text-ink"
+                  >
+                    Keep editing
+                  </button>
+                  <button
+                    onClick={discard}
+                    className="rounded-md bg-down px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-        </Card>
+        ) : (
+          <button
+            onClick={enterEdit}
+            className="no-print flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+          >
+            <Pencil size={15} />
+            Edit
+          </button>
+        )}
+      </div>
 
-        {/* TASK-17 — Year: gauge + monthly chart, own year selector */}
-        <Card
-          title="Year"
-          className="lg:col-span-3"
-          toolbar={
-            <div className="flex items-center gap-1.5">
-              {editMode && <ChartTypePicker value={yearType} onChange={(t) => setCard('year', t)} />}
-              <Dropdown
-                value={String(viewYear)}
-                options={yearOptions}
-                onChange={(v) => setViewYear(Number(v))}
-                className="w-28"
-              />
-            </div>
-          }
-        >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
-            <div className="flex flex-col items-center justify-center">
-              <AvailabilityGauge value={yearSeries.overallPct} label="Year" goal={goal} size="8rem" />
-            </div>
-            <button
-              type="button"
-              onClick={() => !editMode && setDetail('year')}
-              className={`block w-full text-left ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
-              title={editMode ? undefined : 'Open detail'}
+      {editMode && (
+        <div className="no-print mb-3 flex items-center gap-2 rounded-lg bg-page px-3 py-2 text-xs text-muted">
+          Drag cards to reorder · tap <span className="font-semibold text-down">−</span> to remove · use{' '}
+          <span className="font-semibold text-primary">+ Add</span> to bring cards back · pick the chart type on
+          the Month/Year cards
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {visible.map((key, i) => {
+          const c = cards[key]
+          const dragging = dragKey === key
+          return (
+            <div
+              key={key}
+              draggable={editMode}
+              onDragStart={() => setDragKey(key)}
+              onDragEnter={() => reorder(key)}
+              onDragOver={(e) => editMode && e.preventDefault()}
+              onDragEnd={() => setDragKey(null)}
+              onDrop={(e) => e.preventDefault()}
+              className={`relative transition-opacity ${c.className ?? ''} ${
+                editMode ? 'cursor-grab active:cursor-grabbing' : ''
+              } ${dragging ? 'opacity-40' : editMode ? (i % 2 === 1 ? 'jiggle-alt' : 'jiggle') : ''}`}
             >
-              <AvailabilityChart
-                labels={yearSeries.labels}
-                values={yearSeries.pct}
-                planned={yearSeries.planned}
-                executed={yearSeries.executed}
-                type={yearType}
-                goal={goal}
-                height={200}
-              />
-              <p className="mt-1 text-center text-[0.6875rem] text-faint">
-                {buildMonthlyCaption(yearSeries)}
-              </p>
-            </button>
-          </div>
-        </Card>
+              {editMode && (
+                <button
+                  onClick={() => hide(key)}
+                  className="absolute -left-2 -top-2 z-10 grid h-6 w-6 place-items-center rounded-full bg-down text-white shadow-md transition-transform hover:scale-110"
+                  aria-label={`Remove ${c.title}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              )}
+              <Card title={c.title} toolbar={c.toolbar} className={`h-full ${dragging ? 'border-primary' : ''}`}>
+                {c.body}
+              </Card>
+            </div>
+          )
+        })}
+        {editMode && <AddCard hidden={hiddenCards.map((k) => ({ key: k, title: cards[k].title }))} onAdd={show} />}
       </div>
 
       {/* TASK-19 — detail slide-over reflecting the same chart type */}
@@ -334,6 +484,56 @@ function Card({
         {toolbar && <div className="no-print">{toolbar}</div>}
       </div>
       <div className="flex-1">{children}</div>
+    </div>
+  )
+}
+
+// Dashed "+ Add" tile listing removed cards (mirrors the Batches metrics grid).
+function AddCard({ hidden, onAdd }: { hidden: { key: CardKey; title: string }[]; onAdd: (key: CardKey) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-full min-h-[10rem] w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-faint text-muted transition-colors hover:border-primary hover:text-primary"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span className="text-sm font-medium">Add</span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-60 overflow-auto rounded-lg border border-line bg-white py-1 shadow-pop">
+          {hidden.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-muted">All cards are shown.</p>
+          ) : (
+            hidden.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => {
+                  onAdd(c.key)
+                  if (hidden.length === 1) setOpen(false)
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-ink hover:bg-page"
+              >
+                {c.title}
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

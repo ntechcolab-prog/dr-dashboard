@@ -56,6 +56,14 @@ function alarmsForDay(iso: string): number {
   return 0
 }
 
+// Mock performance % for a machine in a given month — stable per (month, machine).
+function machinePerformance(year: number, month: number, machine: string): number {
+  const rng = mulberry32(hashStr(`perf|${year}-${month}|${machine}`))
+  let perf = 0.68 + rng() * 0.3 // 0.68–0.98 baseline
+  if (rng() < 0.15) perf -= 0.1 + rng() * 0.12 // rough month
+  return Math.round(Math.max(0.45, Math.min(0.99, perf)) * 100)
+}
+
 // --- public primitives (the actual swap surface) ---
 
 export interface DayAvailability {
@@ -83,6 +91,7 @@ export interface AvailabilityService {
   ): SeriesResult
   yearSeries(year: number, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): SeriesResult
   alarmsByDay(year: number, month: number): { day: number; iso: string; count: number }[]
+  machineRanking(year: number, month: number, machines: string[]): { machine: string; pct: number }[]
 }
 
 export interface SeriesResult {
@@ -157,5 +166,11 @@ export const availabilityService: AvailabilityService = {
       out.push({ day: d, iso, count: alarmsForDay(iso) })
     }
     return out
+  },
+
+  machineRanking(year, month, machines) {
+    return machines
+      .map((machine) => ({ machine, pct: machinePerformance(year, month, machine) }))
+      .sort((a, b) => b.pct - a.pct)
   },
 }

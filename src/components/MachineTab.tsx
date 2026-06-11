@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Dropdown from './Dropdown'
 import AvailabilityDashboard from './availability/AvailabilityDashboard'
 import ExportMenu from './ExportMenu'
-import { AnalysisIcon } from '../icons/Icons'
 import { PRODUCTION_LINES, MACHINE_NAMES } from '../data/appData'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
@@ -12,11 +11,7 @@ import type { Sheet } from '../lib/exportData'
 const MACHINE_PRINT_ID = 'machine-availability-print'
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-interface Props {
-  onNavigate?: (key: string) => void
-}
-
-export default function MachineTab({ onNavigate }: Props) {
+export default function MachineTab() {
   const [line, setLine] = useState(PRODUCTION_LINES[0])
   const [machine, setMachine] = useState(MACHINE_NAMES[0])
 
@@ -78,13 +73,6 @@ export default function MachineTab({ onNavigate }: Props) {
             filenameBase={`machine-${machine}-availability`}
             sheets={buildSheets}
           />
-          <button
-            onClick={() => onNavigate?.('analysis')}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
-          >
-            <AnalysisIcon size={16} />
-            Generate Analysis
-          </button>
         </div>
       </div>
 

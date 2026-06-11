@@ -22,6 +22,8 @@ interface General {
   landingPage: string
   compactDensity: boolean
   showTips: boolean
+  // Edition flag only — nothing reacts to it yet.
+  productionMonitoring: boolean
 }
 const GENERAL_DEFAULTS: General = {
   facilityName: 'NETZSCH Grinding & Dispersing',
@@ -34,13 +36,39 @@ const GENERAL_DEFAULTS: General = {
   landingPage: 'Dashboard',
   compactDensity: false,
   showTips: true,
+  productionMonitoring: true,
 }
 
 export function GeneralSettings() {
   const [s, set] = useLocalStorage<General>('dr-settings-general', GENERAL_DEFAULTS)
   const f = <K extends keyof General>(k: K, v: General[K]) => set((p) => ({ ...p, [k]: v }))
+  const pmOn = s.productionMonitoring ?? true
   return (
     <div className="flex flex-col gap-4">
+      <FormSection title="Edition">
+        <p className="mb-3 text-sm text-muted">
+          Which edition this installation runs. This is a flag only for now — features don't change yet.
+        </p>
+        <div className="inline-flex rounded-lg bg-page p-1">
+          {([
+            [true, 'With Production Monitoring'],
+            [false, 'Without Production Monitoring'],
+          ] as const).map(([value, label]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => f('productionMonitoring', value)}
+              aria-pressed={pmOn === value}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                pmOn === value ? 'bg-white text-primary shadow-card' : 'text-muted hover:text-ink'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </FormSection>
+
       <FormSection title="Organization">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field label="Facility name">
