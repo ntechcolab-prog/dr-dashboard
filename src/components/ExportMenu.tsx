@@ -10,9 +10,15 @@ interface ExportMenuProps {
   printId: string
   filenameBase: string
   sheets: () => Sheet[]
+  // When set, the button is greyed out and the menu can't open (e.g. nothing selected).
+  disabled?: boolean
+  // Optional override for the button label (defaults to "Export").
+  label?: string
+  // When true, the button turns solid green once enabled (call-to-action style).
+  accent?: boolean
 }
 
-export default function ExportMenu({ title, printId, filenameBase, sheets }: ExportMenuProps) {
+export default function ExportMenu({ title, printId, filenameBase, sheets, disabled = false, label = 'Export', accent = false }: ExportMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -34,15 +40,20 @@ export default function ExportMenu({ title, printId, filenameBase, sheets }: Exp
   return (
     <div className="relative no-print" ref={ref}>
       <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+          accent && !disabled
+            ? 'border border-primary bg-transparent text-primary hover:bg-primary-soft'
+            : 'border border-line bg-card text-muted enabled:hover:text-ink'
+        }`}
       >
         <Download size={16} />
-        Export
+        {label}
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-pop">
           <Item icon={<FilePdf size={16} />} label="PDF" hint="Print / save" onClick={() => run(() => printElement(printId, title))} />
           <Item icon={<SheetIcon />} label="CSV" hint=".csv" onClick={() => run(() => exportCsv(filenameBase, sheets()[0]))} />

@@ -64,6 +64,17 @@ function machinePerformance(year: number, month: number, machine: string): numbe
   return Math.round(Math.max(0.45, Math.min(0.99, perf)) * 100)
 }
 
+// Mock planned/executed hours + alarm count for a machine in a given month,
+// derived from its performance %. Deterministic per (month, machine).
+function machineMonthDetail(year: number, month: number, machine: string) {
+  const pct = machinePerformance(year, month, machine)
+  const rng = mulberry32(hashStr(`mdetail|${year}-${month}|${machine}`))
+  const plannedH = Math.round(360 + rng() * 200) // ~360–560h/month
+  const executedH = Math.round((plannedH * pct) / 100)
+  const alarms = Math.floor(rng() * 14) // 0–13 alarms
+  return { pct, plannedH, executedH, alarms }
+}
+
 // --- public primitives (the actual swap surface) ---
 
 export interface DayAvailability {
@@ -92,6 +103,18 @@ export interface AvailabilityService {
   yearSeries(year: number, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): SeriesResult
   alarmsByDay(year: number, month: number): { day: number; iso: string; count: number }[]
   machineRanking(year: number, month: number, machines: string[]): { machine: string; pct: number }[]
+  machineRankingDetailed(year: number, month: number, machines: string[]): MachineRankRow[]
+}
+
+// Richer ranking row for the Machine-tab attack-focus board.
+export interface MachineRankRow {
+  machine: string
+  pct: number
+  plannedH: number
+  executedH: number
+  alarms: number
+  rank: number // 1 = best performer
+  total: number // number of machines ranked
 }
 
 export interface SeriesResult {
@@ -172,5 +195,16 @@ export const availabilityService: AvailabilityService = {
     return machines
       .map((machine) => ({ machine, pct: machinePerformance(year, month, machine) }))
       .sort((a, b) => b.pct - a.pct)
+  },
+
+  machineRankingDetailed(year, month, machines) {
+    const total = machines.length
+    // Rank position is best-first (1 = top performer)…
+    const byBest = machines
+      .map((machine) => ({ machine, ...machineMonthDetail(year, month, machine) }))
+      .sort((a, b) => b.pct - a.pct)
+    const withRank = byBest.map((r, i) => ({ ...r, rank: i + 1, total }))
+    // …but the board lists worst first (focus of attack).
+    return [...withRank].sort((a, b) => a.pct - b.pct)
   },
 }

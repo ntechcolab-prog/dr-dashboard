@@ -16,6 +16,9 @@ interface HBarsProps {
   axisMax?: number
   axisTicks?: number[]
   labelInside?: boolean
+  // Reports the hovered bar index (or null on leave) — used to sync highlights
+  // across multiple charts.
+  onHover?: (i: number | null) => void
 }
 
 const DEFAULT_COLOR = 'var(--color-chart-1)'
@@ -23,7 +26,7 @@ const DEFAULT_COLOR = 'var(--color-chart-1)'
 const barFill = (c: string) =>
   `linear-gradient(180deg, color-mix(in oklab, ${c} 84%, white) 0%, ${c} 100%)`
 
-export default function HBars({ items, axisMax, axisTicks, labelInside = true }: HBarsProps) {
+export default function HBars({ items, axisMax, axisTicks, labelInside = true, onHover }: HBarsProps) {
   const max = axisMax ?? Math.max(...items.map((i) => i.value), 1)
   const [mounted, setMounted] = useState(false)
   const [hover, setHover] = useState<number | null>(null)
@@ -43,8 +46,14 @@ export default function HBars({ items, axisMax, axisTicks, labelInside = true }:
             <div
               key={i}
               className={`flex items-center gap-2 transition-opacity ${it.dim ? 'opacity-35' : ''}`}
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
+              onMouseEnter={() => {
+                setHover(i)
+                onHover?.(i)
+              }}
+              onMouseLeave={() => {
+                setHover(null)
+                onHover?.(null)
+              }}
             >
               <span
                 className={`w-6 shrink-0 text-right text-[0.6875rem] tabular-nums ${

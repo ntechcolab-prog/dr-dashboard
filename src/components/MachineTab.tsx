@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Dropdown from './Dropdown'
 import AvailabilityDashboard from './availability/AvailabilityDashboard'
+import MachineRankingBoard from './availability/MachineRankingBoard'
 import ExportMenu from './ExportMenu'
 import { PRODUCTION_LINES } from '../data/appData'
 import { MACHINES } from '../data/mockData'
@@ -62,6 +63,11 @@ export default function MachineTab() {
 
   return (
     <div className="px-6 py-5">
+      {/* attack-focus ranking — worst performers first, separated from the filters below */}
+      <div className="mb-5">
+        <MachineRankingBoard />
+      </div>
+
       {/* line + machine scope */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
