@@ -24,9 +24,12 @@ interface Snapshot {
   order: string[]
 }
 
+// Metrics hidden by default — no real data source yet, but still re-addable via "+ Add".
+const DEFAULT_HIDDEN = ['coolingEnergy']
+
 export default function MetricsGridV2({ kpis, series, onDetails }: MetricsGridV2Props) {
   const [editing, setEditing] = useState(false)
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set(DEFAULT_HIDDEN))
   const [order, setOrder] = useState<string[]>(() => kpis.map((k) => k.key))
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
