@@ -61,6 +61,15 @@ const X_LABELS = SERIES[0].data.map((_, i) => {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 })
 
+// Graph templates — preset sensor views (a single batch has a fixed window, so a
+// time-range filter is meaningless here; the picker selects which curves to plot).
+const GRAPH_TEMPLATES = [
+  { name: 'All sensors', sensors: ['Energy', 'Product flow', 'Mill current'] },
+  { name: 'Energy profile', sensors: ['Energy'] },
+  { name: 'Flow & current', sensors: ['Product flow', 'Mill current'] },
+  { name: 'Mill current', sensors: ['Mill current'] },
+]
+
 // ─── Floating quick-nav (Resume sections) ────────────────────────────────────
 const SECTIONS = [
   { id: 'resume-status', label: 'Batch Status' },
@@ -97,10 +106,16 @@ const ACTIVITY = [
 ]
 
 export default function ResumeTab({ form }: Props) {
-  const [period, setPeriod] = useState('Last 24 hours')
+  const [template, setTemplate] = useState(GRAPH_TEMPLATES[0].name)
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
   const [hoverSensor, setHoverSensor] = useState<number | null>(null)
+  const [navOpen, setNavOpen] = useState(false)
+
+  // Apply the selected graph template to both the chart curves and the stat cards.
+  const activeTemplate = GRAPH_TEMPLATES.find((t) => t.name === template) ?? GRAPH_TEMPLATES[0]
+  const visibleSeries = SERIES.filter((s) => activeTemplate.sensors.includes(s.name))
+  const visibleSensors = SENSORS.filter((s) => activeTemplate.sensors.includes(s.name))
 
   // Alarms / Alerts / Action Log only exist in the Production Monitoring edition.
   const pmOn = useProductionMonitoring()
@@ -132,25 +147,53 @@ export default function ResumeTab({ form }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Floating quick-nav — Resume sections, liquid-glass, fixed while scrolling */}
-      <nav
-        aria-label="Resume sections"
-        className="fixed right-5 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-0.5 rounded-2xl border border-white/60 bg-white/50 p-1.5 shadow-pop backdrop-blur-2xl backdrop-saturate-150 xl:flex"
+      {/* Floating quick-nav — collapsed to a slim handle on the right edge; slides
+          out on hover/focus so it never sits on top of the content. */}
+      <div
+        className="fixed right-0 top-1/2 z-30 hidden -translate-y-1/2 xl:block"
+        onMouseEnter={() => setNavOpen(true)}
+        onMouseLeave={() => setNavOpen(false)}
       >
-        <p className="px-2.5 pb-1 pt-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-faint">Sections</p>
-        {sections.map((s) => (
+        <div
+          className={`flex items-stretch transition-transform duration-300 ease-out ${
+            navOpen ? 'translate-x-0' : 'translate-x-[calc(100%-1.75rem)]'
+          }`}
+        >
+          {/* Handle — always visible; clicking it also toggles (touch / no-hover) */}
           <button
-            key={s.id}
-            onClick={() => jumpTo(s.id)}
-            aria-current={activeSection === s.id ? 'true' : undefined}
-            className={`rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${
-              activeSection === s.id ? 'bg-primary/90 text-white' : 'text-muted hover:bg-white/70 hover:text-ink'
-            }`}
+            type="button"
+            onClick={() => setNavOpen((v) => !v)}
+            aria-expanded={navOpen}
+            aria-label={navOpen ? 'Hide sections' : 'Show sections'}
+            className="flex w-7 shrink-0 items-center justify-center rounded-l-2xl border border-r-0 border-white/60 bg-white/50 py-3 shadow-pop backdrop-blur-2xl backdrop-saturate-150"
           >
-            {s.label}
+            <span className="rotate-180 text-[0.625rem] font-semibold uppercase tracking-wide text-faint [writing-mode:vertical-rl]">
+              Sections
+            </span>
           </button>
-        ))}
-      </nav>
+          {/* Panel */}
+          <nav
+            aria-label="Resume sections"
+            className="flex flex-col gap-0.5 rounded-r-2xl border border-l-0 border-white/60 bg-white/50 p-1.5 pr-3 shadow-pop backdrop-blur-2xl backdrop-saturate-150"
+          >
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => {
+                  jumpTo(s.id)
+                  setNavOpen(false)
+                }}
+                aria-current={activeSection === s.id ? 'true' : undefined}
+                className={`rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${
+                  activeSection === s.id ? 'bg-primary/90 text-white' : 'text-muted hover:bg-white/70 hover:text-ink'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
 
       {/* Batch Status */}
       <div id="resume-status" className="scroll-mt-4">
@@ -190,7 +233,7 @@ export default function ResumeTab({ form }: Props) {
               <KvList rows={MACHINE_BASIC} />
             </div>
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-700">Recipe and beads</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-primary-700">Technology</p>
               <KvList rows={MACHINE_TECH} />
             </div>
           </div>
@@ -215,11 +258,11 @@ export default function ResumeTab({ form }: Props) {
         {/* Sensor chart card */}
         <div className="rounded-xl border border-line p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="w-48">
+            <div className="w-56">
               <SelectInput
-                value={period}
-                options={['Last 24 hours', 'Last 7 days', 'Last 30 days']}
-                onChange={setPeriod}
+                value={template}
+                options={GRAPH_TEMPLATES.map((t) => t.name)}
+                onChange={setTemplate}
               />
             </div>
             <div className="flex items-center gap-2">
@@ -234,7 +277,7 @@ export default function ResumeTab({ form }: Props) {
           </div>
 
           <MultiSensorChart
-            series={SERIES}
+            series={visibleSeries}
             pointLabels={X_LABELS}
             max={10}
             height={260}
@@ -243,7 +286,7 @@ export default function ResumeTab({ form }: Props) {
           />
 
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {SENSORS.map((s, i) => (
+            {visibleSensors.map((s, i) => (
               <div
                 key={s.name}
                 onMouseEnter={() => setHoverSensor(i)}

@@ -21,7 +21,9 @@ export default function RegistryScreen() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return rows
-    return rows.filter((r) => [r.id, r.product, r.line, r.status, r.source].some((v) => v.toLowerCase().includes(q)))
+    return rows.filter((r) =>
+      [r.id, r.product, r.line, r.status, r.source, r.start, r.end].some((v) => v.toLowerCase().includes(q)),
+    )
   }, [rows, query])
 
   // Selection helpers — "select all" / "clear" operate on the visible (filtered) rows.

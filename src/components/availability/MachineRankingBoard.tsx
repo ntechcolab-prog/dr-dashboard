@@ -49,7 +49,7 @@ export default function MachineRankingBoard() {
     <section className="rounded-xl border border-line/70 bg-card p-5 shadow-card">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Attack Focus · Machine Ranking</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Availability Ranking</h3>
           <p className="mt-0.5 text-xs text-muted">
             Lowest availability first — prioritize the top of the list.
             {belowCount > 0 && (

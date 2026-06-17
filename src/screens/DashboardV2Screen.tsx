@@ -161,6 +161,7 @@ export default function DashboardV2Screen() {
                   avgMass={avgMass}
                   onDetails={openDayDetails}
                 />
+                <Rankings rankings={rankings} embedded />
               </div>
             ) : (
               <div className="border-t border-line/70">
@@ -176,7 +177,6 @@ export default function DashboardV2Screen() {
             )}
           </div>
 
-          {hasData && <Rankings rankings={rankings} />}
           {hasData && <InOperation batches={LIVE_BATCHES} />}
         </>
       ) : (

@@ -236,6 +236,7 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
                   onDetails={openDayDetails}
                   availByDay={availByDay}
                 />
+                <Rankings rankings={rankings} embedded />
               </div>
             ) : (
               <div className="border-t border-line/70">
@@ -251,7 +252,6 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
             )}
           </div>
 
-          {hasData && <Rankings rankings={rankings} />}
           {hasData && <InOperation batches={LIVE_BATCHES} />}
         </>
       ) : (

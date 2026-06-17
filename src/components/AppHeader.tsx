@@ -379,7 +379,7 @@ interface Product {
 
 const PRODUCTS: Product[] = [
   {
-    name: 'Digital Reports',
+    name: 'Batch Book',
     desc: 'Batch reports & analytics',
     href: '#',
     color: '#46aa9f',
@@ -395,7 +395,7 @@ const PRODUCTS: Product[] = [
   },
   {
     name: 'IRIS Cloud',
-    desc: 'HMI & visualization',
+    desc: 'Digitalization Hub',
     href: 'http://iris-cloud.netzsch.com/',
     color: '#3b82f6',
     glyph: (
@@ -406,7 +406,7 @@ const PRODUCTS: Product[] = [
   },
   {
     name: 'Production Monitoring',
-    desc: 'Live line monitoring',
+    desc: 'Real time monitoring',
     href: 'http://pm.iris-cloud.netzsch.com/',
     color: '#f19909',
     glyph: (

@@ -55,6 +55,8 @@ export default function ResultsTab({ value, onChange }: Props) {
     setDraft(emptyDraft(value.variables))
   }
 
+  const removeRow = (i: number) => onChange({ ...value, rows: value.rows.filter((_, idx) => idx !== i) })
+
   const importSample = () => {
     const sample: ResultRow = {
       date: '19/11/2024',
@@ -125,16 +127,26 @@ export default function ResultsTab({ value, onChange }: Props) {
               {value.variables.map((v) => (
                 <th key={v} className="px-4 py-3 font-medium">{v}</th>
               ))}
+              <th className="w-12 px-4 py-3" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
             {value.rows.map((r, i) => (
-              <tr key={i} className="border-t border-line">
+              <tr key={i} className="group border-t border-line">
                 <td className="px-4 py-3 text-ink">{r.date}</td>
                 <td className="px-4 py-3 text-muted">{r.time}</td>
                 {value.variables.map((v) => (
                   <td key={v} className="px-4 py-3 text-ink tabular-nums">{r.values[v] || '—'}</td>
                 ))}
+                <td className="px-2 py-3 text-right">
+                  <button
+                    onClick={() => removeRow(i)}
+                    aria-label={`Delete row ${i + 1}`}
+                    className="rounded-md p-1 text-faint opacity-0 transition-opacity hover:bg-down/10 hover:text-down focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    <Close size={15} />
+                  </button>
+                </td>
               </tr>
             ))}
 
@@ -168,6 +180,7 @@ export default function ResultsTab({ value, onChange }: Props) {
                   />
                 </td>
               ))}
+              <td className="px-2 py-2" />
             </tr>
           </tbody>
         </table>

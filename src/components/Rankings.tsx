@@ -4,11 +4,14 @@ import type { Rankings as RankingsData } from '../lib/compute'
 
 interface RankingsProps {
   rankings: RankingsData
+  /** When true, render flush inside a parent card (no own card chrome) so it
+   *  reads as part of the same filtered view. */
+  embedded?: boolean
 }
 
-export default function Rankings({ rankings }: RankingsProps) {
+export default function Rankings({ rankings, embedded = false }: RankingsProps) {
   return (
-    <section className="rounded-xl bg-card p-6 shadow-card">
+    <section className={embedded ? 'mt-6 border-t border-line/70 pt-6' : 'rounded-xl bg-card p-6 shadow-card'}>
       <h3 className="mb-5 text-xs font-semibold uppercase tracking-wide text-ink">Rankings</h3>
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <Panel title="Interruptions">
