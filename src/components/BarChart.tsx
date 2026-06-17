@@ -56,7 +56,7 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
           return (
             <div
               key={d.label}
-              className="relative flex items-center gap-2.5"
+              className="relative flex items-center gap-2"
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
             >
@@ -94,7 +94,7 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
                 </div>
               </div>
               <span
-                className={`w-10 shrink-0 text-right text-[0.6875rem] tabular-nums ${
+                className={`w-8 shrink-0 text-right text-[0.6875rem] tabular-nums ${
                   active ? 'text-ink' : 'text-muted'
                 }`}
               >
@@ -106,14 +106,14 @@ export default function BarChart({ data, valueLabel, showAxis = true }: BarChart
       </div>
 
       {showAxis && (
-        <div className="mt-2 flex justify-between pl-5 pr-12 text-[0.625rem] tabular-nums text-faint">
+        <div className="mt-2 flex justify-between pl-5 pr-10 text-[0.625rem] tabular-nums text-faint">
           {ticks.map((t) => (
             <span key={t}>{fmt(t)}</span>
           ))}
         </div>
       )}
       {valueLabel && (
-        <p className="mt-1.5 pl-5 pr-12 text-center text-[0.625rem] uppercase tracking-wide text-faint">{valueLabel}</p>
+        <p className="mt-1.5 pl-5 pr-10 text-center text-[0.625rem] uppercase tracking-wide text-faint">{valueLabel}</p>
       )}
     </div>
   )
