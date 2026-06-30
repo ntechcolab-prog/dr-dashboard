@@ -50,6 +50,7 @@ const todayMasked = () => {
 export default function RemarksTab({ value, onChange }: Props) {
   const [draft, setDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
   const [hoverSensor, setHoverSensor] = useState<number | null>(null)
+  const [hoverNote, setHoverNote] = useState<number | null>(null)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
   const commentRef = useRef<HTMLInputElement>(null)
@@ -135,7 +136,16 @@ export default function RemarksTab({ value, onChange }: Props) {
                 </div>
               </div>
             ) : (
-              <div key={i} className="group grid grid-cols-[140px_120px_1fr_72px] items-center border-t border-line px-4 py-3 text-sm">
+              <div
+                key={i}
+                onMouseEnter={() => {
+                  if (timeToFrac(n.time) == null) return
+                  const idx = chartNotes.findIndex((c) => c.comment === n.comment && c.label.includes(n.time))
+                  if (idx >= 0) setHoverNote(idx)
+                }}
+                onMouseLeave={() => setHoverNote(null)}
+                className="group grid grid-cols-[140px_120px_1fr_72px] items-center border-t border-line px-4 py-3 text-sm transition-colors hover:bg-primary-soft/30"
+              >
                 <span className="text-muted">{n.date}</span>
                 <span className="text-muted">{n.time}</span>
                 <span className="text-ink">
@@ -205,6 +215,7 @@ export default function RemarksTab({ value, onChange }: Props) {
             height={320}
             highlight={hoverSensor}
             notes={chartNotes}
+            activeNote={hoverNote}
             onPlotClick={noteFromChart}
           />
         </div>

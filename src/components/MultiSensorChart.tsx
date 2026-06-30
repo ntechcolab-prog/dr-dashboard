@@ -25,6 +25,8 @@ interface Props {
   highlight?: number | null // index of the hovered sensor card
   band?: [number, number] | null // status band between two point indexes
   notes?: ChartNote[]
+  activeNote?: number | null // externally-driven note to emphasize (e.g. table row hover)
+  markerFrac?: number | null // transient vertical guide at a fraction (0..1) of the plot
   onPlotClick?: (pointIndex: number) => void
 }
 
@@ -42,6 +44,8 @@ export default function MultiSensorChart({
   highlight = null,
   band = null,
   notes = [],
+  activeNote = null,
+  markerFrac = null,
   onPlotClick,
 }: Props) {
   const H = height
@@ -72,6 +76,10 @@ export default function MultiSensorChart({
 
   // Which x labels get drawn (~6, always first and last).
   const every = Math.max(1, Math.ceil(n / 6))
+
+  // A note is emphasized either by hovering its marker or from the outside
+  // (e.g. hovering its row in the Notes table).
+  const shownNote = noteHover != null ? noteHover : activeNote
 
   return (
     <div
@@ -150,6 +158,7 @@ export default function MultiSensorChart({
         {/* note markers — pin + guide line */}
         {notes.map((nt, ni) => {
           const nx = PAD_L + nt.frac * plotW
+          const active = shownNote === ni
           return (
             <g
               key={ni}
@@ -157,14 +166,44 @@ export default function MultiSensorChart({
               onMouseLeave={() => setNoteHover(null)}
               style={{ cursor: 'default' }}
             >
-              <line x1={nx} x2={nx} y1={PAD_T + 10} y2={PAD_T + plotH} stroke="var(--color-primary)" strokeWidth={1} strokeDasharray="3 4" opacity={0.55} />
-              <circle cx={nx} cy={PAD_T + 8} r={noteHover === ni ? 6.5 : 5} fill="var(--color-primary)" stroke="#fff" strokeWidth={1.5} />
-              <text x={nx} y={PAD_T + 11} textAnchor="middle" fill="#fff" style={{ fontSize: 7.5, fontWeight: 700 }}>
+              <line
+                x1={nx}
+                x2={nx}
+                y1={PAD_T + 8}
+                y2={PAD_T + plotH}
+                stroke="var(--color-primary)"
+                strokeWidth={active ? 2 : 1}
+                strokeDasharray={active ? undefined : '3 4'}
+                opacity={active ? 0.9 : 0.55}
+              />
+              {active && <circle cx={nx} cy={PAD_T + 8} r={11} fill="var(--color-primary)" opacity={0.18} />}
+              <circle cx={nx} cy={PAD_T + 8} r={active ? 7 : 5} fill="var(--color-primary)" stroke="#fff" strokeWidth={1.5} />
+              <text x={nx} y={PAD_T + (active ? 11.5 : 11)} textAnchor="middle" fill="#fff" style={{ fontSize: active ? 8.5 : 7.5, fontWeight: 700 }}>
                 {ni + 1}
               </text>
             </g>
           )
         })}
+
+        {/* transient marker driven from outside (e.g. hovering a table row) */}
+        {markerFrac != null && (
+          <g>
+            <line
+              x1={PAD_L + markerFrac * plotW}
+              x2={PAD_L + markerFrac * plotW}
+              y1={PAD_T}
+              y2={PAD_T + plotH}
+              stroke="var(--color-ink)"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              opacity={0.7}
+            />
+            <path
+              d={`M ${PAD_L + markerFrac * plotW - 5} ${PAD_T} L ${PAD_L + markerFrac * plotW + 5} ${PAD_T} L ${PAD_L + markerFrac * plotW} ${PAD_T + 7} Z`}
+              fill="var(--color-ink)"
+            />
+          </g>
+        )}
 
         {/* x labels */}
         {pointLabels.map((lab, i) =>
@@ -177,7 +216,7 @@ export default function MultiSensorChart({
       </svg>
 
       {/* values tooltip (HTML, follows the hovered point) */}
-      {hoverIdx != null && noteHover == null && (
+      {hoverIdx != null && shownNote == null && (
         <div
           className="pointer-events-none absolute top-2 z-20 w-44 rounded-lg border border-line bg-white/95 p-2.5 shadow-pop backdrop-blur-sm"
           style={fracOf(hoverIdx) > 55 ? { right: `${100 - fracOf(hoverIdx) + 2}%` } : { left: `${fracOf(hoverIdx) + 2}%` }}
@@ -201,17 +240,17 @@ export default function MultiSensorChart({
       )}
 
       {/* note tooltip */}
-      {noteHover != null && notes[noteHover] && (
+      {shownNote != null && notes[shownNote] && (
         <div
           className="pointer-events-none absolute top-2 z-30 w-52 rounded-lg border border-line bg-white/95 p-2.5 shadow-pop backdrop-blur-sm"
           style={
-            (PAD_L + notes[noteHover].frac * plotW) / W > 0.55
-              ? { right: `${100 - ((PAD_L + notes[noteHover].frac * plotW) / W) * 100 + 2}%` }
-              : { left: `${((PAD_L + notes[noteHover].frac * plotW) / W) * 100 + 2}%` }
+            (PAD_L + notes[shownNote].frac * plotW) / W > 0.55
+              ? { right: `${100 - ((PAD_L + notes[shownNote].frac * plotW) / W) * 100 + 2}%` }
+              : { left: `${((PAD_L + notes[shownNote].frac * plotW) / W) * 100 + 2}%` }
           }
         >
-          <p className="text-[0.6875rem] font-semibold text-primary">Note {noteHover + 1} · {notes[noteHover].label}</p>
-          <p className="mt-1 text-xs text-ink">{notes[noteHover].comment || '—'}</p>
+          <p className="text-[0.6875rem] font-semibold text-primary">Note {shownNote + 1} · {notes[shownNote].label}</p>
+          <p className="mt-1 text-xs text-ink">{notes[shownNote].comment || '—'}</p>
         </div>
       )}
     </div>

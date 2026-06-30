@@ -60,6 +60,22 @@ const X_LABELS = SERIES[0].data.map((_, i) => {
   const m = 8 * 60 + i * 30
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 })
+const WINDOW_START_MIN = 8 * 60
+const WINDOW_END_MIN = WINDOW_START_MIN + (SERIES[0].data.length - 1) * 30
+
+// Pull the "HH:MM[am|pm]" out of an event timestamp and map it to a fraction
+// across the chart window (null if it can't be read or falls outside).
+function eventTimeToFrac(s: string): number | null {
+  const m = /(\d{1,2}):(\d{2})\s*(am|pm)?/i.exec(s)
+  if (!m) return null
+  let h = Number(m[1])
+  const ap = m[3]?.toLowerCase()
+  if (ap === 'pm' && h !== 12) h += 12
+  if (ap === 'am' && h === 12) h = 0
+  const t = h * 60 + Number(m[2])
+  if (t < WINDOW_START_MIN || t > WINDOW_END_MIN) return null
+  return (t - WINDOW_START_MIN) / (WINDOW_END_MIN - WINDOW_START_MIN)
+}
 
 // Graph templates — preset sensor views (a single batch has a fixed window, so a
 // time-range filter is meaningless here; the picker selects which curves to plot).
@@ -111,6 +127,7 @@ export default function ResumeTab({ form }: Props) {
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
   const [hoverSensor, setHoverSensor] = useState<number | null>(null)
+  const [eventMarker, setEventMarker] = useState<number | null>(null)
   const [navOpen, setNavOpen] = useState(false)
 
   // Apply the selected graph template to both the chart curves and the stat cards.
@@ -288,6 +305,7 @@ export default function ResumeTab({ form }: Props) {
             height={320}
             highlight={hoverSensor}
             band={showStatus ? [2, 7] : null}
+            markerFrac={eventMarker}
           />
         </div>
 
@@ -321,7 +339,7 @@ export default function ResumeTab({ form }: Props) {
       {pmOn && (
         <div id="resume-alarms" className="scroll-mt-4">
         <FormSection title="Alarms">
-          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" />
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" onHoverRow={setEventMarker} />
         </FormSection>
         </div>
       )}
@@ -330,7 +348,7 @@ export default function ResumeTab({ form }: Props) {
       {pmOn && (
         <div id="resume-alerts" className="scroll-mt-4">
         <FormSection title="Alerts">
-          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" />
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" onHoverRow={setEventMarker} />
         </FormSection>
         </div>
       )}
@@ -410,7 +428,17 @@ function KvList({ rows }: { rows: string[][] }) {
   )
 }
 
-function EventTable({ columns, rows, dot }: { columns: string[]; rows: string[][]; dot: string }) {
+function EventTable({
+  columns,
+  rows,
+  dot,
+  onHoverRow,
+}: {
+  columns: string[]
+  rows: string[][]
+  dot: string
+  onHoverRow?: (frac: number | null) => void
+}) {
   return (
     <div>
       <div className="overflow-hidden rounded-lg border border-line">
@@ -420,7 +448,12 @@ function EventTable({ columns, rows, dot }: { columns: string[]; rows: string[][
           ))}
         </div>
         {rows.map((r, i) => (
-          <div key={i} className="grid grid-cols-[200px_200px_1fr] items-center border-t border-line px-4 py-3 text-sm">
+          <div
+            key={i}
+            onMouseEnter={() => onHoverRow?.(eventTimeToFrac(r[0]))}
+            onMouseLeave={() => onHoverRow?.(null)}
+            className="grid grid-cols-[200px_200px_1fr] items-center border-t border-line px-4 py-3 text-sm transition-colors hover:bg-primary-soft/30"
+          >
             <span className="text-muted tabular-nums">{r[0]}</span>
             <span className="text-muted tabular-nums">{r[1]}</span>
             <span className="flex items-center gap-2 text-ink">
