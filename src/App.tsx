@@ -12,7 +12,14 @@ import { useLocalStorage } from './lib/useLocalStorage'
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeNav, setActiveNav] = useState('dashboard')
+  // Initial screen can be set from the launcher via ?view= (e.g. registry).
+  const [activeNav, setActiveNav] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const v = new URLSearchParams(window.location.search).get('view')
+      if (v && ['dashboard', 'dashboard-v2', 'registry', 'analysis', 'settings'].includes(v)) return v
+    }
+    return 'dashboard'
+  })
 
   // Branding (name + icon) — persisted; editable UI was removed with NameIdeas.
   const [appName] = useLocalStorage<string>('dr-name-current', 'Batch Book')
