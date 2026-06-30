@@ -33,19 +33,18 @@ function AppCard({
   icon,
   title,
   badge,
+  disabled,
   children,
 }: {
   href: string
   icon: ReactNode
   title: ReactNode
   badge?: string
+  disabled?: boolean
   children: ReactNode
 }) {
-  return (
-    <Link
-      href={href}
-      className="group relative block rounded-xl bg-white p-6 shadow-[0_2px_10px_rgba(0,0,0,0.06)] ring-1 ring-black/5 transition-shadow hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-    >
+  const body = (
+    <>
       {badge && (
         <span className="absolute right-4 top-4 rounded-full bg-[#6ca8c9]/15 px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-[#5b97b8]">
           {badge}
@@ -58,11 +57,37 @@ function AppCard({
         <h2 className="mt-1 text-xl font-bold leading-tight text-[#4c4d57]">{title}</h2>
       </div>
       <p className="max-w-[15rem] text-[0.95rem] leading-relaxed text-[#5c5f62]">{children}</p>
-      <span className="mt-6 flex h-12 w-12 items-center justify-center rounded-lg bg-[#6ca8c9] text-white transition-colors group-hover:bg-[#5b97b8]">
-        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden>
-          <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
+      {disabled ? (
+        <span className="mt-6 inline-flex items-center rounded-full bg-[#e7e8ea] px-3 py-1.5 text-[0.75rem] font-semibold uppercase tracking-wide text-[#8d9094]">
+          Coming soon
+        </span>
+      ) : (
+        <span className="mt-6 flex h-12 w-12 items-center justify-center rounded-lg bg-[#6ca8c9] text-white transition-colors group-hover:bg-[#5b97b8]">
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden>
+            <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      )}
+    </>
+  )
+
+  if (disabled) {
+    return (
+      <div
+        aria-disabled
+        className="relative block cursor-not-allowed rounded-xl bg-white p-6 opacity-60 shadow-[0_2px_10px_rgba(0,0,0,0.06)] ring-1 ring-black/5"
+      >
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <Link
+      href={href}
+      className="group relative block rounded-xl bg-white p-6 shadow-[0_2px_10px_rgba(0,0,0,0.06)] ring-1 ring-black/5 transition-shadow hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+    >
+      {body}
     </Link>
   )
 }
@@ -80,21 +105,30 @@ export default function LauncherPage() {
 
         <div className="mt-8 grid max-w-5xl grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-6">
           <AppCard
-            href="/batch-book?v=1"
-            badge="v1"
+            href="#"
+            disabled
             icon={<ProductionIcon />}
             title={<>PRODUCTION<br />MONITORING</>}
           >
-            Full access — real-time monitoring, batch registry, analysis and reports.
+            Real-time production monitoring across your lines and machines.
           </AppCard>
 
           <AppCard
             href="/batch-book?v=0"
             badge="v0"
             icon={<BatchBookIcon />}
-            title={<>PRODUCTION<br />MONITORING</>}
+            title={<>BATCH<br />BOOK</>}
           >
             Early version — batch registry only. The remaining modules are coming soon.
+          </AppCard>
+
+          <AppCard
+            href="/batch-book?v=1"
+            badge="v1"
+            icon={<BatchBookIcon />}
+            title={<>BATCH<br />BOOK</>}
+          >
+            Full access — batch registry, dashboard, analysis and reports.
           </AppCard>
         </div>
       </div>
