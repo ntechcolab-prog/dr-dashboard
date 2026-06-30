@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
+import { useSession, initialsOf } from '@/src/client/Session'
+import { useLocalStorage } from '../lib/useLocalStorage'
 import { buildWeeks } from '../lib/weeks'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays, isoOf } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
@@ -39,6 +41,7 @@ const INITIAL_NOTIFS: Notification[] = [
 ]
 
 export default function AppHeader({ name, icon }: AppHeaderProps) {
+  const user = useSession()
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS)
   const unread = notifs.filter((n) => !n.read).length
 
@@ -100,7 +103,7 @@ export default function AppHeader({ name, icon }: AppHeaderProps) {
           trigger={
             <span className="flex items-center gap-1.5">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[0.6875rem] font-bold uppercase">
-                go
+                {initialsOf(user.name)}
               </span>
               <ChevronDown size={14} className="text-white/70" />
             </span>
@@ -353,15 +356,97 @@ function Notifications({ notifs, onRead, onReadAll }: NotificationsProps) {
 }
 
 function AccountMenu() {
+  const user = useSession()
+  const [currentOrg, setCurrentOrg] = useLocalStorage('dr-current-org', 'NETZSCH Equipamentos de Moagem')
+  const [orgModal, setOrgModal] = useState(false)
+
+  // Demo organizations (one org = one company). The user's signup company is
+  // appended when it isn't already in the list. Cosmetic only — no backend.
+  const orgs = useMemo(() => {
+    const base = [
+      'NETZSCH Equipamentos de Moagem',
+      'NETZSCH Análise & Teste',
+      'NETZSCH Bombas & Sistemas',
+    ]
+    if (user.company.name && !base.includes(user.company.name)) base.push(user.company.name)
+    return base
+  }, [user.company.name])
+
   return (
     <div className="py-1">
       <div className="border-b border-line px-4 py-3">
-        <p className="text-sm font-semibold text-ink">Gabriel Oliveira</p>
-        <p className="text-xs text-muted">gabriel.oliveira@netzsch.com</p>
+        <p className="text-sm font-semibold text-ink">{user.name}</p>
+        <p className="text-xs text-muted">{user.email}</p>
       </div>
+
+      <div className="border-b border-line px-4 py-3">
+        <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-muted">Organization</p>
+        <p className="mt-1 text-sm font-medium text-ink">{currentOrg}</p>
+        <button
+          onClick={() => setOrgModal(true)}
+          className="mt-1.5 text-xs font-medium text-primary hover:underline"
+        >
+          Switch organization
+        </button>
+      </div>
+
       <MenuItem label="Profile" onClick={() => {}} />
       <div className="my-1 border-t border-line" />
       <MenuItem label="Sign out" onClick={() => {}} danger />
+
+      {orgModal && (
+        <OrgSwitchModal
+          orgs={orgs}
+          current={currentOrg}
+          onPick={(org) => {
+            setCurrentOrg(org)
+            setOrgModal(false)
+          }}
+          onClose={() => setOrgModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function OrgSwitchModal({
+  orgs,
+  current,
+  onPick,
+  onClose,
+}: {
+  orgs: string[]
+  current: string
+  onPick: (org: string) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center p-4">
+      <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm overflow-hidden rounded-xl border border-line bg-white text-ink shadow-pop">
+        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+          <p className="text-sm font-semibold text-ink">Switch organization</p>
+          <button onClick={onClose} className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-page" aria-label="Close">✕</button>
+        </div>
+        <div className="max-h-80 overflow-auto p-2">
+          {orgs.map((org) => {
+            const selected = org === current
+            return (
+              <button
+                key={org}
+                type="button"
+                onClick={() => onPick(org)}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${
+                  selected ? 'bg-primary-soft/50 font-medium text-ink' : 'text-ink hover:bg-page'
+                }`}
+              >
+                <span>{org}</span>
+                {selected && <span className="text-base font-semibold text-primary">✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

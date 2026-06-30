@@ -76,6 +76,7 @@ const SECTIONS = [
   { id: 'resume-details', label: 'Batch Details' },
   { id: 'resume-machine', label: 'Machine Details' },
   { id: 'resume-notes', label: 'Notes' },
+  { id: 'resume-graph', label: 'Graph' },
   { id: 'resume-alarms', label: 'Alarms', pmOnly: true },
   { id: 'resume-alerts', label: 'Alerts', pmOnly: true },
   { id: 'resume-log', label: 'Action Log', pmOnly: true },
@@ -251,63 +252,67 @@ export default function ResumeTab({ form }: Props) {
           </button>
         }
       >
-        <div className="mb-5 grid place-items-center rounded-lg border border-dashed border-line py-6 text-sm text-muted">
+        <div className="grid place-items-center rounded-lg border border-dashed border-line py-6 text-sm text-muted">
           There are currently no notes in this section.
         </div>
+      </FormSection>
+      </div>
 
-        {/* Sensor chart card */}
-        <div className="rounded-xl border border-line p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="w-56">
-              <SelectInput
-                value={template}
-                options={GRAPH_TEMPLATES.map((t) => t.name)}
-                onChange={setTemplate}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:bg-page">
-                <input type="checkbox" checked={showStatus} onChange={(e) => setShowStatus(e.target.checked)} className="accent-primary" />
-                Show Machine Status (Range)
-              </label>
-              <button className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-primary hover:bg-primary-soft/50">
-                <Refresh size={14} /> Refresh Data
-              </button>
-            </div>
+      {/* Graph — its own card; chart fills the card width */}
+      <div id="resume-graph" className="scroll-mt-4">
+      <FormSection title="Graph">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="w-56">
+            <SelectInput
+              value={template}
+              options={GRAPH_TEMPLATES.map((t) => t.name)}
+              onChange={setTemplate}
+            />
           </div>
+          <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:bg-page">
+              <input type="checkbox" checked={showStatus} onChange={(e) => setShowStatus(e.target.checked)} className="accent-primary" />
+              Show Machine Status (Range)
+            </label>
+            <button className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-xs font-medium text-primary hover:bg-primary-soft/50">
+              <Refresh size={14} /> Refresh Data
+            </button>
+          </div>
+        </div>
 
+        <div className="w-full">
           <MultiSensorChart
             series={visibleSeries}
             pointLabels={X_LABELS}
             max={10}
-            height={260}
+            height={320}
             highlight={hoverSensor}
             band={showStatus ? [2, 7] : null}
           />
+        </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {visibleSensors.map((s, i) => (
-              <div
-                key={s.name}
-                onMouseEnter={() => setHoverSensor(i)}
-                onMouseLeave={() => setHoverSensor(null)}
-                className="cursor-default rounded-lg border-l-4 bg-page/40 p-3 transition-shadow hover:shadow-card"
-                style={{ borderColor: s.color }}
-              >
-                <div className="flex items-baseline justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
-                  <span className="text-[0.6875rem] text-faint">{s.unit}</span>
-                </div>
-                <div className="mt-2 flex gap-4">
-                  {s.stats.map(([k, v]) => (
-                    <span key={k} className="text-xs text-muted">
-                      {k} <span className="font-semibold text-ink tabular-nums">{v}</span>
-                    </span>
-                  ))}
-                </div>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {visibleSensors.map((s, i) => (
+            <div
+              key={s.name}
+              onMouseEnter={() => setHoverSensor(i)}
+              onMouseLeave={() => setHoverSensor(null)}
+              className="cursor-default rounded-lg border-l-4 bg-page/40 p-3 transition-shadow hover:shadow-card"
+              style={{ borderColor: s.color }}
+            >
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: s.color }}>{s.name}</p>
+                <span className="text-[0.6875rem] text-faint">{s.unit}</span>
               </div>
-            ))}
-          </div>
+              <div className="mt-2 flex gap-4">
+                {s.stats.map(([k, v]) => (
+                  <span key={k} className="text-xs text-muted">
+                    {k} <span className="font-semibold text-ink tabular-nums">{v}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </FormSection>
       </div>

@@ -11,6 +11,8 @@ const BATCH_COLORS = ['#46aa9f', '#3b82f6', '#f19909', '#8b5cf6', '#16a34a', '#e
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const PRINT_ID = 'analysis-comparison-print'
 const dateLabel = (b: Batch) => `${MONTH_SHORT[b.month]} ${b.day}, ${b.year}`
+// Metric value formatted without its unit (the unit is shown once in the header).
+const fmtNum = (m: BatchMetricDef, v: number) => formatMetric(m, v).replace(` ${m.unit}`, '')
 
 export interface DraftAnalysis {
   id?: string
@@ -236,6 +238,7 @@ function ComparisonTable({
                 {batches.map((b, i) => {
                   const isMax = spread && vals[i] === max
                   const isMin = spread && vals[i] === min
+                  const st = m.stats ? m.stats(b) : null
                   return (
                     <td
                       key={b.id}
@@ -243,11 +246,28 @@ function ComparisonTable({
                       onMouseLeave={() => onHoverBatch(null)}
                       className={`px-4 py-3 text-right tabular-nums text-ink ${colCls(b.id)}`}
                     >
-                      <span className={isMax ? 'font-semibold text-up' : isMin ? 'font-semibold text-down' : ''}>
-                        {formatMetric(m, vals[i]).replace(` ${m.unit}`, '')}
-                        {isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
-                        {isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
-                      </span>
+                      {st ? (
+                        <div className="flex flex-col items-end gap-0.5 leading-tight">
+                          {([
+                            ['Max', st.max, false] as const,
+                            ['Avg', st.avg, true] as const,
+                            ['Min', st.min, false] as const,
+                          ]).map(([lbl, val, isAvg]) => (
+                            <span key={lbl} className={isAvg && isMax ? 'font-semibold text-up' : isAvg && isMin ? 'font-semibold text-down' : ''}>
+                              <span className="mr-1 text-[0.625rem] uppercase tracking-wide text-faint">{lbl}</span>
+                              {fmtNum(m, val)}
+                              {isAvg && isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
+                              {isAvg && isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className={isMax ? 'font-semibold text-up' : isMin ? 'font-semibold text-down' : ''}>
+                          {fmtNum(m, vals[i])}
+                          {isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
+                          {isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
+                        </span>
+                      )}
                     </td>
                   )
                 })}
@@ -257,7 +277,7 @@ function ComparisonTable({
         </tbody>
       </table>
       <p className="mt-2 text-[0.6875rem] text-faint">
-        <span className="text-up">▲</span> highest · <span className="text-down">▼</span> lowest per metric across the selected batches.
+        <span className="text-up">▲</span> highest · <span className="text-down">▼</span> lowest per metric across the selected batches. Sensor parameters report max / min / avg per batch (compared by average).
       </p>
     </div>
   )
@@ -345,8 +365,13 @@ function ChartGrid({
             <HBars
               items={batches.map((b, i) => {
                 const v = m.value(b)
+                const st = m.stats ? m.stats(b) : null
+                // Sensor params bar by their average, but spell out max / min / avg.
+                const label = st
+                  ? `${b.id}  avg ${fmtNum(m, st.avg)} · min ${fmtNum(m, st.min)} · max ${fmtNum(m, st.max)}`
+                  : `${b.id}  ${fmtNum(m, v)}`
                 return {
-                  label: `${b.id}  ${formatMetric(m, v).replace(` ${m.unit}`, '')}`,
+                  label,
                   value: Math.round(v * 100) / 100,
                   leftLabel: '',
                   color: colorOf(i),

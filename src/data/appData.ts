@@ -22,32 +22,9 @@ export const REGISTRY_ROWS: RegistryRow[] = [
   { id: 'BATCH1242', product: 'Blue', start: '15/05/2026 - 14:30:00', end: '15/05/2026 - 19:00:00', line: 'Line A - Zeta', status: 'Cancelled', source: 'IRIS' },
 ]
 
-export interface MachineCard {
-  name: string
-  line: string
-  subtitle: string
-  installDate: string
-  hours: string
-  productFamily: string
-  commission: string
-  lastService: string
-  upgrade?: boolean
-}
-
-export const MACHINE_CARDS: MachineCard[] = [
-  { name: 'Discus 30', line: 'LINE 1', subtitle: '', installDate: '2024-08-20', hours: '10,345 h', productFamily: 'Wet Grinding', commission: '2801548-10', lastService: 'Feb 12, 2026' },
-  { name: 'Zeta 60', line: '', subtitle: 'BLACK PRODUCTION ONLY', installDate: '2024-06-15', hours: '8,720 h', productFamily: 'Dispersing', commission: '15202462-20', lastService: 'Jan 28, 2026' },
-  { name: 'MasterMix 45', line: 'LINE 3', subtitle: '', installDate: '2024-08-20', hours: '14,210 h', productFamily: 'Mixer', commission: '15202531-10', lastService: 'Dec 05, 2025' },
-  { name: 'Alpha Zeta 10', line: '', subtitle: 'WHITE PRODUCTION ONLY', installDate: '2024-09-10', hours: '3,190 h', productFamily: 'Wet Grinding', commission: '80204882', lastService: 'Mar 10, 2026' },
-  { name: 'ProPhi', line: 'LINE 4', subtitle: '', installDate: '2024-08-20', hours: '6,580 h', productFamily: 'Wet Grinding', commission: '15202530-10', lastService: 'Mar 01, 2026', upgrade: true },
-]
-
 export const SETTINGS_TABS = [
   'General',
   'Availability',
-  'Machines & Equipment',
-  'Performance & OEE Rules',
-  'Notifications & Alerts',
   'Data Export',
 ]
 

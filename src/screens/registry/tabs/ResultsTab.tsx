@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { Close } from '../../../icons/Icons'
+import { Close, Pencil, CheckCircle } from '../../../icons/Icons'
 import type { ResultsData, ResultRow } from '../../../data/batchForm'
 import { RESULT_VARIABLES } from '../../../data/batchForm'
 import { maskDate, maskTime } from '../../../lib/masks'
@@ -18,6 +18,10 @@ const emptyDraft = (vars: string[]): ResultRow => ({
 export default function ResultsTab({ value, onChange }: Props) {
   const [draft, setDraft] = useState<ResultRow>(emptyDraft(value.variables))
   const [varDraft, setVarDraft] = useState('')
+  const [editVar, setEditVar] = useState<string | null>(null)
+  const [varRename, setVarRename] = useState('')
+  const [editRow, setEditRow] = useState<number | null>(null)
+  const [rowDraft, setRowDraft] = useState<ResultRow>(emptyDraft(value.variables))
   const datalistId = useId()
 
   const available = RESULT_VARIABLES.filter((v) => !value.variables.includes(v))
@@ -49,6 +53,29 @@ export default function ResultsTab({ value, onChange }: Props) {
     })
   }
 
+  // Rename a variable title (e.g. "d98" → "d50") across the catalogue and every row.
+  const startVarEdit = (v: string) => {
+    setEditVar(v)
+    setVarRename(v)
+  }
+  const commitVarRename = () => {
+    const oldName = editVar
+    setEditVar(null)
+    if (oldName == null) return
+    const nn = varRename.trim()
+    if (!nn || nn === oldName) return
+    if (value.variables.some((x) => x !== oldName && x.toLowerCase() === nn.toLowerCase())) return
+    const renameKey = (vals: Record<string, string>) => {
+      const { [oldName]: ov, ...rest } = vals
+      return { ...rest, [nn]: ov ?? '' }
+    }
+    onChange({
+      variables: value.variables.map((x) => (x === oldName ? nn : x)),
+      rows: value.rows.map((r) => ({ ...r, values: renameKey(r.values) })),
+    })
+    setDraft((d) => ({ ...d, values: renameKey(d.values) }))
+  }
+
   const addRow = () => {
     if (!draft.date && !draft.time && Object.values(draft.values).every((x) => !x)) return
     onChange({ ...value, rows: [...value.rows, draft] })
@@ -56,6 +83,16 @@ export default function ResultsTab({ value, onChange }: Props) {
   }
 
   const removeRow = (i: number) => onChange({ ...value, rows: value.rows.filter((_, idx) => idx !== i) })
+
+  const startRowEdit = (i: number) => {
+    setEditRow(i)
+    setRowDraft(value.rows[i])
+  }
+  const saveRowEdit = () => {
+    if (editRow == null) return
+    onChange({ ...value, rows: value.rows.map((r, idx) => (idx === editRow ? rowDraft : r)) })
+    setEditRow(null)
+  }
 
   const importSample = () => {
     const sample: ResultRow = {
@@ -107,14 +144,37 @@ export default function ResultsTab({ value, onChange }: Props) {
 
       {value.variables.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {value.variables.map((v) => (
-            <span key={v} className="flex items-center gap-2 rounded-full bg-primary-700 px-3 py-1.5 text-xs font-medium text-white">
-              {v}
-              <button onClick={() => removeVariable(v)} aria-label={`Remove ${v}`} className="opacity-80 hover:opacity-100">
-                <Close size={13} />
-              </button>
-            </span>
-          ))}
+          {value.variables.map((v) =>
+            editVar === v ? (
+              <span key={v} className="flex items-center gap-1 rounded-full bg-primary-700 px-2 py-1 text-xs font-medium text-white">
+                <input
+                  autoFocus
+                  value={varRename}
+                  onChange={(e) => setVarRename(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitVarRename()
+                    if (e.key === 'Escape') setEditVar(null)
+                  }}
+                  onBlur={commitVarRename}
+                  aria-label={`Rename ${v}`}
+                  className="w-20 rounded bg-white/95 px-1.5 py-0.5 text-xs text-ink outline-none"
+                />
+                <button onMouseDown={(e) => e.preventDefault()} onClick={commitVarRename} aria-label="Save title" className="opacity-80 hover:opacity-100">
+                  <CheckCircle size={14} />
+                </button>
+              </span>
+            ) : (
+              <span key={v} className="flex items-center gap-2 rounded-full bg-primary-700 px-3 py-1.5 text-xs font-medium text-white">
+                {v}
+                <button onClick={() => startVarEdit(v)} aria-label={`Rename ${v}`} className="opacity-80 hover:opacity-100">
+                  <Pencil size={12} />
+                </button>
+                <button onClick={() => removeVariable(v)} aria-label={`Remove ${v}`} className="opacity-80 hover:opacity-100">
+                  <Close size={13} />
+                </button>
+              </span>
+            )
+          )}
         </div>
       )}
 
@@ -127,28 +187,76 @@ export default function ResultsTab({ value, onChange }: Props) {
               {value.variables.map((v) => (
                 <th key={v} className="px-4 py-3 font-medium">{v}</th>
               ))}
-              <th className="w-12 px-4 py-3" aria-label="Actions" />
+              <th className="w-24 px-4 py-3" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
-            {value.rows.map((r, i) => (
-              <tr key={i} className="group border-t border-line">
-                <td className="px-4 py-3 text-ink">{r.date}</td>
-                <td className="px-4 py-3 text-muted">{r.time}</td>
-                {value.variables.map((v) => (
-                  <td key={v} className="px-4 py-3 text-ink tabular-nums">{r.values[v] || '—'}</td>
-                ))}
-                <td className="px-2 py-3 text-right">
-                  <button
-                    onClick={() => removeRow(i)}
-                    aria-label={`Delete row ${i + 1}`}
-                    className="rounded-md p-1 text-faint opacity-0 transition-opacity hover:bg-down/10 hover:text-down focus-visible:opacity-100 group-hover:opacity-100"
-                  >
-                    <Close size={15} />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {value.rows.map((r, i) =>
+              editRow === i ? (
+                <tr key={i} className="border-t border-line bg-page/30">
+                  <td className="px-3 py-2">
+                    <input
+                      value={rowDraft.date}
+                      onChange={(e) => setRowDraft({ ...rowDraft, date: maskDate(e.target.value) })}
+                      placeholder="DD/MM/YYYY"
+                      inputMode="numeric"
+                      className="w-28 rounded-md border border-line bg-white px-2 py-1.5 text-sm outline-none focus:border-primary"
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <input
+                      value={rowDraft.time}
+                      onChange={(e) => setRowDraft({ ...rowDraft, time: maskTime(e.target.value) })}
+                      placeholder="00:00:00"
+                      inputMode="numeric"
+                      className="w-24 rounded-md border border-line bg-white px-2 py-1.5 text-sm outline-none focus:border-primary"
+                    />
+                  </td>
+                  {value.variables.map((v) => (
+                    <td key={v} className="px-3 py-2">
+                      <input
+                        value={rowDraft.values[v] ?? ''}
+                        onChange={(e) => setRowDraft({ ...rowDraft, values: { ...rowDraft.values, [v]: e.target.value } })}
+                        placeholder="0000"
+                        className="w-20 rounded-md border border-line bg-white px-2 py-1.5 text-sm outline-none focus:border-primary"
+                      />
+                    </td>
+                  ))}
+                  <td className="px-2 py-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={saveRowEdit} aria-label={`Save row ${i + 1}`} className="rounded-md p-1 text-up hover:bg-up/10"><CheckCircle size={16} /></button>
+                      <button onClick={() => setEditRow(null)} aria-label="Cancel" className="rounded-md p-1 text-faint hover:bg-page hover:text-ink"><Close size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={i} className="group border-t border-line">
+                  <td className="px-4 py-3 text-ink">{r.date}</td>
+                  <td className="px-4 py-3 text-muted">{r.time}</td>
+                  {value.variables.map((v) => (
+                    <td key={v} className="px-4 py-3 text-ink tabular-nums">{r.values[v] || '—'}</td>
+                  ))}
+                  <td className="px-2 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => startRowEdit(i)}
+                        aria-label={`Edit row ${i + 1}`}
+                        className="rounded-md p-1 text-faint opacity-0 transition-opacity hover:bg-primary-soft hover:text-primary focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        onClick={() => removeRow(i)}
+                        aria-label={`Delete row ${i + 1}`}
+                        className="rounded-md p-1 text-faint opacity-0 transition-opacity hover:bg-down/10 hover:text-down focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <Close size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            )}
 
             {/* input row */}
             <tr className="border-t border-line bg-page/30">

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Download, FilePdf, ChevronDown } from '../../icons/Icons'
 import { printElement } from '../../lib/exportPdf'
 import { exportCsv, exportXlsx, type Sheet, type Cell } from '../../lib/exportData'
-import { BATCH_METRICS } from '../../lib/batchMetrics'
+import { BATCH_METRICS, type MetricStats } from '../../lib/batchMetrics'
 import type { Batch } from '../../data/mockData'
 
 // Export with a per-metric / per-batch picker, then PDF / CSV / Excel.
@@ -46,11 +46,22 @@ export default function AnalysisExport({ batches, printId, filenameBase }: Props
 
   const buildSheets = (): Sheet[] => {
     const header: Cell[] = ['Metric', 'Unit', ...picked.map((b) => b.id)]
-    const rows: Cell[][] = metrics.map((m) => [
-      m.label,
-      m.unit,
-      ...picked.map((b) => Number(m.value(b).toFixed(3))),
-    ])
+    const rows: Cell[][] = metrics.flatMap((m) => {
+      // Sensor parameters export one row each for max / avg / min.
+      if (m.stats) {
+        const statRow = (suffix: string, sel: (s: MetricStats) => number): Cell[] => [
+          `${m.label} (${suffix})`,
+          m.unit,
+          ...picked.map((b) => Number(sel(m.stats!(b)).toFixed(3))),
+        ]
+        return [
+          statRow('max', (s) => s.max),
+          statRow('avg', (s) => s.avg),
+          statRow('min', (s) => s.min),
+        ]
+      }
+      return [[m.label, m.unit, ...picked.map((b) => Number(m.value(b).toFixed(3)))]]
+    })
     return [{ name: 'Comparison', rows: [header, ...rows] }]
   }
 

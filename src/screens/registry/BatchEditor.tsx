@@ -12,14 +12,15 @@ import ReportsTab from './tabs/ReportsTab'
 import ExportMenu from '../../components/ExportMenu'
 import type { Sheet } from '../../lib/exportData'
 import { useProductionMonitoring } from '../settings/MiscSettings'
+import { useLocalStorage } from '../../lib/useLocalStorage'
 import { ChevronLeft, Save, Pencil, RegistryIcon } from '../../icons/Icons'
 
 const EDITOR_PRINT_ID = 'batch-editor-print'
 
-const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports', 'Example'] as const
+const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports'] as const
 type Step = (typeof STEPS)[number]
 
-const DISABLED_STEPS: Step[] = ['Example']
+const DISABLED_STEPS: Step[] = []
 
 interface Props {
   initial: BatchForm
@@ -28,7 +29,8 @@ interface Props {
 }
 
 export default function BatchEditor({ initial, onBack, onSave }: Props) {
-  const [form, setForm] = useState<BatchForm>(initial)
+  // Persist the whole batch form per id so Results/Remarks edits survive navigation.
+  const [form, setForm] = useLocalStorage<BatchForm>(`dr-batch-form-${initial.id}`, initial)
   const [rawStep, setStep] = useState<Step>('Resume')
   const [saved, setSaved] = useState(false)
 

@@ -85,7 +85,7 @@ export default function MultiSensorChart({
       }}
       style={{ cursor: onPlotClick ? 'copy' : undefined }}
     >
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full" style={{ height: H }}>
         {band && (
           <rect x={x(band[0])} y={PAD_T} width={x(band[1]) - x(band[0])} height={plotH} fill="#59d66e" opacity={0.08} />
         )}

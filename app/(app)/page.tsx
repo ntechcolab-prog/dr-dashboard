@@ -32,11 +32,13 @@ function AppCard({
   href,
   icon,
   title,
+  badge,
   children,
 }: {
   href: string
   icon: ReactNode
   title: ReactNode
+  badge?: string
   children: ReactNode
 }) {
   return (
@@ -44,6 +46,11 @@ function AppCard({
       href={href}
       className="group relative block rounded-xl bg-white p-6 shadow-[0_2px_10px_rgba(0,0,0,0.06)] ring-1 ring-black/5 transition-shadow hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
     >
+      {badge && (
+        <span className="absolute right-4 top-4 rounded-full bg-[#6ca8c9]/15 px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide text-[#5b97b8]">
+          {badge}
+        </span>
+      )}
       <div className="mb-5 flex items-start gap-4">
         <span className="flex h-14 w-14 flex-none items-center justify-center rounded-lg bg-[#6ca8c9]">
           {icon}
@@ -72,12 +79,22 @@ export default function LauncherPage() {
         <p className="mt-2 text-[#6b6b73]">Choose an application to start</p>
 
         <div className="mt-8 grid max-w-5xl grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-6">
-          <AppCard href="/batch-book?view=dashboard" icon={<ProductionIcon />} title={<>PRODUCTION<br />MONITORING</>}>
-            Track production batches in real-time with complete visibility into status and history.
+          <AppCard
+            href="/batch-book?v=1"
+            badge="v1"
+            icon={<ProductionIcon />}
+            title={<>PRODUCTION<br />MONITORING</>}
+          >
+            Full access — real-time monitoring, batch registry, analysis and reports.
           </AppCard>
 
-          <AppCard href="/batch-book?view=registry" icon={<BatchBookIcon />} title="BATCH BOOK">
-            Browse, register and export the complete history of production batches and reports.
+          <AppCard
+            href="/batch-book?v=0"
+            badge="v0"
+            icon={<BatchBookIcon />}
+            title={<>PRODUCTION<br />MONITORING</>}
+          >
+            Early version — batch registry only. The remaining modules are coming soon.
           </AppCard>
         </div>
       </div>

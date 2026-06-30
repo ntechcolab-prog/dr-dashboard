@@ -14,6 +14,7 @@ import type { Sheet } from '../lib/exportData'
 import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
+import { useLocalStorage } from '../lib/useLocalStorage'
 import { availabilityService } from '../data/availabilityData'
 import {
   filterBatches,
@@ -61,6 +62,13 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
   }, [monthKey])
 
   const [drawer, setDrawer] = useState<DrawerData>(CLOSED_DRAWER)
+
+  // Seed handed to the Analysis editor when "Generate Analysis" is clicked, so
+  // it opens pre-loaded with the batches currently selected on the dashboard.
+  const [, setAnalysisSeed] = useLocalStorage<{ name: string; batchIds: string[] } | null>(
+    'dr-analysis-seed',
+    null
+  )
 
   const monthMeta = MONTHS.find((m) => m.key === monthKey)!
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
@@ -214,7 +222,13 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
                     sheets={buildBatchesSheets}
                   />
                   <button
-                    onClick={() => onNavigate?.('analysis')}
+                    onClick={() => {
+                      setAnalysisSeed({
+                        name: `${monthMeta.label} · ${machines.length ? machines.join(', ') : 'All machines'}`,
+                        batchIds: monthBatches.slice(0, 8).map((b) => b.id),
+                      })
+                      onNavigate?.('analysis')
+                    }}
                     className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition-colors hover:opacity-90"
                   >
                     <AnalysisIcon size={16} />

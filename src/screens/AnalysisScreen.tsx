@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import SubHeader from '../components/SubHeader'
 import { AnalysisIcon, Plus, Trash } from '../icons/Icons'
 import AnalysisEditor, { type DraftAnalysis } from './analysis/AnalysisEditor'
@@ -19,6 +19,19 @@ const fmtDate = (iso: string) => {
 export default function AnalysisScreen() {
   const [analyses, setAnalyses] = useLocalStorage<SavedAnalysis[]>('dr-analyses', [])
   const [editing, setEditing] = useState<DraftAnalysis | null>(null)
+
+  // When the dashboard's "Generate Analysis" left a seed, open a fresh editor
+  // pre-loaded with the batches that were filtered there, then clear the seed.
+  const [seed, setSeed] = useLocalStorage<{ name: string; batchIds: string[] } | null>(
+    'dr-analysis-seed',
+    null
+  )
+  useEffect(() => {
+    if (seed) {
+      setEditing({ name: seed.name, batchIds: seed.batchIds })
+      setSeed(null)
+    }
+  }, [seed, setSeed])
 
   const openNew = () => setEditing({ name: '', batchIds: [] })
   const openExisting = (a: SavedAnalysis) => setEditing({ id: a.id, name: a.name, batchIds: a.batchIds })

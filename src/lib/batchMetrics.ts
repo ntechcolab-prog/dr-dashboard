@@ -32,7 +32,31 @@ export function paramValue(batchId: string, key: string, base: number, range: nu
   return base + mulberry32(hashStr(`param|${batchId}|${key}`))() * range
 }
 
-export type MetricGroup = 'Production' | 'Electrical' | 'Pressure' | 'Speed' | 'Flow' | 'Temperature' | 'Quality'
+// Min / max / average of a sensor parameter over a synthetic run. The mock
+// Batch has no time series, so we deterministically sample a stable sweep of
+// readings seeded by (batch, parameter) and aggregate them.
+export interface MetricStats {
+  min: number
+  max: number
+  avg: number
+}
+
+export function paramStats(batchId: string, key: string, base: number, range: number): MetricStats {
+  const rnd = mulberry32(hashStr(`stats|${batchId}|${key}`))
+  const samples = 24
+  let min = Infinity
+  let max = -Infinity
+  let sum = 0
+  for (let i = 0; i < samples; i++) {
+    const v = base + rnd() * range
+    if (v < min) min = v
+    if (v > max) max = v
+    sum += v
+  }
+  return { min, max, avg: sum / samples }
+}
+
+export type MetricGroup = 'Production' | 'Electrical' | 'Pressure' | 'Speed' | 'Flow' | 'Temperature'
 
 export interface BatchMetricDef {
   key: string
@@ -43,6 +67,9 @@ export interface BatchMetricDef {
   value: (b: Batch) => number
   // Whether a higher value is "better" — drives the best/worst insight wording.
   betterHigh: boolean
+  // Sensor parameters report a sweep, so they expose max / min / avg.
+  // Core production metrics are single values and leave this undefined.
+  stats?: (b: Batch) => MetricStats
 }
 
 // Core metrics derived from the real batch fields (same as the Batches metrics).
@@ -58,7 +85,6 @@ const CORE_METRICS: BatchMetricDef[] = [
     value: (b) => (b.grindMin ? b.mass / (b.grindMin / 60) : 0),
     betterHigh: true,
   },
-  { key: 'coolingEnergy', label: 'Cooling energy', unit: 'liters', group: 'Production', fmt: 'int', value: (b) => b.cooling, betterHigh: false },
   {
     key: 'specificEnergy',
     label: 'Grinding energy',
@@ -115,23 +141,22 @@ const PROCESS_SPECS: { key: string; label: string; unit: string; group: MetricGr
   { key: 'productInletTemp', label: 'Product inlet temp', unit: '°C', group: 'Temperature', fmt: 'dec1', base: 20, range: 14 },
   { key: 'productOutletTemp', label: 'Product outlet temp', unit: '°C', group: 'Temperature', fmt: 'dec1', base: 22, range: 14 },
   { key: 'sealLiquidTemp', label: 'Seal liquid temp', unit: '°C', group: 'Temperature', fmt: 'dec1', base: 20, range: 12 },
-  // Quality
-  { key: 'productDensity', label: 'Product density', unit: 'kg/dm³', group: 'Quality', fmt: 'dec3', base: 0.8, range: 0.9 },
-  { key: 'massFlow', label: 'Mass flow', unit: 'kg', group: 'Quality', fmt: 'int', base: 40, range: 35 },
-  { key: 'massFlowEstimated', label: 'Mass flow (estimated)', unit: 'kg', group: 'Quality', fmt: 'int', base: 40, range: 35 },
-  { key: 'sealLiquidLevel', label: 'Seal liquid level', unit: '%', group: 'Quality', fmt: 'int', base: 88, range: 12 },
-  { key: 'productViscosity', label: 'Product viscosity', unit: 'mPas', group: 'Quality', fmt: 'int', base: 0, range: 480 },
 ]
 
-const PROCESS_METRICS: BatchMetricDef[] = PROCESS_SPECS.map((s) => ({
-  key: s.key,
-  label: s.label,
-  unit: s.unit,
-  group: s.group,
-  fmt: s.fmt,
-  value: (b) => paramValue(b.id, s.key, s.base, s.range),
-  betterHigh: false,
-}))
+const PROCESS_METRICS: BatchMetricDef[] = PROCESS_SPECS.map((s) => {
+  const stats = (b: Batch) => paramStats(b.id, s.key, s.base, s.range)
+  return {
+    key: s.key,
+    label: s.label,
+    unit: s.unit,
+    group: s.group,
+    fmt: s.fmt,
+    // The single comparison value is the run average; max/min/avg live in stats.
+    value: (b: Batch) => stats(b).avg,
+    betterHigh: false,
+    stats,
+  }
+})
 
 export const BATCH_METRICS: BatchMetricDef[] = [...CORE_METRICS, ...PROCESS_METRICS]
 

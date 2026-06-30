@@ -57,7 +57,7 @@ export default function ExportMenu({ title, printId, filenameBase, sheets, disab
         <div className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-white py-1 shadow-pop">
           <Item icon={<FilePdf size={16} />} label="PDF" hint="Print / save" onClick={() => run(() => printElement(printId, title))} />
           <Item icon={<SheetIcon />} label="CSV" hint=".csv" onClick={() => run(() => exportCsv(filenameBase, sheets()[0]))} />
-          <Item icon={<SheetIcon />} label="Excel" hint=".xlsx" onClick={() => run(() => exportXlsx(filenameBase, sheets()))} />
+          <Item icon={<SheetIcon />} label=".xlsx" hint="Excel" onClick={() => run(() => exportXlsx(filenameBase, sheets()))} />
         </div>
       )}
     </div>

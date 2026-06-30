@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FormSection, Field } from '../../components/FormControls'
+import { FormSection, Field, NumberInput } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
 import { Sun, Info, Calendar, Plus, Trash, Download, ChevronDown } from '../../icons/Icons'
 import {
@@ -149,6 +149,27 @@ export default function AvailabilitySettingsTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Availability target */}
+      <FormSection title="Availability target">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <Field label="Monthly availability target">
+            <NumberInput
+              value={settings.monthlyGoalPct}
+              suffix="%"
+              min={0}
+              max={100}
+              onChange={(n) =>
+                setSettings((p) => ({ ...p, monthlyGoalPct: Math.max(0, Math.min(100, n)) }))
+              }
+            />
+          </Field>
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          The availability goal for the month — used across the dashboard, the monthly goal card and
+          the machine rankings to flag whether availability is on track.
+        </p>
+      </FormSection>
+
       {/* Working schedule */}
       <FormSection title="Working schedule">
         {/* mode switch */}

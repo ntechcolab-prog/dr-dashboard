@@ -132,8 +132,6 @@ function BatchCard({ batch, onOpen }: { batch: LiveBatch; onOpen: () => void }) 
         <Field label="Machine" value={batch.machine} />
         <Field label="Energy" value={`${batch.energy} kWh`} />
       </div>
-
-      <p className="mt-3 text-xs font-medium text-primary">Details</p>
     </button>
   )
 }

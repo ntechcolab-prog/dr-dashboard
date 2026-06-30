@@ -1,4 +1,4 @@
-import { DashboardIcon, RegistryIcon, AnalysisIcon, ExampleIcon, Gear, PanelLeftCollapse, type IconProps } from '../icons/Icons'
+import { DashboardIcon, RegistryIcon, AnalysisIcon, Gear, PanelLeftCollapse, type IconProps } from '../icons/Icons'
 import type { ComponentType } from 'react'
 
 interface NavItem {
@@ -12,7 +12,6 @@ const NAV: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
   { key: 'registry', label: 'Registry', Icon: RegistryIcon },
   { key: 'analysis', label: 'Analysis', Icon: AnalysisIcon },
-  { key: 'example', label: 'Example', Icon: ExampleIcon, disabled: true },
   { key: 'settings', label: 'Settings', Icon: Gear },
 ]
 
@@ -21,10 +20,12 @@ interface SidebarProps {
   active: string
   onSelect: (key: string) => void
   onToggle: () => void
+  // v0 (restricted) leaves only Registry enabled; everything else is "coming soon".
+  restricted?: boolean
 }
 
 // Expanded (264px, icon + label) or collapsed to an icon rail (72px).
-export default function Sidebar({ open, active, onSelect, onToggle }: SidebarProps) {
+export default function Sidebar({ open, active, onSelect, onToggle, restricted = false }: SidebarProps) {
   return (
     <aside
       className={`${
@@ -32,7 +33,8 @@ export default function Sidebar({ open, active, onSelect, onToggle }: SidebarPro
       } flex shrink-0 flex-col overflow-hidden bg-sidebar text-white transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]`}
     >
       <nav className="flex flex-1 flex-col gap-1 p-3 pt-4">
-        {NAV.map(({ key, label, Icon, disabled }) => {
+        {NAV.map(({ key, label, Icon, disabled: itemDisabled }) => {
+          const disabled = itemDisabled || (restricted && key !== 'registry')
           const isActive = key === active
           return (
             <button
