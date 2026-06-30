@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { IrisLogo } from '@/src/client/iris/IrisLogo'
 import { IrisField } from '@/src/client/iris/IrisField'
-import { TurnstileBadge } from '@/src/client/iris/TurnstileBadge'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -42,7 +41,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#4b4b53] p-6">
       <div className="w-full max-w-[26rem] rounded-2xl bg-[#6b6b73] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-        <div className="mb-7">
+        <div className="mb-7 flex justify-center">
           <IrisLogo size="lg" />
         </div>
 
@@ -63,8 +62,6 @@ export default function LoginPage() {
             onChange={setPassword}
             autoComplete="current-password"
           />
-
-          <TurnstileBadge />
 
           {error && (
             <p className="rounded-md bg-[#c12907]/15 px-3 py-2 text-sm text-[#ffd9d2]">{error}</p>

@@ -41,7 +41,7 @@ export default function SignupPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#4b4b53] p-6">
       <div className="w-full max-w-[26rem] rounded-2xl bg-[#6b6b73] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-center">
           <IrisLogo size="lg" />
         </div>
         <h1 className="mb-4 text-[1.05rem] font-medium text-white">Create your account</h1>
