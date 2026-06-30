@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-roboto), 'Roboto', ui-sans-serif, system-ui, sans-serif;
 
   /* Digital Reports tokens (from Figma file tx5EIqycBjXKI1aF7hExGA) */
   --color-header: #4c4d57;
@@ -29,13 +29,19 @@
   --color-chart-4: #f89984;
   --color-chart-5: #a2a6ac;
 
+  /* IRIS Cloud shell (recreated login + launcher) */
+  --color-iris-bg: #4b4b53;
+  --color-iris-card: #6b6b73;
+  --color-iris-topbar: #41414a;
+  --color-iris-blue: #6ca8c9;
+  --color-iris-blue-700: #5b97b8;
+
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 1px rgba(0, 0, 0, 0.02);
   --shadow-pop: 0 8px 24px rgba(17, 17, 26, 0.12);
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
 }
 
