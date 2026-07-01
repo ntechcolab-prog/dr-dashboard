@@ -74,7 +74,7 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
   }
 
   if (editing) {
-    return <BatchEditor initial={editing} onBack={() => setEditing(null)} onSave={onSave} />
+    return <BatchEditor initial={editing} onBack={() => setEditing(null)} onSave={onSave} restricted={restricted} />
   }
 
   return (

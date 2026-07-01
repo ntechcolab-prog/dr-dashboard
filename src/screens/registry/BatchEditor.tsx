@@ -20,15 +20,16 @@ const EDITOR_PRINT_ID = 'batch-editor-print'
 const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports'] as const
 type Step = (typeof STEPS)[number]
 
-const DISABLED_STEPS: Step[] = []
-
 interface Props {
   initial: BatchForm
   onBack: () => void
   onSave: (form: BatchForm) => void
+  // v0 (restricted): only Resume is available; every other tab shows "soon".
+  restricted?: boolean
 }
 
-export default function BatchEditor({ initial, onBack, onSave }: Props) {
+export default function BatchEditor({ initial, onBack, onSave, restricted = false }: Props) {
+  const DISABLED_STEPS: Step[] = restricted ? STEPS.filter((s) => s !== 'Resume') : []
   // Persist the whole batch form per id so Results/Remarks edits survive navigation.
   const [form, setForm] = useLocalStorage<BatchForm>(`dr-batch-form-${initial.id}`, initial)
   const [rawStep, setStep] = useState<Step>('Resume')
