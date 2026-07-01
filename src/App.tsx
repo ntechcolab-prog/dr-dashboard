@@ -41,7 +41,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col">
-      <AppHeader name={appName} icon={appIcon} />
+      <AppHeader name={appName} icon={appIcon} restricted={restricted} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -61,7 +61,7 @@ export default function App() {
             <>
               {activeNav === 'dashboard' && <DashboardScreen onNavigate={setActiveNav} />}
               {activeNav === 'dashboard-v2' && <DashboardV2Screen />}
-              {activeNav === 'registry' && <RegistryScreen />}
+              {activeNav === 'registry' && <RegistryScreen restricted={restricted} />}
               {activeNav === 'analysis' && <AnalysisScreen />}
               {activeNav === 'settings' && <SettingsScreen />}
             </>

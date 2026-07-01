@@ -11,7 +11,7 @@ import type { Sheet } from '../lib/exportData'
 const COLUMNS = ['Batch ID', 'Product', 'Start Date', 'End Date', 'Production Line', 'Status', 'Data source']
 const REGISTRY_PRINT_ID = 'registry-batch-log-print'
 
-export default function RegistryScreen() {
+export default function RegistryScreen({ restricted = false }: { restricted?: boolean }) {
   const [rows, setRows] = useLocalStorage<RegistryRow[]>('dr-registry-rows', REGISTRY_ROWS)
   const [seq, setSeq] = useLocalStorage<number>('dr-batch-seq', 274)
   const [editing, setEditing] = useState<BatchForm | null>(null)
@@ -94,15 +94,17 @@ export default function RegistryScreen() {
                 className="w-44 bg-transparent text-sm outline-none placeholder:text-muted"
               />
             </div>
-            <ExportMenu
-              title="Registry · Selected Batches"
-              printId={REGISTRY_PRINT_ID}
-              filenameBase="registry-selected-batches"
-              sheets={buildSheets}
-              disabled={selected.size === 0}
-              label={selected.size > 0 ? `Export (${selected.size})` : 'Export'}
-              accent
-            />
+            {!restricted && (
+              <ExportMenu
+                title="Registry · Selected Batches"
+                printId={REGISTRY_PRINT_ID}
+                filenameBase="registry-selected-batches"
+                sheets={buildSheets}
+                disabled={selected.size === 0}
+                label={selected.size > 0 ? `Export (${selected.size})` : 'Export'}
+                accent
+              />
+            )}
             <button onClick={newBatch} className="rounded-lg bg-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-colors hover:bg-primary-700">
               New Batch
             </button>
@@ -113,14 +115,16 @@ export default function RegistryScreen() {
           <table className="w-full min-w-[56.75rem] border-collapse text-sm">
             <thead>
               <tr className="bg-page/60 text-left text-xs text-muted">
-                <th className="w-10 rounded-l-lg px-4 py-3">
-                  <Checkbox
-                    checked={allFilteredSelected}
-                    indeterminate={!allFilteredSelected && someFilteredSelected}
-                    onChange={toggleAll}
-                    label={allFilteredSelected ? 'Clear selection' : 'Select all'}
-                  />
-                </th>
+                {!restricted && (
+                  <th className="w-10 rounded-l-lg px-4 py-3">
+                    <Checkbox
+                      checked={allFilteredSelected}
+                      indeterminate={!allFilteredSelected && someFilteredSelected}
+                      onChange={toggleAll}
+                      label={allFilteredSelected ? 'Clear selection' : 'Select all'}
+                    />
+                  </th>
+                )}
                 {COLUMNS.map((c) => (
                   <th key={c} className="px-4 py-3 font-medium last:rounded-r-lg">{c}</th>
                 ))}
@@ -135,9 +139,11 @@ export default function RegistryScreen() {
                     onClick={() => editExisting(r)}
                     className={`cursor-pointer border-b border-line last:border-0 hover:bg-page/50 ${isSel ? 'bg-primary/5' : ''}`}
                   >
-                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={isSel} onChange={() => toggleRow(r.id)} label={`Select ${r.id}`} />
-                    </td>
+                    {!restricted && (
+                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox checked={isSel} onChange={() => toggleRow(r.id)} label={`Select ${r.id}`} />
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 font-medium text-ink">{r.id}</td>
                     <td className="px-4 py-3.5 text-ink">{r.product}</td>
                     <td className="px-4 py-3.5 text-muted">{r.start}</td>
@@ -150,7 +156,7 @@ export default function RegistryScreen() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={COLUMNS.length + 1} className="px-4 py-10 text-center text-muted">No batches match “{query}”.</td>
+                  <td colSpan={restricted ? COLUMNS.length : COLUMNS.length + 1} className="px-4 py-10 text-center text-muted">No batches match “{query}”.</td>
                 </tr>
               )}
             </tbody>

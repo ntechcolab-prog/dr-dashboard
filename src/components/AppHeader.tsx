@@ -11,6 +11,7 @@ import { availabilityService } from '../data/availabilityData'
 interface AppHeaderProps {
   name: string
   icon: string | null
+  restricted?: boolean
 }
 
 // Up to two uppercase initials from the app name (e.g. "Batch Book" → "BB").
@@ -40,7 +41,7 @@ const INITIAL_NOTIFS: Notification[] = [
   { id: 4, text: 'Monthly report for March is ready.', time: 'Yesterday', read: true },
 ]
 
-export default function AppHeader({ name, icon }: AppHeaderProps) {
+export default function AppHeader({ name, icon, restricted = false }: AppHeaderProps) {
   const user = useSession()
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS)
   const unread = notifs.filter((n) => !n.read).length
@@ -69,28 +70,32 @@ export default function AppHeader({ name, icon }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-1">
-        {/* Calendar */}
-        <Popover
-          icon={<Calendar size={20} />}
-          align="right"
-          panelClassName="w-72"
-          render={() => <MiniCalendar />}
-        />
-
-        {/* Notifications */}
-        <Popover
-          icon={<Bell size={20} />}
-          align="right"
-          panelClassName="w-80"
-          badge={unread}
-          render={() => (
-            <Notifications
-              notifs={notifs}
-              onRead={(id) => setNotifs((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n)))}
-              onReadAll={() => setNotifs((ns) => ns.map((n) => ({ ...n, read: true })))}
+        {!restricted && (
+          <>
+            {/* Calendar */}
+            <Popover
+              icon={<Calendar size={20} />}
+              align="right"
+              panelClassName="w-72"
+              render={() => <MiniCalendar />}
             />
-          )}
-        />
+
+            {/* Notifications */}
+            <Popover
+              icon={<Bell size={20} />}
+              align="right"
+              panelClassName="w-80"
+              badge={unread}
+              render={() => (
+                <Notifications
+                  notifs={notifs}
+                  onRead={(id) => setNotifs((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n)))}
+                  onReadAll={() => setNotifs((ns) => ns.map((n) => ({ ...n, read: true })))}
+                />
+              )}
+            />
+          </>
+        )}
 
         <div className="mx-1 hidden items-center gap-2 sm:flex">
           <span className="text-sm text-white/80">Hello,</span>
