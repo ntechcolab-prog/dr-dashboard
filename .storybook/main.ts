@@ -1,8 +1,8 @@
 import type { StorybookConfig } from '@storybook/nextjs'
 
 const config: StorybookConfig = {
-  // Stories are colocated next to the presentation components in src/.
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  // MDX overview/docs pages first, then stories colocated next to components.
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
   addons: ['@storybook/addon-docs'],
   framework: {
     name: '@storybook/nextjs',

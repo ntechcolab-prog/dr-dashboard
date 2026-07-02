@@ -1,0 +1,55 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Overview/Getting Started" />
+
+<div style={{ fontFamily: 'Roboto, ui-sans-serif, system-ui, sans-serif', color: '#4c4d57', maxWidth: '52rem' }}>
+
+<h1 style={{ fontSize: '1.7rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#33343c', marginBottom: '0.5rem' }}>Getting Started</h1>
+<p style={{ color: '#8d9094', fontSize: '0.95rem', marginTop: 0 }}>How this Storybook is built, run and used.</p>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Stack</h2>
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))', gap: '0.5rem' }}>
+  {['Next.js 15', 'React 18', 'TypeScript', 'Tailwind CSS v4', 'Storybook 9', 'Hand-built SVG charts'].map((t) => (
+    <div key={t} style={{ border: '1px solid #ececec', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', background: '#fff', fontSize: '0.82rem', fontWeight: 600, color: '#4c4d57' }}>{t}</div>
+  ))}
+</div>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Run it</h2>
+
+<pre style={{ background: '#33343c', color: '#e8eaed', padding: '1rem 1.15rem', borderRadius: '0.6rem', fontSize: '0.82rem', lineHeight: 1.7, overflowX: 'auto' }}>
+{`# start the dev server (localhost:6006)
+npm run storybook
+
+# build the static site
+npm run build-storybook`}
+</pre>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>How stories work</h2>
+
+<ul style={{ fontSize: '0.9rem', lineHeight: 1.7, paddingLeft: '1.1rem' }}>
+  <li>Stories are colocated next to their component in <code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>src/components/</code>.</li>
+  <li>The app's real <code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>globals.css</code> (Tailwind v4 <code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>@theme</code> tokens) is loaded, so components render with production styling.</li>
+  <li>Props use the same mock data and compute helpers as the app (<code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>src/data/mockData</code>, <code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>src/lib/compute</code>).</li>
+  <li>A global decorator supplies the session and per-company state contexts, so nothing renders unstyled or crashes.</li>
+  <li>Every component has an <strong>autodocs</strong> page: live preview, editable controls, and copyable source.</li>
+</ul>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Using a component</h2>
+
+<pre style={{ background: '#33343c', color: '#e8eaed', padding: '1rem 1.15rem', borderRadius: '0.6rem', fontSize: '0.82rem', lineHeight: 1.7, overflowX: 'auto' }}>
+{`import Rankings from '@/src/components/Rankings'
+import { buildRankings } from '@/src/lib/compute'
+import { ALL_BATCHES } from '@/src/data/mockData'
+
+const rankings = buildRankings(ALL_BATCHES)
+
+<Rankings rankings={rankings} embedded />`}
+</pre>
+
+<p style={{ fontSize: '0.85rem', color: '#5c5f62', lineHeight: 1.55 }}>
+  Open any component in the sidebar, tweak its controls, then use the <b>Show code</b> panel on the story (or the
+  <b> Docs</b> tab) to copy a working snippet.
+</p>
+
+</div>

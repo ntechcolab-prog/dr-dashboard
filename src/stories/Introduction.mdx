@@ -1,0 +1,68 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Overview/Introduction" />
+
+<div style={{ fontFamily: 'Roboto, ui-sans-serif, system-ui, sans-serif', color: '#4c4d57', maxWidth: '52rem' }}>
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+  <span style={{ display: 'grid', placeItems: 'center', width: '3.25rem', height: '3.25rem', borderRadius: '0.75rem', background: '#46aa9f', color: '#fff', flex: 'none' }}>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </svg>
+  </span>
+  <div>
+    <h1 style={{ margin: 0, fontSize: '1.9rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#33343c' }}>Batch Book — Component Library</h1>
+    <p style={{ margin: '0.25rem 0 0', color: '#8d9094', fontSize: '0.95rem' }}>The Tailwind UI system behind NETZSCH's Batch Book (v1).</p>
+  </div>
+</div>
+
+<p style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>
+  Batch Book is NETZSCH's batch reporting and analytics app for grinding lines. This Storybook documents the
+  presentation components that make up its full version (v1): every chart, metric card, filter, calendar and
+  layout piece, rendered with the product's real design tokens and shown alongside its source code.
+</p>
+
+<p style={{ fontSize: '0.95rem', lineHeight: 1.6, color: '#5c5f62' }}>
+  Each component page has a live preview, editable controls, and the code to reproduce it. Data comes from the
+  same mock dataset and compute helpers the app uses, so what you see here matches production.
+</p>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2.25rem', marginBottom: '0.75rem' }}>What's inside</h2>
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(15rem, 1fr))', gap: '0.75rem' }}>
+  {[
+    ['Charts', 'Line, area, bars and the shared metric visualization language, hand-built in SVG.'],
+    ['Metrics', 'KPI cards with sparklines and edit mode, plus the batch calendar heatmap.'],
+    ['Rankings & Live', 'Interruption / recipe / status rankings and the in-operation batches strip.'],
+    ['Availability', 'Machine availability dashboard, ranking board and gauges.'],
+    ['Filters & Inputs', 'Multi-selects, segmented toggles, tabs and form controls.'],
+    ['Layout', 'Sidebar, app header, export menu, drawer and empty states.'],
+    ['Foundations', 'The color tokens and the full icon set.'],
+  ].map(([title, desc]) => (
+    <div key={title} style={{ border: '1px solid #ececec', borderRadius: '0.75rem', padding: '0.9rem 1rem', background: '#fff' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#33343c' }}>{title}</div>
+      <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#8d9094' }}>{desc}</div>
+    </div>
+  ))}
+</div>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2.25rem', marginBottom: '0.75rem' }}>See it live</h2>
+
+<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+  <a href="https://batchbook.ntechcolab.com" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.9rem', borderRadius: '0.5rem', background: '#46aa9f', color: '#fff', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none' }}>
+    Open Batch Book →
+  </a>
+  <a href="https://batchbook.ntechcolab.com/batch-book-v2?v=2" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.9rem', borderRadius: '0.5rem', border: '1px solid #d7d8da', color: '#4c4d57', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none' }}>
+    Batch Book v2 (Material UI)
+  </a>
+</div>
+
+<p style={{ marginTop: '2rem', padding: '0.85rem 1rem', borderRadius: '0.6rem', background: '#f6f6f6', fontSize: '0.82rem', lineHeight: 1.5, color: '#5c5f62' }}>
+  <strong style={{ color: '#33343c' }}>Note:</strong> this library documents v1, built on Tailwind CSS. A parallel
+  rebuild on Material UI ships as v2; see <b>Getting Started</b> for the version map.
+</p>
+
+</div>

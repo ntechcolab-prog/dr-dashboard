@@ -1,0 +1,49 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+
+<Meta title="Overview/About" />
+
+<div style={{ fontFamily: 'Roboto, ui-sans-serif, system-ui, sans-serif', color: '#4c4d57', maxWidth: '52rem' }}>
+
+<h1 style={{ fontSize: '1.7rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#33343c', marginBottom: '0.5rem' }}>About</h1>
+<p style={{ color: '#8d9094', fontSize: '0.95rem', marginTop: 0 }}>Versions, links and conventions.</p>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Versions</h2>
+
+<div style={{ display: 'grid', gap: '0.5rem' }}>
+  {[
+    ['v0', 'Registry only', '#6ca8c9', 'The early version: batch registry, the rest gated as coming soon.'],
+    ['v1', 'Full access — this library', '#46aa9f', 'Registry, dashboard, analysis and reports. Built on Tailwind CSS; documented here.'],
+    ['v2', 'Material UI rebuild', '#008d84', 'Same features as v1, rebuilt on Material UI components with the IRIS theme.'],
+  ].map(([tag, name, color, desc]) => (
+    <div key={tag} style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', border: '1px solid #ececec', borderRadius: '0.65rem', padding: '0.75rem 0.9rem', background: '#fff' }}>
+      <span style={{ flex: 'none', padding: '0.15rem 0.55rem', borderRadius: '999px', background: color, color: '#fff', fontWeight: 700, fontSize: '0.72rem' }}>{tag}</span>
+      <div>
+        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#33343c' }}>{name}</div>
+        <div style={{ marginTop: '0.15rem', fontSize: '0.8rem', lineHeight: 1.45, color: '#8d9094' }}>{desc}</div>
+      </div>
+    </div>
+  ))}
+</div>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Links</h2>
+
+<ul style={{ fontSize: '0.9rem', lineHeight: 1.8, paddingLeft: '1.1rem' }}>
+  <li><a href="https://batchbook.ntechcolab.com" target="_blank" rel="noreferrer" style={{ color: '#008d84', fontWeight: 600 }}>batchbook.ntechcolab.com</a> — the live app</li>
+  <li><a href="https://batchbook-storybook.vercel.app" target="_blank" rel="noreferrer" style={{ color: '#008d84', fontWeight: 600 }}>batchbook-storybook.vercel.app</a> — this Storybook</li>
+  <li><strong>Foundations → Colors</strong> — the design tokens, in the sidebar</li>
+  <li><strong>Foundations → Icons</strong> — the full icon set</li>
+</ul>
+
+<h2 style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8d9094', marginTop: '2rem', marginBottom: '0.6rem' }}>Conventions</h2>
+
+<ul style={{ fontSize: '0.9rem', lineHeight: 1.7, paddingLeft: '1.1rem' }}>
+  <li>Charts render production data as straight segments: line series never smooth or interpolate.</li>
+  <li>Colors reference the tokens in <code style={{ background: '#f0f1f2', padding: '0.05rem 0.35rem', borderRadius: '0.3rem' }}>globals.css</code>; no ad-hoc hex in components.</li>
+  <li>The root font scales with the viewport, so the whole UI zooms on large HMI displays.</li>
+</ul>
+
+<p style={{ marginTop: '2rem', fontSize: '0.8rem', color: '#8d9094' }}>
+  Built by Techco.lab for NETZSCH.
+</p>
+
+</div>

@@ -39,6 +39,7 @@ const preview: Preview = {
       storySort: {
         order: [
           'Overview',
+          ['Introduction', 'Getting Started', 'About'],
           'Charts',
           'Metrics',
           'Rankings & Live',
