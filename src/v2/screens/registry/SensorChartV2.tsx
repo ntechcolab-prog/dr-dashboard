@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import type { EChartsOption, EChartsType } from 'echarts'
 import EChart, { iris } from '@/src/v2/components/echarts/EChart'
@@ -52,7 +52,7 @@ export default function SensorChartV2({
   onPlotClick?: (pointIndex: number) => void // click-to-annotate
 }) {
   const [noteHover, setNoteHover] = useState<number | null>(null)
-  const [, setReady] = useState(false)
+  const [ready, setReady] = useState(false)
 
   const instRef = useRef<EChartsType | null>(null)
   const readyRef = useRef(false)
@@ -120,21 +120,19 @@ export default function SensorChartV2({
   )
 
   const option = useMemo<EChartsOption>(() => {
-    const seriesOption = series.map((s, i) => {
-      const dim = highlight != null && highlight !== i
-      const color = dim ? fade(s.color) : s.color
-      return {
-        name: s.name,
-        type: 'line' as const,
-        data: s.data,
-        smooth: false, // manufacturing data — straight segments only
-        showSymbol: false,
-        lineStyle: { color, width: 2 },
-        itemStyle: { color },
-        emphasis: { focus: 'series' as const },
-        blur: { lineStyle: { opacity: 0.12 }, itemStyle: { opacity: 0.12 } },
-      }
-    })
+    const seriesOption = series.map((s) => ({
+      name: s.name,
+      type: 'line' as const,
+      data: s.data,
+      smooth: false, // manufacturing data — straight segments only
+      showSymbol: false,
+      lineStyle: { color: s.color, width: 2 },
+      itemStyle: { color: s.color },
+      // Hover a line (or a sensor card, via the highlight prop below) → this
+      // series stays, the rest blur. Driven by dispatchAction on `highlight`.
+      emphasis: { focus: 'series' as const },
+      blur: { lineStyle: { opacity: 0.16 }, itemStyle: { opacity: 0.16 } },
+    }))
 
     // Marks (band + note lines + transient guide) live on the first real series so
     // they always render; their styles are explicit, so a dimmed line color never
@@ -218,7 +216,17 @@ export default function SensorChartV2({
       yAxis: { type: 'value', min: 0, max },
       series: seriesOption,
     } as EChartsOption
-  }, [series, pointLabels, max, highlight, band, notes, markerFrac, shownNote, primary, fracToIndex])
+  }, [series, pointLabels, max, band, notes, markerFrac, shownNote, primary, fracToIndex])
+
+  // Card hover (highlight prop) drives ECharts emphasis directly: dispatching
+  // `highlight` on the series (which uses focus:'series') blurs the others.
+  // Re-applied on ready and after every notMerge redraw, which clears emphasis.
+  useEffect(() => {
+    const inst = instRef.current
+    if (!inst) return
+    inst.dispatchAction({ type: 'downplay' })
+    if (highlight != null) inst.dispatchAction({ type: 'highlight', seriesIndex: highlight })
+  }, [highlight, ready, option])
 
   // Note tooltip — an HTML overlay positioned from the live pixel geometry, so it
   // pins next to the active/hovered marker and flips to the left near the edge.
@@ -270,12 +278,4 @@ export default function SensorChartV2({
       {noteTip}
     </Box>
   )
-}
-
-function fade(hex: string): string {
-  const h = hex.replace('#', '')
-  const r = parseInt(h.slice(0, 2), 16)
-  const g = parseInt(h.slice(2, 4), 16)
-  const b = parseInt(h.slice(4, 6), 16)
-  return `rgba(${r}, ${g}, ${b}, 0.2)`
 }
