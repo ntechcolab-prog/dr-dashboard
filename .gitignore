@@ -33,3 +33,6 @@ yarn-error.log*
 *.sw?
 .vercel
 .claude/
+
+# Storybook build output
+storybook-static
