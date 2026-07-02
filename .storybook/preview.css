@@ -1,0 +1,18 @@
+/* Storybook-only styling glue.
+ *
+ * 1. Font fallback — the app injects `--font-roboto` via next/font in
+ *    app/layout.tsx, which does NOT run in Storybook. globals.css maps
+ *    `--font-sans: var(--font-roboto), 'Roboto', ...`; without a value the whole
+ *    var() chain is invalid and text renders in the browser default. Defining
+ *    the token here restores the intended Roboto/system stack.
+ * 2. Give the preview canvas the app's page background + ink color so cards read
+ *    the way they do in-product. */
+:root {
+  --font-roboto: 'Roboto', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.sb-dr-root {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-page);
+}
