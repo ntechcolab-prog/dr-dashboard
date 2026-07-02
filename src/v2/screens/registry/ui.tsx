@@ -1,0 +1,103 @@
+'use client'
+
+import type { ReactNode } from 'react'
+import Card from '@mui/material/Card'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+
+// Small MUI presentational helpers for the Registry v2 screen. Kept local to
+// this folder (duplicated rather than shared) so parallel v2 rebuilds never
+// collide. Mirrors the Tailwind FormSection / key-value groups from v0/v1.
+
+// Section card with an uppercase label — the batch editor's building block.
+export function SectionCard({
+  title,
+  action,
+  children,
+  id,
+}: {
+  title: string
+  action?: ReactNode
+  children: ReactNode
+  id?: string
+}) {
+  return (
+    <Card id={id} sx={{ p: 3, scrollMarginTop: 16 }}>
+      <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+        <Typography
+          variant="overline"
+          sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: '0.06em' }}
+        >
+          {title}
+        </Typography>
+        {action}
+      </Box>
+      {children}
+    </Card>
+  )
+}
+
+// A single labelled stat (small caps label above a value / node).
+export function Stat({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary', fontSize: '0.6875rem' }}>
+        {label}
+      </Typography>
+      <Box sx={{ mt: 0.5, fontSize: '0.875rem', fontWeight: 500, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+        {children ?? value}
+      </Box>
+    </Box>
+  )
+}
+
+// A definition-list style key/value block with divider rows.
+export function KvList({ rows }: { rows: string[][] }) {
+  return (
+    <Box component="dl" sx={{ m: 0 }}>
+      {rows.map(([k, v], i) => (
+        <Box
+          key={k}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            py: 1.25,
+            fontSize: '0.875rem',
+            borderTop: i === 0 ? 'none' : '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box component="dt" sx={{ color: 'text.secondary' }}>{k}</Box>
+          <Box component="dd" sx={{ m: 0, textAlign: 'right', fontWeight: 500, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+            {v}
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+export function KvGroup({ heading, rows }: { heading: string; rows: string[][] }) {
+  return (
+    <Box>
+      <Typography
+        variant="caption"
+        sx={{ display: 'block', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.dark' }}
+      >
+        {heading}
+      </Typography>
+      <KvList rows={rows} />
+    </Box>
+  )
+}
+
+// hex + alpha → rgba string (for soft tints without the theme alpha helper).
+export function withAlpha(hex: string, a: number): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${a})`
+}

@@ -5,6 +5,9 @@ import Box from '@mui/material/Box'
 import TopBarV2 from './TopBarV2'
 import SidebarV2 from './SidebarV2'
 import DashboardV2 from './screens/DashboardV2'
+import RegistryV2 from './screens/registry/RegistryV2'
+import AnalysisV2 from './screens/analysis/AnalysisV2'
+import SettingsV2 from './screens/settings/SettingsV2'
 import PlaceholderScreen from './screens/PlaceholderScreen'
 
 const SCREENS = ['dashboard', 'registry', 'analysis', 'settings']
@@ -43,7 +46,19 @@ export default function AppV2() {
           restricted={restricted}
         />
         <Box component="main" sx={{ flex: 1, overflow: 'auto', bgcolor: 'background.default' }}>
-          {screen === 'dashboard' ? <DashboardV2 /> : <PlaceholderScreen name={screen} />}
+          {gated ? (
+            <PlaceholderScreen name="coming soon" />
+          ) : activeNav === 'dashboard' ? (
+            <DashboardV2 />
+          ) : activeNav === 'registry' ? (
+            <RegistryV2 restricted={restricted} />
+          ) : activeNav === 'analysis' ? (
+            <AnalysisV2 />
+          ) : activeNav === 'settings' ? (
+            <SettingsV2 />
+          ) : (
+            <PlaceholderScreen name={screen} />
+          )}
         </Box>
       </Box>
     </Box>
