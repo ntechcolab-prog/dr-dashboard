@@ -19,7 +19,8 @@ import ShowChartIcon from '@mui/icons-material/ShowChartOutlined'
 import StackedLineChartIcon from '@mui/icons-material/StackedLineChartOutlined'
 import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
-import { SparkLineChart } from '@mui/x-charts/SparkLineChart'
+import EChart from '@/src/v2/components/echarts/EChart'
+import { sparkOption } from '@/src/v2/components/KpiCardV2'
 import { formatValue, type Kpi } from '@/src/lib/compute'
 import { metaFor, withAlpha, VIZ, VIZ_CAPTION, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/components/metricViz'
 import { useLocalStorage } from '@/src/lib/useLocalStorage'
@@ -342,16 +343,7 @@ function EditableKpiCard({
           </Box>
           <Box sx={{ height: 64, overflow: 'hidden' }}>
             {series.length > 0 && (
-              <SparkLineChart
-                data={series}
-                height={64}
-                plotType={plotType}
-                curve="linear"
-                area={area}
-                showHighlight
-                showTooltip
-                color={accent}
-              />
+              <EChart option={sparkOption(series, accent, plotType, area)} height={64} />
             )}
           </Box>
         </Box>

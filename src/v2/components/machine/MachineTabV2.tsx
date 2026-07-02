@@ -14,10 +14,8 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Divider from '@mui/material/Divider'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import { BarChart } from '@mui/x-charts/BarChart'
-import { LineChart } from '@mui/x-charts/LineChart'
-import { Gauge, gaugeClasses } from '@mui/x-charts/Gauge'
-import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine'
+import type { EChartsOption } from 'echarts'
+import EChart from '@/src/v2/components/echarts/EChart'
 
 import {
   useAvailabilitySettings,
@@ -37,8 +35,9 @@ import { withAlpha } from '@/src/components/metricViz'
 
 // MUI-native rewrite of components/MachineTab.tsx (+ AvailabilityDashboard +
 // MachineRankingBoard). Reuses the entire availability service/hooks — no math
-// is reimplemented here. Charts are @mui/x-charts (curve="linear" enforced on
-// every line/area series, per the manufacturing charting rule).
+// is reimplemented here. Charts are ECharts (via the shared EChart wrapper),
+// with smooth:false enforced on every line/area series per the manufacturing
+// charting rule.
 //
 // Faithfully reproduced: the attack-focus Availability Ranking board, the
 // line/machine scope selectors, and the availability card grid (Today, Yesterday,
@@ -84,22 +83,41 @@ function MonthStepper({
 function AvailGauge({ value, goal, size = 128 }: { value: number; goal: number; size?: number }) {
   const below = value < goal
   const color = below ? iris.warning : iris.primary
+  const v = value == null ? 0 : Math.round(value)
+  const arcWidth = Math.round(size * 0.09)
+  // 220° arc centered on top: ECharts angle 0 = 3 o'clock, CCW positive.
+  // top = 90°, half-span = 110° → start 200, end -20 (drawn clockwise).
+  const option: EChartsOption = {
+    tooltip: { show: false },
+    series: [{
+      type: 'gauge',
+      startAngle: 200,
+      endAngle: -20,
+      min: 0,
+      max: 100,
+      radius: '92%',
+      center: ['50%', '58%'],
+      progress: { show: true, width: arcWidth, roundCap: true, itemStyle: { color } },
+      axisLine: { lineStyle: { width: arcWidth, color: [[1, withAlpha(color, 0.16)]] } },
+      pointer: { show: false },
+      anchor: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: { show: false },
+      title: { show: false },
+      detail: {
+        valueAnimation: true,
+        formatter: '{v|' + v + '%}',
+        rich: { v: { color: iris.ink, fontSize: Math.round(size * 0.16), fontWeight: 700 } },
+        offsetCenter: [0, 0],
+      },
+      data: [{ value: v }],
+    }],
+  }
   return (
-    <Gauge
-      width={size}
-      height={size}
-      value={value}
-      valueMin={0}
-      valueMax={100}
-      startAngle={-110}
-      endAngle={110}
-      text={({ value: v }) => `${v == null ? 0 : Math.round(v)}%`}
-      sx={{
-        [`& .${gaugeClasses.valueText}`]: { fontSize: size * 0.16, fontWeight: 700 },
-        [`& .${gaugeClasses.valueArc}`]: { fill: color },
-        [`& .${gaugeClasses.referenceArc}`]: { fill: withAlpha(color, 0.16) },
-      }}
-    />
+    <Box sx={{ width: size, height: size }}>
+      <EChart option={option} height={size} />
+    </Box>
   )
 }
 
@@ -124,53 +142,54 @@ function ChartTypeToggle({ value, onChange }: { value: ChartType; onChange: (t: 
 // Availability series chart — bar / line / area, with a dashed goal reference
 // line. Reuses the SeriesResult straight from the availability service.
 function AvailChart({ series, type, goal, height }: { series: SeriesResult; type: ChartType; goal: number; height: number }) {
-  const goalLine = (
-    <ChartsReferenceLine
-      y={goal}
-      label={`Goal ${goal}%`}
-      labelAlign="start"
-      lineStyle={{ stroke: iris.muted, strokeDasharray: '4 4' }}
-      labelStyle={{ fontSize: 10, fill: iris.muted }}
-    />
-  )
-  const margin = { top: 16, right: 12, bottom: 4, left: 4 }
-  const xAxis = [{ scaleType: 'band' as const, data: series.labels }]
-  const yAxis = [{ min: 0, max: 100, width: 34 }]
-
-  if (type === 'bar') {
-    return (
-      <BarChart
-        height={height}
-        hideLegend
-        margin={margin}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        series={[{ data: series.pct, color: iris.primary, valueFormatter: (v) => (v == null ? '' : `${v}%`) }]}
-      >
-        {goalLine}
-      </BarChart>
-    )
+  // Dashed goal line (muted) attached to the series via markLine.
+  const goalMarkLine = {
+    silent: true,
+    symbol: 'none' as const,
+    data: [{ yAxis: goal }],
+    lineStyle: { color: iris.muted, type: 'dashed' as const, width: 1 },
+    label: {
+      formatter: `Goal ${goal}%`,
+      position: 'insideStartTop' as const,
+      color: iris.muted,
+      fontSize: 10,
+    },
   }
-  return (
-    <LineChart
-      height={height}
-      hideLegend
-      margin={margin}
-      xAxis={[{ scaleType: 'point', data: series.labels }]}
-      yAxis={yAxis}
-      series={[{
-        data: series.pct,
-        color: iris.primary,
-        curve: 'linear',
-        area: type === 'area',
-        showMark: false,
-        valueFormatter: (v) => (v == null ? '' : `${v}%`),
-      }]}
-      sx={type === 'area' ? { '& .MuiAreaElement-root': { fill: withAlpha(iris.primary, 0.18) } } : undefined}
-    >
-      {goalLine}
-    </LineChart>
-  )
+
+  const baseSeries =
+    type === 'bar'
+      ? {
+          type: 'bar' as const,
+          data: series.pct,
+          itemStyle: { color: iris.primary, borderRadius: [2, 2, 0, 0] as [number, number, number, number] },
+          markLine: goalMarkLine,
+        }
+      : {
+          type: 'line' as const,
+          data: series.pct,
+          smooth: false,
+          symbol: 'none' as const,
+          lineStyle: { color: iris.primary, width: 2 },
+          itemStyle: { color: iris.primary },
+          ...(type === 'area' ? { areaStyle: { color: withAlpha(iris.primary, 0.18) } } : {}),
+          markLine: goalMarkLine,
+        }
+
+  const option: EChartsOption = {
+    grid: { left: 4, right: 12, top: 16, bottom: 4, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (v) => (v == null ? '' : `${v as number}%`),
+    },
+    xAxis: {
+      type: 'category',
+      data: series.labels,
+      boundaryGap: type === 'bar',
+    },
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
+    series: [baseSeries],
+  }
+  return <EChart option={option} height={height} />
 }
 
 function seriesCaption(s: SeriesResult, dayWord: string): string {
@@ -206,7 +225,29 @@ function AvailabilityRankingBoard({ goal }: { goal: number }) {
   const belowCount = rows.filter((r) => r.pct < goal).length
 
   const machines = rows.map((r) => r.machine)
-  const colors = rows.map((r) => (r.pct < goal ? iris.warning : iris.primary))
+  const rankingOption: EChartsOption = {
+    grid: { left: 4, right: 8, top: 24, bottom: 4, containLabel: true },
+    tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '' : `${v as number}%`) },
+    xAxis: { type: 'category', data: machines },
+    yAxis: { type: 'value', min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
+    series: [{
+      type: 'bar',
+      data: rows.map((r) => ({
+        value: r.pct,
+        itemStyle: {
+          color: r.pct < goal ? iris.warning : iris.primary,
+          borderRadius: [2, 2, 0, 0],
+        },
+      })),
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        data: [{ yAxis: goal }],
+        lineStyle: { color: iris.primary, type: 'dashed', width: 1 },
+        label: { formatter: `Goal ${goal}%`, position: 'insideEndTop', color: iris.primary, fontSize: 10 },
+      },
+    }],
+  }
 
   return (
     <Card sx={{ p: 2.5 }}>
@@ -232,22 +273,7 @@ function AvailabilityRankingBoard({ goal }: { goal: number }) {
         />
       </Box>
 
-      <BarChart
-        height={260}
-        hideLegend
-        margin={{ top: 24, right: 8, bottom: 4, left: 4 }}
-        xAxis={[{ scaleType: 'band', data: machines, colorMap: { type: 'ordinal', values: machines, colors } }]}
-        yAxis={[{ min: 0, max: 100, width: 36, valueFormatter: (v: number) => `${v}%` }]}
-        series={[{ data: rows.map((r) => r.pct), valueFormatter: (v) => (v == null ? '' : `${v}%`) }]}
-      >
-        <ChartsReferenceLine
-          y={goal}
-          label={`Goal ${goal}%`}
-          labelAlign="end"
-          lineStyle={{ stroke: iris.primary, strokeDasharray: '5 4' }}
-          labelStyle={{ fontSize: 10, fill: iris.primary }}
-        />
-      </BarChart>
+      <EChart option={rankingOption} height={260} />
     </Card>
   )
 }
@@ -327,16 +353,23 @@ function MachineRankingCard({ goal, selectedMachine }: { goal: number; selectedM
 
 function TodayBars({ planned, executed, pct }: { planned: number; executed: number; pct: number }) {
   const below = pct < 100
+  const option: EChartsOption = {
+    grid: { left: 4, right: 8, top: 16, bottom: 4, containLabel: true },
+    tooltip: { trigger: 'axis', valueFormatter: (v) => (v == null ? '' : `${v as number}h`) },
+    xAxis: { type: 'category', data: ['Planned', 'Executed'] },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value}h' } },
+    series: [{
+      type: 'bar',
+      barWidth: '52%',
+      data: [
+        { value: planned, itemStyle: { color: '#cfe0dd', borderRadius: [2, 2, 0, 0] } },
+        { value: executed, itemStyle: { color: below ? '#f0b54d' : iris.primary, borderRadius: [2, 2, 0, 0] } },
+      ],
+    }],
+  }
   return (
     <Box>
-      <BarChart
-        height={150}
-        hideLegend
-        margin={{ top: 16, right: 8, bottom: 4, left: 4 }}
-        xAxis={[{ scaleType: 'band', data: ['Planned', 'Executed'], colorMap: { type: 'ordinal', values: ['Planned', 'Executed'], colors: ['#cfe0dd', below ? '#f0b54d' : iris.primary] } }]}
-        yAxis={[{ width: 34, valueFormatter: (v: number) => `${v}h` }]}
-        series={[{ data: [planned, executed], valueFormatter: (v) => (v == null ? '' : `${v}h`) }]}
-      />
+      <EChart option={option} height={150} />
       <Typography variant="body2" align="center" sx={{ fontWeight: 600, color: 'text.primary' }}>
         Availability{' '}
         <Box component="span" sx={{ color: below ? 'warning.main' : 'success.main' }}>{Math.round(pct)}%</Box>

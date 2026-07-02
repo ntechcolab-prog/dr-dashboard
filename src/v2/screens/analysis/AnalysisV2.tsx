@@ -22,7 +22,8 @@ import TableRow from '@mui/material/TableRow'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
-import { BarChart } from '@mui/x-charts/BarChart'
+import type { EChartsOption } from 'echarts'
+import EChart from '@/src/v2/components/echarts/EChart'
 
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import AddIcon from '@mui/icons-material/Add'
@@ -498,12 +499,19 @@ function ChartGrid({
   onHoverBatch: (id: string | null) => void
 }) {
   const ids = batches.map((b) => b.id)
-  const colors = batches.map((_, i) => colorOf(i))
+  // Stable ordinal color map keyed by batch id — the same color the batch shows
+  // in the legend and in every small-multiple chart below.
+  const colorById = useMemo(() => {
+    const map: Record<string, string> = {}
+    batches.forEach((b, i) => { map[b.id] = colorOf(i) })
+    return map
+  }, [batches])
+
   return (
     <Box sx={{ py: 0.5 }}>
       {/* batch color legend */}
       <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-        {batches.map((b, i) => (
+        {batches.map((b) => (
           <Box
             key={b.id}
             onMouseEnter={() => onHoverBatch(b.id)}
@@ -513,7 +521,7 @@ function ChartGrid({
               opacity: hoverBatch && hoverBatch !== b.id ? 0.4 : 1, transition: 'opacity 0.15s',
             }}
           >
-            <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: colorOf(i) }} />
+            <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: colorById[b.id] }} />
             <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.primary' }}>{b.id}</Typography>
             <Typography variant="caption" color="text.secondary">{b.machine}</Typography>
           </Box>
@@ -526,26 +534,45 @@ function ChartGrid({
             <Typography variant="caption" sx={{ display: 'block', mb: 1, fontWeight: 500, color: 'text.primary' }}>
               {m.label} <Box component="span" sx={{ color: 'text.disabled' }}>({m.unit})</Box>
             </Typography>
-            <BarChart
-              height={180}
-              hideLegend
-              margin={{ top: 8, right: 8, bottom: 24, left: 8 }}
-              xAxis={[{
-                scaleType: 'band',
-                data: ids,
-                colorMap: { type: 'ordinal', values: ids, colors },
-              }]}
-              yAxis={[{ width: 44 }]}
-              series={[{
-                data: batches.map((b) => Math.round(m.value(b) * 100) / 100),
-                valueFormatter: (v) => (v == null ? '' : fmtNum(m, v)),
-              }]}
-            />
+            <MetricBarChart metric={m} batches={batches} ids={ids} colorById={colorById} />
           </Box>
         ))}
       </Box>
     </Box>
   )
+}
+
+// One small-multiple: a bar per selected batch, each colored by its stable color.
+function MetricBarChart({
+  metric, batches, ids, colorById,
+}: {
+  metric: BatchMetricDef
+  batches: Batch[]
+  ids: string[]
+  colorById: Record<string, string>
+}) {
+  const option = useMemo<EChartsOption>(() => {
+    // Per-item color via itemStyle keeps each bar on its batch's stable color.
+    const data = batches.map((b) => ({
+      value: Math.round(metric.value(b) * 100) / 100,
+      itemStyle: { color: colorById[b.id], borderRadius: [3, 3, 0, 0] as [number, number, number, number] },
+    }))
+    return {
+      grid: { left: 8, right: 8, top: 8, bottom: 24, containLabel: true },
+      tooltip: {
+        trigger: 'item',
+        formatter: (p: unknown) => {
+          const params = p as { name: string; value: number }
+          return `${params.name}<br/>${fmtNum(metric, params.value)} ${metric.unit}`
+        },
+      },
+      xAxis: { type: 'category', data: ids },
+      yAxis: { type: 'value' },
+      series: [{ type: 'bar', data, barMaxWidth: 40 }],
+    }
+  }, [metric, batches, ids, colorById])
+
+  return <EChart option={option} height={180} />
 }
 
 // ---------------------------------------------------------------------------
