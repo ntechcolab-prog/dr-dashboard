@@ -8,18 +8,28 @@ import Tab from '@mui/material/Tab'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import FiltersV2, { type Period } from '../components/FiltersV2'
-import KpiCardV2 from '../components/KpiCardV2'
 import CalendarV2 from '../components/CalendarV2'
-import { ALL_BATCHES, MONTHS } from '@/src/data/mockData'
-import { filterBatches, buildKpis, byDay, metricByDaySeries, type Kpi, type DayRollup } from '@/src/lib/compute'
+import MetricsGridV2Mui from '../components/metrics/MetricsGridV2Mui'
+import DetailsDrawerV2, { type DrawerData } from '../components/metrics/DetailsDrawerV2'
+import RankingsV2 from '../components/machine/RankingsV2'
+import InOperationV2 from '../components/machine/InOperationV2'
+import MachineTabV2 from '../components/machine/MachineTabV2'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '@/src/data/mockData'
+import {
+  filterBatches, buildKpis, byDay, buildRankings,
+  metricByDaySeries, metricByMachine, metricByRecipe,
+  type Kpi, type DayRollup,
+} from '@/src/lib/compute'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '@/src/lib/availability'
 import { useHolidays } from '@/src/lib/holidays'
 import { availabilityService } from '@/src/data/availabilityData'
 
+const CLOSED_DRAWER: DrawerData = { open: false, kind: 'day', title: '', subtitle: '', batches: [] }
+
 // MUI-native Dashboard. Same data pipeline as v0/v1 (filter → KPIs → daily
-// rollup); the presentation is rebuilt on MUI + MUI X Charts. Advanced extras
-// from v1 (edit-mode reorder, rankings, machine tab, details drawer) are staged
-// for follow-up passes.
+// rollup); the presentation is rebuilt on MUI + MUI X Charts. Full feature set:
+// edit-mode metric grid, calendar, rankings, in-operation strip, machine tab
+// and the KPI/day details drawer.
 export default function DashboardV2() {
   const [tab, setTab] = useState(0)
   const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
@@ -44,6 +54,7 @@ export default function DashboardV2() {
 
   const kpis = useMemo(() => buildKpis(monthBatches, prevBatches), [monthBatches, prevBatches])
   const dayMap = useMemo(() => byDay(monthBatches), [monthBatches])
+  const rankings = useMemo(() => buildRankings(monthBatches), [monthBatches])
 
   const seriesByKey = useMemo(() => {
     const daysInMonth = new Date(monthMeta.year, monthMeta.month + 1, 0).getDate()
@@ -74,8 +85,28 @@ export default function DashboardV2() {
 
   const hasMachine = machines.length > 0
   const hasData = hasMachine && monthBatches.length > 0
-  const openKpiDetails = (_kpi: Kpi) => {} // details drawer staged for follow-up
-  const openDayDetails = (_day: number, _data: DayRollup) => {}
+
+  const [drawer, setDrawer] = useState<DrawerData>(CLOSED_DRAWER)
+
+  const openKpiDetails = (kpi: Kpi) => {
+    const daysInMonth = new Date(monthMeta.year, monthMeta.month + 1, 0).getDate()
+    setDrawer({
+      open: true, kind: 'kpi', title: kpi.label,
+      subtitle: `${monthMeta.label} · ${monthBatches.length} batches in scope`,
+      batches: [], kpi,
+      daily: metricByDaySeries(monthBatches, kpi.key, daysInMonth),
+      byMachine: metricByMachine(monthBatches, kpi.key),
+      byRecipe: metricByRecipe(monthBatches, kpi.key),
+      richViz: true,
+    })
+  }
+  const openDayDetails = (day: number, data: DayRollup) =>
+    setDrawer({
+      open: true, kind: 'day',
+      title: `${monthMeta.label.split(' ')[0]} ${String(day).padStart(2, '0')}`,
+      subtitle: `${data.count} ${data.count === 1 ? 'batch' : 'batches'} · ${(Math.round(data.mass * 10) / 10).toFixed(1)} ton`,
+      batches: data.batches,
+    })
 
   return (
     <Box sx={{ maxWidth: '75rem', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5, p: 2.5 }}>
@@ -95,18 +126,12 @@ export default function DashboardV2() {
           <Divider />
           {hasData ? (
             <Box sx={{ pt: 2 }}>
-              <Box sx={{ px: 3, pb: 1 }}>
-                <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.primary' }}>Metrics</Typography>
-              </Box>
-              <Box sx={{ px: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 1.5 }}>
-                {kpis.map((k) => (
-                  <KpiCardV2 key={k.key} kpi={k} series={seriesByKey[k.key] ?? []} onDetails={openKpiDetails} />
-                ))}
-              </Box>
+              <MetricsGridV2Mui kpis={kpis} series={seriesByKey} onDetails={openKpiDetails} />
               <CalendarV2
                 year={monthMeta.year} month={monthMeta.month} dayMap={dayMap}
                 avgMass={avgMass} onDetails={openDayDetails} availByDay={availByDay}
               />
+              <RankingsV2 rankings={rankings} embedded />
             </Box>
           ) : (
             <Box sx={{ p: 6, textAlign: 'center' }}>
@@ -122,10 +147,14 @@ export default function DashboardV2() {
           )}
         </Card>
       ) : (
-        <Card sx={{ p: 6, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary">Machine tab — staged for follow-up</Typography>
+        <Card sx={{ overflow: 'hidden' }}>
+          <MachineTabV2 />
         </Card>
       )}
+
+      {hasData && tab === 0 && <InOperationV2 batches={LIVE_BATCHES} />}
+
+      <DetailsDrawerV2 {...drawer} onClose={() => setDrawer((d) => ({ ...d, open: false }))} />
     </Box>
   )
 }

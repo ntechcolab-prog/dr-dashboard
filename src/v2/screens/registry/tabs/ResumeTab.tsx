@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
@@ -67,6 +67,34 @@ const X_LABELS = SERIES[0].data.map((_, i) => {
   const m = 8 * 60 + i * 30
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 })
+const WINDOW_START_MIN = 8 * 60
+const WINDOW_END_MIN = WINDOW_START_MIN + (SERIES[0].data.length - 1) * 30
+
+// Pull the "HH:MM[am|pm]" out of an event timestamp and map it to a fraction
+// across the chart window (null if it can't be read or falls outside).
+function eventTimeToFrac(s: string): number | null {
+  const m = /(\d{1,2}):(\d{2})\s*(am|pm)?/i.exec(s)
+  if (!m) return null
+  let h = Number(m[1])
+  const ap = m[3]?.toLowerCase()
+  if (ap === 'pm' && h !== 12) h += 12
+  if (ap === 'am' && h === 12) h = 0
+  const t = h * 60 + Number(m[2])
+  if (t < WINDOW_START_MIN || t > WINDOW_END_MIN) return null
+  return (t - WINDOW_START_MIN) / (WINDOW_END_MIN - WINDOW_START_MIN)
+}
+
+// Floating quick-nav (Resume sections). pmOnly entries only in the PM edition.
+const SECTIONS = [
+  { id: 'resume-status', label: 'Batch Status' },
+  { id: 'resume-details', label: 'Batch Details' },
+  { id: 'resume-machine', label: 'Machine Details' },
+  { id: 'resume-notes', label: 'Notes' },
+  { id: 'resume-graph', label: 'Graph' },
+  { id: 'resume-alarms', label: 'Alarms', pmOnly: true },
+  { id: 'resume-alerts', label: 'Alerts', pmOnly: true },
+  { id: 'resume-log', label: 'Action Log', pmOnly: true },
+]
 
 const GRAPH_TEMPLATES = [
   { name: 'All sensors', sensors: ['Energy', 'Product flow', 'Mill current'] },
@@ -103,12 +131,35 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
   const [hoverSensor, setHoverSensor] = useState<number | null>(null)
+  const [eventMarker, setEventMarker] = useState<number | null>(null)
+  const [navOpen, setNavOpen] = useState(false)
 
   const activeTemplate = GRAPH_TEMPLATES.find((t) => t.name === template) ?? GRAPH_TEMPLATES[0]
   const visibleSeries = SERIES.filter((s) => activeTemplate.sensors.includes(s.name))
   const visibleSensors = SENSORS.filter((s) => activeTemplate.sensors.includes(s.name))
 
   const pmOn = useProductionMonitoring()
+  const sections = SECTIONS.filter((s) => pmOn || !s.pmOnly)
+
+  // Scroll-spy: highlight the section currently in view on the floating nav.
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActiveSection(e.target.id)
+      },
+      { rootMargin: '-25% 0px -65% 0px' },
+    )
+    for (const s of sections) {
+      const el = document.getElementById(s.id)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pmOn])
+
+  const jumpTo = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const activity = ACTIVITY.filter((r) =>
     query.trim() ? r.some((c) => c.toLowerCase().includes(query.trim().toLowerCase())) : true,
@@ -116,7 +167,119 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* NOTE: floating scroll-spy "Sections" quick-nav is staged for follow-up. */}
+      {/* Floating quick-nav — a slim handle on the right edge that slides out on
+          hover/focus and highlights the section currently in view. */}
+      <Box
+        onMouseEnter={() => setNavOpen(true)}
+        onMouseLeave={() => setNavOpen(false)}
+        sx={{
+          position: 'fixed',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: (t) => t.zIndex.appBar,
+          display: { xs: 'none', xl: 'block' },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'stretch',
+            transition: 'transform 0.3s ease-out',
+            transform: navOpen ? 'translateX(0)' : 'translateX(calc(100% - 1.75rem))',
+          }}
+        >
+          {/* Handle — always visible; clicking also toggles (touch / no-hover). */}
+          <Box
+            component="button"
+            type="button"
+            onClick={() => setNavOpen((v) => !v)}
+            aria-expanded={navOpen}
+            aria-label={navOpen ? 'Hide sections' : 'Show sections'}
+            sx={{
+              flexShrink: 0,
+              width: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: 1.5,
+              cursor: 'pointer',
+              border: '1px solid',
+              borderRight: 'none',
+              borderColor: 'divider',
+              borderRadius: '16px 0 0 16px',
+              bgcolor: 'background.paper',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)',
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: 'text.disabled',
+              }}
+            >
+              Sections
+            </Box>
+          </Box>
+          {/* Panel */}
+          <Box
+            component="nav"
+            aria-label="Resume sections"
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.25,
+              p: 0.75,
+              pr: 1.5,
+              border: '1px solid',
+              borderLeft: 'none',
+              borderColor: 'divider',
+              borderRadius: '0 16px 16px 0',
+              bgcolor: 'background.paper',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+            }}
+          >
+            {sections.map((s) => {
+              const active = activeSection === s.id
+              return (
+                <Box
+                  key={s.id}
+                  component="button"
+                  onClick={() => {
+                    jumpTo(s.id)
+                    setNavOpen(false)
+                  }}
+                  aria-current={active ? 'true' : undefined}
+                  sx={{
+                    px: 1.25,
+                    py: 0.75,
+                    textAlign: 'left',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    border: 'none',
+                    borderRadius: 1.5,
+                    transition: 'background-color 0.15s, color 0.15s',
+                    bgcolor: active ? 'primary.main' : 'transparent',
+                    color: active ? 'primary.contrastText' : 'text.secondary',
+                    '&:hover': active
+                      ? {}
+                      : { bgcolor: 'action.hover', color: 'text.primary' },
+                  }}
+                >
+                  {s.label}
+                </Box>
+              )
+            })}
+          </Box>
+        </Box>
+      </Box>
 
       <SectionCard title="Batch Status" id="resume-status">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2.5 }}>
@@ -179,7 +342,15 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
           </Box>
         </Box>
 
-        <SensorChartV2 series={visibleSeries} pointLabels={X_LABELS} max={10} height={320} highlight={hoverSensor} />
+        <SensorChartV2
+          series={visibleSeries}
+          pointLabels={X_LABELS}
+          max={10}
+          height={320}
+          highlight={hoverSensor}
+          band={showStatus ? [2, 7] : null}
+          markerFrac={eventMarker}
+        />
 
         <Box sx={{ mt: 2.5, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
           {visibleSensors.map((s, i) => (
@@ -207,13 +378,13 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
 
       {pmOn && (
         <SectionCard title="Alarms" id="resume-alarms">
-          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" />
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alarm Message']} rows={ALARMS} dot="#c12907" onHoverRow={setEventMarker} />
         </SectionCard>
       )}
 
       {pmOn && (
         <SectionCard title="Alerts" id="resume-alerts">
-          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" />
+          <EventTable columns={['Batch Time', 'Acknowledge Time', 'Alert Message']} rows={ALERTS} dot="#f19909" onHoverRow={setEventMarker} />
         </SectionCard>
       )}
 
@@ -259,7 +430,17 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
   )
 }
 
-function EventTable({ columns, rows, dot }: { columns: string[]; rows: string[][]; dot: string }) {
+function EventTable({
+  columns,
+  rows,
+  dot,
+  onHoverRow,
+}: {
+  columns: string[]
+  rows: string[][]
+  dot: string
+  onHoverRow?: (frac: number | null) => void
+}) {
   return (
     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
       <Table size="small">
@@ -270,7 +451,12 @@ function EventTable({ columns, rows, dot }: { columns: string[]; rows: string[][
         </TableHead>
         <TableBody>
           {rows.map((r, i) => (
-            <TableRow key={i} hover>
+            <TableRow
+              key={i}
+              hover
+              onMouseEnter={() => onHoverRow?.(eventTimeToFrac(r[0]))}
+              onMouseLeave={() => onHoverRow?.(null)}
+            >
               <TableCell sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>{r[0]}</TableCell>
               <TableCell sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>{r[1]}</TableCell>
               <TableCell>
