@@ -110,7 +110,7 @@ export default function DashboardV2() {
 
   return (
     <Box sx={{ maxWidth: '75rem', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2.5, p: 2.5 }}>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ width: 'fit-content' }}>
         <Tab label="Batches" />
         <Tab label="Machine" />
       </Tabs>
