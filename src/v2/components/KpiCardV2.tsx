@@ -6,14 +6,49 @@ import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
-import { SparkLineChart } from '@mui/x-charts/SparkLineChart'
+import type { EChartsOption } from 'echarts'
+import EChart from '@/src/v2/components/echarts/EChart'
 import { formatValue, type Kpi } from '@/src/lib/compute'
 import { metaFor, withAlpha, VIZ, VIZ_CAPTION } from '@/src/components/metricViz'
 
 // MUI-native KPI card. Reuses the same compute/metricViz logic as v0/v1; the
-// hand-rolled SVG sparkline is replaced by MUI X SparkLineChart. curve="linear"
-// enforced — production/manufacturing series read as straight segments, never
-// smoothed (matches the product's charting rule).
+// hand-rolled SVG sparkline is replaced by a tiny ECharts sparkline (line/bar,
+// area fill for the area kind), colored by the metric accent. Chrome is stripped
+// (no axes/grid/tooltip). Lines are NOT smoothed — production/manufacturing
+// series read as straight segments (matches the product's charting rule).
+
+// Builds a minimal ECharts sparkline: no axes, no grid, no tooltip. `plotType`
+// is 'line' or 'bar'; `area` adds a soft accent fill under a line.
+export function sparkOption(
+  series: number[],
+  accent: string,
+  plotType: 'line' | 'bar',
+  area: boolean,
+): EChartsOption {
+  return {
+    animation: false,
+    grid: { left: 0, right: 0, top: 4, bottom: 4 },
+    tooltip: { show: false },
+    xAxis: {
+      type: 'category',
+      show: false,
+      boundaryGap: plotType === 'bar',
+      data: series.map((_, i) => i),
+    },
+    yAxis: { type: 'value', show: false, scale: true },
+    series: [
+      plotType === 'bar'
+        ? { type: 'bar', data: series, barWidth: '60%', itemStyle: { color: accent, borderRadius: 1 } }
+        : {
+            type: 'line',
+            data: series,
+            symbol: 'none',
+            lineStyle: { color: accent, width: 2 },
+            ...(area ? { areaStyle: { color: withAlpha(accent, 0.18) } } : {}),
+          },
+    ],
+  }
+}
 export default function KpiCardV2({
   kpi, series, onDetails,
 }: { kpi: Kpi; series: number[]; onDetails?: (kpi: Kpi) => void }) {
@@ -53,16 +88,7 @@ export default function KpiCardV2({
         </Box>
         <Box sx={{ height: 64, overflow: 'hidden' }}>
           {series.length > 0 && (
-            <SparkLineChart
-              data={series}
-              height={64}
-              plotType={plotType}
-              curve="linear"
-              area={area}
-              showHighlight
-              showTooltip
-              color={accent}
-            />
+            <EChart option={sparkOption(series, accent, plotType, area)} height={64} />
           )}
         </Box>
       </Box>

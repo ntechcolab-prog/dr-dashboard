@@ -8,19 +8,18 @@ import Chip from '@mui/material/Chip'
 import CloseIcon from '@mui/icons-material/Close'
 import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
-import { LineChart } from '@mui/x-charts/LineChart'
-import { BarChart } from '@mui/x-charts/BarChart'
+import type { EChartsOption } from 'echarts'
+import EChart, { chartPalette } from '@/src/v2/components/echarts/EChart'
 import { formatValue, type Kpi, type RankItem } from '@/src/lib/compute'
 import type { Batch } from '@/src/data/mockData'
 import { VIZ, metaFor, withAlpha, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/components/metricViz'
 import { useLocalStorage } from '@/src/lib/useLocalStorage'
-import { chartPalette } from '@/src/client/mui/theme'
 
 // MUI-native rebuild of DetailsDrawer (Tailwind original in src/components).
 // Same DrawerData contract as v0/v1 so the orchestrator can feed it unchanged.
-// KPI mode: headline + daily trend (line/bar, curve="linear") + per-machine and
-// per-recipe horizontal-bar breakdowns, all on @mui/x-charts. Day mode: batch
-// list. Chart style honors the METRIC_STYLE_KEY override chosen on the grid.
+// KPI mode: headline + daily trend (line/bar, linear — no smoothing) + per-machine
+// and per-recipe horizontal-bar breakdowns, all on ECharts via the IRIS EChart
+// wrapper. Day mode: batch list. Chart style honors the METRIC_STYLE_KEY override.
 
 export type DrawerData = {
   open: boolean
@@ -113,29 +112,14 @@ function KpiDetail({
 
       {daily && daily.data.length > 0 && (
         <Section title={trendTitle}>
-          {asBars ? (
-            <BarChart
-              height={220}
-              hideLegend
-              margin={{ top: 8, right: 8, bottom: 24, left: 8 }}
-              xAxis={[{ scaleType: 'band', data: daily.labels }]}
-              yAxis={[{ width: 44 }]}
-              series={[{ data: daily.data, color: accent, valueFormatter: (v) => (v == null ? '' : `${v} ${kpi.unit}`) }]}
-            />
-          ) : (
-            <LineChart
-              height={220}
-              hideLegend
-              margin={{ top: 8, right: 8, bottom: 24, left: 8 }}
-              xAxis={[{ scaleType: 'point', data: daily.labels }]}
-              yAxis={[{ width: 44 }]}
-              series={[{
-                data: daily.data, color: accent, curve: 'linear', showMark: false,
-                area: asArea, valueFormatter: (v) => (v == null ? '' : `${v} ${kpi.unit}`),
-              }]}
-              sx={asArea ? { '& .MuiAreaElement-root': { fill: withAlpha(accent, 0.16) } } : undefined}
-            />
-          )}
+          <TrendChart
+            labels={daily.labels}
+            data={daily.data}
+            accent={accent}
+            unit={kpi.unit}
+            asBars={asBars}
+            asArea={asArea}
+          />
         </Section>
       )}
 
@@ -154,22 +138,75 @@ function KpiDetail({
   )
 }
 
+// Daily trend — line (optionally area-filled) or bars, always linear (no smoothing).
+function TrendChart({
+  labels, data, accent, unit, asBars, asArea,
+}: {
+  labels: string[]
+  data: number[]
+  accent: string
+  unit: string
+  asBars: boolean
+  asArea: boolean
+}) {
+  const series: EChartsOption['series'] = asBars
+    ? [{
+        type: 'bar',
+        data,
+        itemStyle: { color: accent, borderRadius: [2, 2, 0, 0] },
+      }]
+    : [{
+        type: 'line',
+        data,
+        smooth: false,
+        showSymbol: false,
+        lineStyle: { color: accent, width: 2 },
+        itemStyle: { color: accent },
+        ...(asArea ? { areaStyle: { color: withAlpha(accent, 0.16) } } : {}),
+      }]
+
+  const option: EChartsOption = {
+    grid: { left: 8, right: 8, top: 12, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (v) => (v == null ? '' : `${v} ${unit}`),
+    },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      boundaryGap: asBars,
+    },
+    yAxis: { type: 'value' },
+    series,
+  }
+  return <EChart option={option} height={220} />
+}
+
 // Horizontal ranking bars — one colored bar per category (machine / recipe).
 function RankBars({ data, unit }: { data: RankItem[]; unit: string }) {
-  const labels = data.map((d) => d.label)
-  const colors = data.map((_, i) => chartPalette[i % chartPalette.length])
+  // Category axis renders bottom-up; `inverse` keeps the first (top-ranked)
+  // item at the top, matching the previous horizontal layout.
+  const barData = data.map((d, i) => ({
+    value: d.value,
+    itemStyle: { color: chartPalette[i % chartPalette.length] },
+  }))
   const height = Math.max(120, data.length * 44 + 40)
-  return (
-    <BarChart
-      height={height}
-      layout="horizontal"
-      hideLegend
-      margin={{ top: 8, right: 16, bottom: 24, left: 8 }}
-      yAxis={[{ scaleType: 'band', data: labels, width: 96, colorMap: { type: 'ordinal', values: labels, colors } }]}
-      xAxis={[{ min: 0 }]}
-      series={[{ data: data.map((d) => d.value), valueFormatter: (v) => (v == null ? '' : `${v} ${unit}`) }]}
-    />
-  )
+  const option: EChartsOption = {
+    grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (v) => (v == null ? '' : `${v} ${unit}`),
+    },
+    xAxis: { type: 'value', min: 0 },
+    yAxis: {
+      type: 'category',
+      data: data.map((d) => d.label),
+      inverse: true,
+    },
+    series: [{ type: 'bar', data: barData, barMaxWidth: 22, itemStyle: { borderRadius: [0, 3, 3, 0] } }],
+  }
+  return <EChart option={option} height={height} />
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
