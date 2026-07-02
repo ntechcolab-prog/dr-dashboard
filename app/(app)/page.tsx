@@ -130,6 +130,15 @@ export default function LauncherPage() {
           >
             Full access — batch registry, dashboard, analysis and reports.
           </AppCard>
+
+          <AppCard
+            href="/batch-book-v2?v=2"
+            badge="v2"
+            icon={<BatchBookIcon />}
+            title={<>BATCH<br />BOOK</>}
+          >
+            Material UI rebuild — same features as v1, redesigned on MUI components.
+          </AppCard>
         </div>
       </div>
     </div>

@@ -13,6 +13,12 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.1.1",
+    "@mui/material": "^9.1.2",
+    "@mui/material-nextjs": "^9.1.1",
+    "@mui/x-charts": "^9.7.0",
     "@neondatabase/serverless": "^0.10.4",
     "drizzle-orm": "^0.36.4",
     "jose": "^5.9.6",
