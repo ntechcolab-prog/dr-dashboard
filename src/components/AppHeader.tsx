@@ -503,6 +503,14 @@ const PRODUCTS: Product[] = [
     glyph: BOOK_GLYPH,
   },
   {
+    name: 'Batch Book v2',
+    desc: 'Material UI rebuild',
+    href: '/batch-book-v2?v=2',
+    color: '#008d84',
+    internal: true,
+    glyph: BOOK_GLYPH,
+  },
+  {
     name: 'IRIS Cloud',
     desc: 'Digitalization Hub',
     href: 'http://iris-cloud.netzsch.com/',
