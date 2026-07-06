@@ -1,8 +1,5 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../../lib/availability'
-import { useHolidays } from '../../lib/holidays'
-import { availabilityService } from '../../data/availabilityData'
 import { performanceService, PERFORMANCE_GOAL_PCT, type PerfSeries } from '../../data/performanceData'
 import AvailabilityGauge from '../AvailabilityGauge'
 import AvailabilityChart from '../AvailabilityChart'
@@ -12,9 +9,9 @@ import { ChevronLeft, ChevronRight } from '../../icons/Icons'
 
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-// OEE-performance dashboard (Machine tab › Performance). One shared month
-// selector (in the OEE strip) drives every monthly card; the Year card has its
-// own year dropdown — mirroring how the Availability dashboard is scoped.
+// Performance dashboard (Machine tab › Performance). One shared month
+// selector (in the header row) drives every monthly card; the Year card has
+// its own year dropdown — mirroring how the Availability dashboard is scoped.
 export default function PerformanceDashboard() {
   const goal = PERFORMANCE_GOAL_PCT
 
@@ -47,17 +44,6 @@ export default function PerformanceDashboard() {
   const recipes = useMemo(() => performanceService.recipeRanking(viewYear, viewMonth), [viewYear, viewMonth])
   const slowest = useMemo(() => performanceService.slowestBatches(viewYear, viewMonth), [viewYear, viewMonth])
 
-  // Availability % for the same month — the "A" factor of the OEE strip.
-  const [settings] = useAvailabilitySettings()
-  const [plan] = useAvailabilityPlan()
-  const wh = useWorkingHolidays()
-  const holidays = useHolidays(viewYear)
-  const availPct = useMemo(
-    () => Math.round(availabilityService.monthSeries(viewYear, viewMonth, plan, settings, holidays.set, wh.set).overallPct),
-    [viewYear, viewMonth, plan, settings, holidays.set, wh.set]
-  )
-  const oeePct = Math.round((availPct * kpis.pct) / 100)
-
   // Year card owns its own year selector.
   const yearOptions = performanceService.dataYears().map(String)
   const [chartYear, setChartYear] = useState(latest.year)
@@ -67,53 +53,28 @@ export default function PerformanceDashboard() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-ink">Performance</h3>
-      </div>
-
-      {/* OEE strip — situates Performance inside the OEE formula */}
-      <div className="mb-4 rounded-xl border border-line/70 bg-card p-4 shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-ink">
-              OEE · {MONTH_LABELS[viewMonth]} {viewYear}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">Overall Equipment Effectiveness = Availability × Performance × Quality</p>
-          </div>
-          <div className="no-print flex items-center gap-1.5">
-            <button
-              onClick={() => stepMonth(-1)}
-              disabled={atFirst}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted enabled:hover:bg-page enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="min-w-[7.5rem] text-center text-sm font-medium text-ink">
-              {MONTH_LABELS[viewMonth]} {viewYear}
-            </span>
-            <button
-              onClick={() => stepMonth(1)}
-              disabled={atLatest}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted enabled:hover:bg-page enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Next month"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Factor label="Availability" value={`${availPct}%`} tone={availPct >= settings.monthlyGoalPct ? 'up' : 'warn'} />
-          <Times />
-          <Factor label="Performance" value={`${kpis.pct}%`} tone={kpis.pct >= goal ? 'up' : 'warn'} />
-          <Times />
-          <Factor label="Quality" value="—" tone="muted" soon />
-          <span className="text-lg font-semibold text-faint">=</span>
-          <Factor label="OEE" value={`${oeePct}%`} tone="primary" />
-          <p className="basis-full text-xs text-faint sm:ml-auto sm:basis-auto">
-            Quality not measured yet — OEE shown as Availability × Performance.
-          </p>
+        <div className="no-print flex items-center gap-1.5">
+          <button
+            onClick={() => stepMonth(-1)}
+            disabled={atFirst}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted enabled:hover:bg-page enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+            aria-label="Previous month"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="min-w-[7.5rem] text-center text-sm font-medium text-ink">
+            {MONTH_LABELS[viewMonth]} {viewYear}
+          </span>
+          <button
+            onClick={() => stepMonth(1)}
+            disabled={atLatest}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted enabled:hover:bg-page enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-30"
+            aria-label="Next month"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
 
@@ -311,32 +272,3 @@ function Kpi({
   )
 }
 
-function Factor({
-  label,
-  value,
-  tone,
-  soon,
-}: {
-  label: string
-  value: string
-  tone: 'up' | 'warn' | 'muted' | 'primary'
-  soon?: boolean
-}) {
-  const toneCls =
-    tone === 'up' ? 'text-up' : tone === 'warn' ? 'text-warning' : tone === 'primary' ? 'text-primary' : 'text-faint'
-  return (
-    <div className="relative">
-      {soon && (
-        <span className="absolute -top-2 right-0 rounded-full bg-line px-1.5 py-px text-[0.5625rem] font-semibold uppercase tracking-wide text-muted">
-          soon
-        </span>
-      )}
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className={`text-xl font-bold tabular-nums ${toneCls}`}>{value}</p>
-    </div>
-  )
-}
-
-function Times() {
-  return <span className="text-lg font-semibold text-faint">×</span>
-}

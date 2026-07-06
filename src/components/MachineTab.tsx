@@ -17,15 +17,14 @@ const MACHINE_PRINT_ID = 'machine-availability-print'
 const PERFORMANCE_PRINT_ID = 'machine-performance-print'
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
-// OEE dimensions of the Machine tab. Quality is announced but not built yet.
-type OeeView = 'availability' | 'performance'
-const OEE_VIEWS: { key: OeeView; label: string }[] = [
+type MachineView = 'availability' | 'performance'
+const MACHINE_VIEWS: { key: MachineView; label: string }[] = [
   { key: 'availability', label: 'Availability' },
   { key: 'performance', label: 'Performance' },
 ]
 
 export default function MachineTab() {
-  const [view, setView] = useState<OeeView>('availability')
+  const [view, setView] = useState<MachineView>('availability')
   const [line, setLine] = useState(PRODUCTION_LINES[0])
   // Same machine list the rankings use, so the selection always exists there.
   const [machine, setMachine] = useState(MACHINES[0])
@@ -126,9 +125,9 @@ export default function MachineTab() {
 
   return (
     <div className="px-6 py-5">
-      {/* OEE dimension tabs — same pill style as the Settings tabs */}
+      {/* Availability | Performance tabs — same pill style as the Settings tabs */}
       <div className="mb-5 inline-flex flex-wrap gap-1 rounded-xl bg-card p-2 shadow-card">
-        {OEE_VIEWS.map((v) => (
+        {MACHINE_VIEWS.map((v) => (
           <button
             key={v.key}
             onClick={() => setView(v.key)}
@@ -139,18 +138,6 @@ export default function MachineTab() {
             {v.label}
           </button>
         ))}
-        <div className="relative">
-          <span className="absolute -top-1 right-0 z-10 rounded-full bg-line px-1.5 py-px text-[0.5625rem] font-semibold uppercase tracking-wide text-muted">
-            soon
-          </span>
-          <button
-            disabled
-            className="cursor-not-allowed rounded-md px-4 py-2 text-sm font-medium text-faint"
-            title="Quality tracking is coming soon"
-          >
-            Quality
-          </button>
-        </div>
       </div>
 
       {/* attack-focus ranking — worst performers first, separated from the filters below */}
