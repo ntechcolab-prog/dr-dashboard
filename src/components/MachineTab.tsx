@@ -2,20 +2,32 @@ import { useState } from 'react'
 import Dropdown from './Dropdown'
 import AvailabilityDashboard from './availability/AvailabilityDashboard'
 import MachineRankingBoard from './availability/MachineRankingBoard'
+import PerformanceDashboard from './performance/PerformanceDashboard'
+import PerformanceRankingBoard from './performance/PerformanceRankingBoard'
 import ExportMenu from './ExportMenu'
 import { PRODUCTION_LINES } from '../data/appData'
 import { MACHINES } from '../data/mockData'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
+import { performanceService, PERFORMANCE_GOAL_PCT } from '../data/performanceData'
 import type { Sheet } from '../lib/exportData'
 
 const MACHINE_PRINT_ID = 'machine-availability-print'
+const PERFORMANCE_PRINT_ID = 'machine-performance-print'
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+// OEE dimensions of the Machine tab. Quality is announced but not built yet.
+type OeeView = 'availability' | 'performance'
+const OEE_VIEWS: { key: OeeView; label: string }[] = [
+  { key: 'availability', label: 'Availability' },
+  { key: 'performance', label: 'Performance' },
+]
+
 export default function MachineTab() {
+  const [view, setView] = useState<OeeView>('availability')
   const [line, setLine] = useState(PRODUCTION_LINES[0])
-  // Same machine list the ranking uses, so the selection always exists there.
+  // Same machine list the rankings use, so the selection always exists there.
   const [machine, setMachine] = useState(MACHINES[0])
 
   const [settings] = useAvailabilitySettings()
@@ -25,7 +37,7 @@ export default function MachineTab() {
   const holidays = useHolidays(now.getFullYear())
 
   // Export sheets reflect the current machine/line for the current month + year.
-  const buildSheets = (): Sheet[] => {
+  const buildAvailabilitySheets = (): Sheet[] => {
     const y = now.getFullYear()
     const m = now.getMonth()
     const ms = availabilityService.monthSeries(y, m, plan, settings, holidays.set, wh.set)
@@ -59,13 +71,91 @@ export default function MachineTab() {
     return [meta, daily, monthly]
   }
 
-  const exportTitle = `Machine · ${machine} · ${line} · Availability`
+  // Performance sheets use the newest month with production data (the same
+  // month the performance dashboard opens on).
+  const buildPerformanceSheets = (): Sheet[] => {
+    const { year: y, month: m } = performanceService.latestDataMonth()
+    const daily = performanceService.dailySeries(y, m)
+    const ranking = performanceService.machineRanking(y, m)
+    const recipes = performanceService.recipeRanking(y, m)
+    const slowest = performanceService.slowestBatches(y, m)
+    const meta: Sheet = {
+      name: 'Scope',
+      rows: [
+        ['Field', 'Value'],
+        ['Line', line],
+        ['Machine', machine],
+        ['Month', `${MONTH_LABELS[m]} ${y}`],
+        ['Performance goal (%)', PERFORMANCE_GOAL_PCT],
+      ],
+    }
+    const dailySheet: Sheet = {
+      name: `${MONTH_LABELS[m]} ${y}`,
+      rows: [
+        ['Day', 'Performance (%)'],
+        ...daily.labels.map((d, i) => [d, daily.pct[i]]),
+        ['Overall', daily.overallPct],
+      ],
+    }
+    const machinesSheet: Sheet = {
+      name: 'Machines',
+      rows: [
+        ['Machine', 'Performance (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Speed loss (h)', 'Minor stops', 'Batches'],
+        ...ranking.map((r) => [r.machine, r.pct, r.actualRate, r.idealRate, r.speedLossH, r.minorStops, r.batches]),
+      ],
+    }
+    const recipesSheet: Sheet = {
+      name: 'Recipes',
+      rows: [
+        ['Recipe', 'Performance (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Batches'],
+        ...recipes.map((r) => [r.recipe, r.pct, r.actualRate, r.idealRate, r.batches]),
+      ],
+    }
+    const slowestSheet: Sheet = {
+      name: 'Slowest batches',
+      rows: [
+        ['Batch', 'Day', 'Machine', 'Recipe', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Performance (%)'],
+        ...slowest.map((b) => [b.id, b.day, b.machine, b.recipe, b.actualRate, b.idealRate, b.pct]),
+      ],
+    }
+    return [meta, dailySheet, machinesSheet, recipesSheet, slowestSheet]
+  }
+
+  const isPerf = view === 'performance'
+  const exportTitle = `Machine · ${machine} · ${line} · ${isPerf ? 'Performance' : 'Availability'}`
 
   return (
     <div className="px-6 py-5">
+      {/* OEE dimension tabs — same pill style as the Settings tabs */}
+      <div className="mb-5 inline-flex flex-wrap gap-1 rounded-xl bg-card p-2 shadow-card">
+        {OEE_VIEWS.map((v) => (
+          <button
+            key={v.key}
+            onClick={() => setView(v.key)}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              v.key === view ? 'bg-primary text-white' : 'text-muted hover:bg-page hover:text-ink'
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+        <div className="relative">
+          <span className="absolute -top-1 right-0 z-10 rounded-full bg-line px-1.5 py-px text-[0.5625rem] font-semibold uppercase tracking-wide text-muted">
+            soon
+          </span>
+          <button
+            disabled
+            className="cursor-not-allowed rounded-md px-4 py-2 text-sm font-medium text-faint"
+            title="Quality tracking is coming soon"
+          >
+            Quality
+          </button>
+        </div>
+      </div>
+
       {/* attack-focus ranking — worst performers first, separated from the filters below */}
       <div className="mb-5">
-        <MachineRankingBoard />
+        {isPerf ? <PerformanceRankingBoard selectedMachine={machine} /> : <MachineRankingBoard />}
       </div>
 
       {/* line + machine scope */}
@@ -77,17 +167,23 @@ export default function MachineTab() {
         <div className="no-print flex items-center gap-2">
           <ExportMenu
             title={exportTitle}
-            printId={MACHINE_PRINT_ID}
-            filenameBase={`machine-${machine}-availability`}
-            sheets={buildSheets}
+            printId={isPerf ? PERFORMANCE_PRINT_ID : MACHINE_PRINT_ID}
+            filenameBase={`machine-${machine}-${isPerf ? 'performance' : 'availability'}`}
+            sheets={isPerf ? buildPerformanceSheets : buildAvailabilitySheets}
           />
         </div>
       </div>
 
       {/* printable region — reflects current line/machine + dashboard state */}
-      <div id={MACHINE_PRINT_ID}>
-        <AvailabilityDashboard selectedMachine={machine} />
-      </div>
+      {isPerf ? (
+        <div id={PERFORMANCE_PRINT_ID}>
+          <PerformanceDashboard />
+        </div>
+      ) : (
+        <div id={MACHINE_PRINT_ID}>
+          <AvailabilityDashboard selectedMachine={machine} />
+        </div>
+      )}
     </div>
   )
 }
