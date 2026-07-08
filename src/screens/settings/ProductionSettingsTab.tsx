@@ -175,17 +175,19 @@ export default function ProductionSettingsTab() {
         </>
       )}
 
-      {/* FAB — interactive OEE explainer, pre-filled from the selected
-          machine's config (or the plant defaults before picking one) */}
-      <button
-        type="button"
-        onClick={() => setShowOee(true)}
-        title="How OEE works"
-        className="no-print fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-pop transition-transform hover:scale-105 hover:bg-primary-700"
-      >
-        <Info size={18} />
-        How OEE works
-      </button>
+      {/* FAB — opens the docked OEE panel (live from the selected machine's
+          config, or the plant defaults before picking one) */}
+      {!showOee && (
+        <button
+          type="button"
+          onClick={() => setShowOee(true)}
+          title="How OEE works"
+          className="no-print fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-pop transition-transform hover:scale-105 hover:bg-primary-700"
+        >
+          <Info size={18} />
+          How OEE works
+        </button>
+      )}
 
       {showOee && <OeeExplainer machine={machine ?? undefined} onClose={() => setShowOee(false)} />}
     </div>

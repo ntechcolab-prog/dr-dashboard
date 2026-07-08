@@ -95,6 +95,24 @@ export function Textarea({
 }
 
 // Numeric field box (value-as-number, optional suffix and bounds).
+// Numeric field UX: while the user is typing, the field shows exactly what
+// they typed — including empty after clearing a value (the math treats it as
+// 0). On blur it snaps back to the canonical number. Without this, clearing a
+// field leaves a sticky "0" that can't be deleted.
+export function useLooseNumber(value: number, apply: (n: number) => void) {
+  const [text, setText] = useState<string | null>(null)
+  return {
+    value: text ?? String(value),
+    onChange: (raw: string) => {
+      setText(raw)
+      if (raw === '') return apply(0)
+      const n = Number(raw)
+      if (Number.isFinite(n)) apply(n)
+    },
+    onBlur: () => setText(null),
+  } as const
+}
+
 export function NumberInput({
   value,
   onChange,
@@ -110,18 +128,17 @@ export function NumberInput({
   max?: number
   step?: number
 }) {
+  const loose = useLooseNumber(value, onChange)
   return (
     <div className={fieldBox}>
       <input
         type="number"
-        value={value}
+        value={loose.value}
         min={min}
         max={max}
         step={step}
-        onChange={(e) => {
-          const n = e.target.value === '' ? 0 : Number(e.target.value)
-          onChange(Number.isFinite(n) ? n : 0)
-        }}
+        onChange={(e) => loose.onChange(e.target.value)}
+        onBlur={loose.onBlur}
         className="min-w-0 flex-1 bg-transparent tabular-nums outline-none"
       />
       {suffix && <span className="shrink-0 text-muted">{suffix}</span>}

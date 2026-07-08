@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Sun } from '../../icons/Icons'
+import { useLooseNumber } from '../FormControls'
 import {
   WEEKDAY_LABELS,
   clampDayHours,
@@ -207,6 +208,25 @@ export default function PlanningCalendar({
   )
 }
 
+// Day-cell hours input — loose while typing (clearable), clamped to 0–24.
+function HoursInput({ hours, hasHours, onSet }: { hours: number; hasHours: boolean; onSet: (h: number) => void }) {
+  const loose = useLooseNumber(hours, (n) => onSet(clampDayHours(n)))
+  return (
+    <input
+      type="number"
+      min={0}
+      max={MAX_DAY_HOURS}
+      step={0.5}
+      value={loose.value}
+      onChange={(e) => loose.onChange(e.target.value)}
+      onBlur={loose.onBlur}
+      className={`no-spin w-10 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
+        hasHours ? 'text-ink' : 'text-faint'
+      }`}
+    />
+  )
+}
+
 // Stat chip for the month summary strip.
 function SummaryStat({ label, value, tone }: { label: string; value: string; tone?: 'primary' | 'warning' }) {
   const color = tone === 'primary' ? 'text-primary' : tone === 'warning' ? 'text-warning' : 'text-ink'
@@ -293,20 +313,7 @@ function DayPlanCell({
               >
                 <span className="text-base leading-none">−</span>
               </button>
-              <input
-                type="number"
-                min={0}
-                max={MAX_DAY_HOURS}
-                step={0.5}
-                value={hours}
-                onChange={(e) => {
-                  const v = e.target.value === '' ? 0 : Number(e.target.value)
-                  onSet(clampDayHours(v))
-                }}
-                className={`no-spin w-10 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
-                  hasHours ? 'text-ink' : 'text-faint'
-                }`}
-              />
+              <HoursInput hours={hours} hasHours={hasHours} onSet={onSet} />
               <button
                 type="button"
                 onClick={() => onSet(clampDayHours(Math.round((hours + 1) * 2) / 2))}

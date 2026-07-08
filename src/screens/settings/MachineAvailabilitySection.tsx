@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FormBlock, Field, NumberInput } from '../../components/FormControls'
+import { FormBlock, Field, NumberInput, useLooseNumber } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
 import MachineHeader from './MachineHeader'
 import ReplicatePanel from './ReplicatePanel'
@@ -229,18 +229,10 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
                       {WEEKDAY_LABELS[d]}
                     </button>
                     {on && (
-                      <div className="flex items-center rounded-lg border border-line bg-white px-2 py-1.5 focus-within:border-primary">
-                        <input
-                          type="number"
-                          min={0}
-                          max={MAX_DAY_HOURS}
-                          step={0.5}
-                          value={settings.defaultHoursByWeekday[d] ?? 0}
-                          onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Number(e.target.value))}
-                          className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
-                        />
-                        <span className="text-xs text-muted">h</span>
-                      </div>
+                      <WeekdayHoursInput
+                        value={settings.defaultHoursByWeekday[d] ?? 0}
+                        onChange={(h) => setDefaultHours(d, h)}
+                      />
                     )}
                   </div>
                 )
@@ -491,3 +483,23 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
 }
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+// Weekday default-hours input — loose while typing (clearable), 0–24.
+function WeekdayHoursInput({ value, onChange }: { value: number; onChange: (h: number) => void }) {
+  const loose = useLooseNumber(value, onChange)
+  return (
+    <div className="flex items-center rounded-lg border border-line bg-white px-2 py-1.5 focus-within:border-primary">
+      <input
+        type="number"
+        min={0}
+        max={MAX_DAY_HOURS}
+        step={0.5}
+        value={loose.value}
+        onChange={(e) => loose.onChange(e.target.value)}
+        onBlur={loose.onBlur}
+        className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
+      />
+      <span className="text-xs text-muted">h</span>
+    </div>
+  )
+}
