@@ -212,9 +212,6 @@ function RankColumn({
             <Detail label="Ideal rate">
               <span className="tabular-nums text-ink">{row.idealRate} t/h</span>
             </Detail>
-            <Detail label="Speed loss">
-              <span className="tabular-nums text-ink">{row.speedLossH}h</span>
-            </Detail>
             <Detail label="Minor stops">
               <span className="tabular-nums text-ink">{row.minorStops}</span>
             </Detail>

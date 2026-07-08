@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { performanceService, PERFORMANCE_GOAL_PCT, type PerfSeries } from '../../data/performanceData'
+import { availabilityService } from '../../data/availabilityData'
+import {
+  resolveMachineAvailability,
+  useAvailabilitySettings,
+  useAvailabilityPlan,
+  useMachineAvailabilityMap,
+  useWorkingHolidays,
+} from '../../lib/availability'
+import { useHolidays } from '../../lib/holidays'
 import AvailabilityGauge from '../AvailabilityGauge'
 import AvailabilityChart from '../AvailabilityChart'
-import HBars from '../HBars'
 import Dropdown from '../Dropdown'
 import { ChevronLeft, ChevronRight } from '../../icons/Icons'
 
@@ -39,17 +47,38 @@ export default function PerformanceDashboard() {
   }
 
   const kpis = useMemo(() => performanceService.monthKpis(viewYear, viewMonth), [viewYear, viewMonth])
-  const daily = useMemo(() => performanceService.dailySeries(viewYear, viewMonth), [viewYear, viewMonth])
-  const losses = useMemo(() => performanceService.lossBreakdown(viewYear, viewMonth), [viewYear, viewMonth])
+  const weekly = useMemo(() => performanceService.weeklySeries(viewYear, viewMonth), [viewYear, viewMonth])
   const recipes = useMemo(() => performanceService.recipeRanking(viewYear, viewMonth), [viewYear, viewMonth])
-  const slowest = useMemo(() => performanceService.slowestBatches(viewYear, viewMonth), [viewYear, viewMonth])
+
+  // Per-machine production: tons from the batches; worked × planned hours from
+  // each machine's effective availability plan (per-machine config included).
+  const [availMap] = useMachineAvailabilityMap()
+  const [globalSettings] = useAvailabilitySettings()
+  const [globalPlan] = useAvailabilityPlan()
+  const globalWh = useWorkingHolidays()
+  const holidays = useHolidays(viewYear)
+  const machineRows = useMemo(
+    () =>
+      performanceService.machineMonthProduction(viewYear, viewMonth).map((p) => {
+        const eff = resolveMachineAvailability(availMap, p.machine, globalSettings, globalPlan, globalWh.set)
+        const ms = availabilityService.monthSeries(
+          viewYear,
+          viewMonth,
+          eff.plan,
+          eff.settings,
+          holidays.set,
+          eff.workingHolidays,
+          p.machine
+        )
+        return { ...p, plannedH: Math.round(ms.totalPlanned), workedH: Math.round(ms.totalExecuted) }
+      }),
+    [viewYear, viewMonth, availMap, globalSettings, globalPlan, globalWh.set, holidays.set]
+  )
 
   // Year card owns its own year selector.
   const yearOptions = performanceService.dataYears().map(String)
   const [chartYear, setChartYear] = useState(latest.year)
   const yearly = useMemo(() => performanceService.yearSeries(chartYear), [chartYear])
-
-  const totalLossH = Math.round(losses.reduce((a, l) => a + l.hours, 0) * 10) / 10
 
   return (
     <div>
@@ -79,7 +108,7 @@ export default function PerformanceDashboard() {
       </div>
 
       {/* KPI row */}
-      <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Kpi
           label="Performance"
           value={`${kpis.pct}%`}
@@ -92,91 +121,84 @@ export default function PerformanceDashboard() {
           value={`${kpis.avgActualRate} t/h`}
           sub={`Ideal ${kpis.avgIdealRate} t/h`}
         />
-        <Kpi label="Speed loss" value={`${kpis.speedLossH}h`} sub="Running below ideal rate" />
         <Kpi label="Minor stops" value={String(kpis.minorStops)} sub={`${kpis.minorStopH}h in micro-stops`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* daily trend */}
-        <Card title="Daily performance" className="lg:col-span-2">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[auto_1fr]">
+        {/* weekly trend */}
+        <Card title="Weekly performance" className="lg:col-span-2">
+          <div className="grid h-full grid-cols-1 items-center gap-4 sm:grid-cols-[auto_1fr]">
             <div className="flex flex-col items-center justify-center">
               <AvailabilityGauge value={kpis.pct} label="Month" goal={goal} size="8rem" />
             </div>
             <div>
-              <AvailabilityChart labels={daily.labels} values={daily.pct} type="line" goal={goal} height={180} maxLabels={15} />
-              <p className="mt-1 text-center text-[0.6875rem] text-faint">{buildCaption(daily)}</p>
+              <AvailabilityChart labels={weekly.labels} values={weekly.pct} type="bar" goal={goal} height={300} />
+              <p className="mt-1 text-center text-[0.6875rem] text-faint">{buildCaption(weekly)}</p>
             </div>
           </div>
         </Card>
 
-        {/* speed loss breakdown */}
-        <Card title="Speed loss breakdown">
-          <p className="text-xs text-muted">Where the {totalLossH}h below ideal rate went.</p>
-          <div className="mt-3">
-            <HBars
-              items={losses.map((l) => ({
-                label: l.cause,
-                value: l.hours,
-                leftLabel: `${l.hours}h`,
-              }))}
-            />
+        {/* production per machine */}
+        <Card title="Production by machine">
+          <p className="text-xs text-muted">Tons produced and production hours (worked × planned) this month.</p>
+          <div className="mt-3 flex flex-col gap-2.5">
+            {machineRows.map((m) => {
+              const ratio = m.plannedH > 0 ? Math.min(1, m.workedH / m.plannedH) : 0
+              return (
+                <div key={m.machine} className="rounded-lg border border-line/70 bg-page/30 px-3 py-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-sm font-semibold text-ink">{m.machine}</span>
+                    <span className="text-sm font-bold tabular-nums text-primary">{m.tons} t</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line/60">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${ratio * 100}%` }} />
+                    </div>
+                    <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted">
+                      {m.workedH}h / {m.plannedH}h
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+            {machineRows.length === 0 && <p className="text-sm text-faint">No production in this month.</p>}
           </div>
-          <p className="mt-2 border-t border-line pt-2 text-center text-xs text-muted">
-            Biggest loss: <span className="font-semibold text-ink">{losses[0]?.cause}</span> ({losses[0]?.hours}h)
-          </p>
         </Card>
 
         {/* recipe ranking */}
-        <Card title="Performance by recipe">
-          <p className="text-xs text-muted">Actual vs ideal rate per recipe — slowest first.</p>
-          <div className="mt-3">
-            <HBars
-              items={recipes.map((r) => ({
-                label: r.recipe,
-                value: r.pct,
-                leftLabel: `${r.pct}%`,
-                color: r.pct >= goal ? 'var(--color-primary)' : 'var(--color-warning)',
-              }))}
-              axisMax={100}
-            />
-          </div>
-        </Card>
-
-        {/* slowest batches */}
-        <Card title="Slowest batches" className="lg:col-span-2">
-          <p className="text-xs text-muted">Worst actual-vs-ideal rate this month — good candidates for a batch review.</p>
+        <Card title="Performance by recipe" className="lg:col-span-3">
+          <p className="text-xs text-muted">Batch performance per recipe — minimum, average and maximum, slowest first.</p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-[0.6875rem] uppercase tracking-wide text-muted">
-                  <th className="pb-2 pr-3 font-semibold">Batch</th>
-                  <th className="pb-2 pr-3 font-semibold">Day</th>
-                  <th className="pb-2 pr-3 font-semibold">Machine</th>
                   <th className="pb-2 pr-3 font-semibold">Recipe</th>
-                  <th className="pb-2 pr-3 text-right font-semibold">Actual</th>
-                  <th className="pb-2 pr-3 text-right font-semibold">Ideal</th>
-                  <th className="pb-2 text-right font-semibold">Perf.</th>
+                  <th className="w-full pb-2 pr-3 font-semibold">Min–max range · avg marker</th>
+                  <th className="pb-2 pr-3 text-right font-semibold">Min</th>
+                  <th className="pb-2 pr-3 text-right font-semibold">Avg</th>
+                  <th className="pb-2 pr-3 text-right font-semibold">Max</th>
+                  <th className="pb-2 text-right font-semibold">Batches</th>
                 </tr>
               </thead>
               <tbody>
-                {slowest.map((b) => (
-                  <tr key={b.id} className="border-t border-line/60">
-                    <td className="py-2 pr-3 font-medium text-ink">{b.id}</td>
-                    <td className="py-2 pr-3 tabular-nums text-muted">{String(b.day).padStart(2, '0')}</td>
-                    <td className="py-2 pr-3 text-ink">{b.machine}</td>
-                    <td className="py-2 pr-3 text-ink">{b.recipe}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-ink">{b.actualRate} t/h</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-muted">{b.idealRate} t/h</td>
-                    <td className="py-2 text-right">
+                {recipes.map((r) => (
+                  <tr key={r.recipe} className="border-t border-line/60">
+                    <td className="whitespace-nowrap py-2.5 pr-3 font-medium text-ink">{r.recipe}</td>
+                    <td className="py-2.5 pr-3">
+                      <RangeBar min={r.minPct} avg={r.pct} max={r.maxPct} goal={goal} />
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-muted">{r.minPct}%</td>
+                    <td className="py-2.5 pr-3 text-right">
                       <span
                         className={`inline-block rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${
-                          b.pct >= goal ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'
+                          r.pct >= goal ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'
                         }`}
                       >
-                        {b.pct}%
+                        {r.pct}%
                       </span>
                     </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-muted">{r.maxPct}%</td>
+                    <td className="py-2.5 text-right tabular-nums text-muted">{r.batches}</td>
                   </tr>
                 ))}
               </tbody>
@@ -217,6 +239,28 @@ function buildCaption(s: PerfSeries): string {
     if (v < s.pct[worst]) worst = i
   })
   return `Avg ${avg}% · Best ${s.labels[best]} (${s.pct[best]}%) · Worst ${s.labels[worst]} (${s.pct[worst]}%)`
+}
+
+// min→max band with an average marker, on a 0–100% track with the goal ticked.
+function RangeBar({ min, avg, max, goal }: { min: number; avg: number; max: number; goal: number }) {
+  const below = avg < goal
+  const color = below ? 'var(--color-warning)' : 'var(--color-primary)'
+  return (
+    <div className="relative h-2.5 min-w-[8rem] rounded-full bg-page">
+      {/* goal tick */}
+      <div className="absolute top-1/2 h-3.5 w-px -translate-y-1/2 border-l border-dashed border-primary/50" style={{ left: `${goal}%` }} />
+      {/* min–max band */}
+      <div
+        className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full opacity-35"
+        style={{ left: `${min}%`, width: `${Math.max(1, max - min)}%`, background: color }}
+      />
+      {/* avg marker */}
+      <div
+        className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-card"
+        style={{ left: `${avg}%`, background: color }}
+      />
+    </div>
+  )
 }
 
 // --- small building blocks (same card chrome as the Availability dashboard) ---
@@ -271,4 +315,3 @@ function Kpi({
     </div>
   )
 }
-

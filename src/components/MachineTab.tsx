@@ -7,7 +7,7 @@ import PerformanceRankingBoard from './performance/PerformanceRankingBoard'
 import ExportMenu from './ExportMenu'
 import { PRODUCTION_LINES } from '../data/appData'
 import { MACHINES } from '../data/mockData'
-import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
+import { useMachineAvailability } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 import { performanceService, PERFORMANCE_GOAL_PCT } from '../data/performanceData'
@@ -29,9 +29,8 @@ export default function MachineTab() {
   // Same machine list the rankings use, so the selection always exists there.
   const [machine, setMachine] = useState(MACHINES[0])
 
-  const [settings] = useAvailabilitySettings()
-  const [plan] = useAvailabilityPlan()
-  const wh = useWorkingHolidays()
+  // Availability scope follows the selected machine's own config (Settings › Production).
+  const { settings, plan, workingHolidays, resolve } = useMachineAvailability(machine)
   const now = new Date()
   const holidays = useHolidays(now.getFullYear())
 
@@ -39,8 +38,8 @@ export default function MachineTab() {
   const buildAvailabilitySheets = (): Sheet[] => {
     const y = now.getFullYear()
     const m = now.getMonth()
-    const ms = availabilityService.monthSeries(y, m, plan, settings, holidays.set, wh.set)
-    const ys = availabilityService.yearSeries(y, plan, settings, holidays.set, wh.set)
+    const ms = availabilityService.monthSeries(y, m, plan, settings, holidays.set, workingHolidays, machine)
+    const ys = availabilityService.yearSeries(y, plan, settings, holidays.set, workingHolidays, machine)
     const daily: Sheet = {
       name: `${MONTH_LABELS[m]} ${y}`,
       rows: [
@@ -74,10 +73,10 @@ export default function MachineTab() {
   // month the performance dashboard opens on).
   const buildPerformanceSheets = (): Sheet[] => {
     const { year: y, month: m } = performanceService.latestDataMonth()
-    const daily = performanceService.dailySeries(y, m)
+    const weekly = performanceService.weeklySeries(y, m)
     const ranking = performanceService.machineRanking(y, m)
     const recipes = performanceService.recipeRanking(y, m)
-    const slowest = performanceService.slowestBatches(y, m)
+    const production = performanceService.machineMonthProduction(y, m)
     const meta: Sheet = {
       name: 'Scope',
       rows: [
@@ -88,36 +87,41 @@ export default function MachineTab() {
         ['Performance goal (%)', PERFORMANCE_GOAL_PCT],
       ],
     }
-    const dailySheet: Sheet = {
+    const weeklySheet: Sheet = {
       name: `${MONTH_LABELS[m]} ${y}`,
       rows: [
-        ['Day', 'Performance (%)'],
-        ...daily.labels.map((d, i) => [d, daily.pct[i]]),
-        ['Overall', daily.overallPct],
+        ['Week', 'Performance (%)'],
+        ...weekly.labels.map((w, i) => [w, weekly.pct[i]]),
+        ['Overall', weekly.overallPct],
       ],
     }
     const machinesSheet: Sheet = {
       name: 'Machines',
       rows: [
-        ['Machine', 'Performance (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Speed loss (h)', 'Minor stops', 'Batches'],
-        ...ranking.map((r) => [r.machine, r.pct, r.actualRate, r.idealRate, r.speedLossH, r.minorStops, r.batches]),
+        ['Machine', 'Performance (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Minor stops', 'Batches'],
+        ...ranking.map((r) => [r.machine, r.pct, r.actualRate, r.idealRate, r.minorStops, r.batches]),
+      ],
+    }
+    // Worked × planned hours come from each machine's own availability config.
+    const productionSheet: Sheet = {
+      name: 'Production',
+      rows: [
+        ['Machine', 'Produced (t)', 'Worked (h)', 'Planned (h)', 'Batches'],
+        ...production.map((p) => {
+          const eff = resolve(p.machine)
+          const ms = availabilityService.monthSeries(y, m, eff.plan, eff.settings, holidays.set, eff.workingHolidays, p.machine)
+          return [p.machine, p.tons, Math.round(ms.totalExecuted), Math.round(ms.totalPlanned), p.batches]
+        }),
       ],
     }
     const recipesSheet: Sheet = {
       name: 'Recipes',
       rows: [
-        ['Recipe', 'Performance (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Batches'],
-        ...recipes.map((r) => [r.recipe, r.pct, r.actualRate, r.idealRate, r.batches]),
+        ['Recipe', 'Min (%)', 'Avg (%)', 'Max (%)', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Batches'],
+        ...recipes.map((r) => [r.recipe, r.minPct, r.pct, r.maxPct, r.actualRate, r.idealRate, r.batches]),
       ],
     }
-    const slowestSheet: Sheet = {
-      name: 'Slowest batches',
-      rows: [
-        ['Batch', 'Day', 'Machine', 'Recipe', 'Actual rate (t/h)', 'Ideal rate (t/h)', 'Performance (%)'],
-        ...slowest.map((b) => [b.id, b.day, b.machine, b.recipe, b.actualRate, b.idealRate, b.pct]),
-      ],
-    }
-    return [meta, dailySheet, machinesSheet, recipesSheet, slowestSheet]
+    return [meta, weeklySheet, machinesSheet, productionSheet, recipesSheet]
   }
 
   const isPerf = view === 'performance'

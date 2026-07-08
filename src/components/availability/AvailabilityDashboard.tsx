@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  useAvailabilitySettings,
-  useAvailabilityPlan,
   useDashboardPrefs,
-  useWorkingHolidays,
+  useMachineAvailability,
   toISO,
   parseISO,
 } from '../../lib/availability'
@@ -31,9 +29,10 @@ interface Props {
 }
 
 export default function AvailabilityDashboard({ selectedMachine }: Props) {
-  const [settings] = useAvailabilitySettings()
-  const [plan] = useAvailabilityPlan()
-  const wh = useWorkingHolidays()
+  // Scope every card to the selected machine's own availability config
+  // (Settings › Production). Without a machine it falls back to the plant plan.
+  const { settings, plan, workingHolidays } = useMachineAvailability(selectedMachine)
+  const wh = { set: workingHolidays }
   const { typeFor, setCard } = useDashboardPrefs()
 
   const now = new Date()
@@ -113,22 +112,22 @@ export default function AvailabilityDashboard({ selectedMachine }: Props) {
   const goal = settings.monthlyGoalPct
 
   const today = useMemo(
-    () => availabilityService.day(todayIso, plan, settings, hToday.set, wh.set),
-    [todayIso, plan, settings, hToday.set, wh.set]
+    () => availabilityService.day(todayIso, plan, settings, hToday.set, wh.set, selectedMachine),
+    [todayIso, plan, settings, hToday.set, wh.set, selectedMachine]
   )
   const yesterday = useMemo(
-    () => availabilityService.day(yIso, plan, settings, hToday.set, wh.set),
-    [yIso, plan, settings, hToday.set, wh.set]
+    () => availabilityService.day(yIso, plan, settings, hToday.set, wh.set, selectedMachine),
+    [yIso, plan, settings, hToday.set, wh.set, selectedMachine]
   )
 
   const monthSeries = useMemo(
-    () => availabilityService.monthSeries(viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set),
-    [viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set]
+    () => availabilityService.monthSeries(viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set, selectedMachine),
+    [viewMonthYear, viewMonth, plan, settings, hMonth.set, wh.set, selectedMachine]
   )
 
   const yearSeries = useMemo(
-    () => availabilityService.yearSeries(viewYear, plan, settings, hYear.set, wh.set),
-    [viewYear, plan, settings, hYear.set, wh.set]
+    () => availabilityService.yearSeries(viewYear, plan, settings, hYear.set, wh.set, selectedMachine),
+    [viewYear, plan, settings, hYear.set, wh.set, selectedMachine]
   )
 
   // Machine performance ranking — has its own month filter.

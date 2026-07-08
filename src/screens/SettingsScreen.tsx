@@ -2,7 +2,7 @@ import { useState } from 'react'
 import SubHeader from '../components/SubHeader'
 import { Gear } from '../icons/Icons'
 import { SETTINGS_TABS } from '../data/appData'
-import AvailabilitySettingsTab from './settings/AvailabilitySettingsTab'
+import ProductionSettingsTab from './settings/ProductionSettingsTab'
 import { GeneralSettings, DataExportSettings } from './settings/MiscSettings'
 
 export default function SettingsScreen() {
@@ -29,8 +29,8 @@ export default function SettingsScreen() {
 
       {tab === 'General' ? (
         <GeneralSettings />
-      ) : tab === 'Availability' ? (
-        <AvailabilitySettingsTab />
+      ) : tab === 'Production' ? (
+        <ProductionSettingsTab />
       ) : tab === 'Data Export' ? (
         <DataExportSettings />
       ) : (

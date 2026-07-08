@@ -4,7 +4,7 @@ import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
 import { useSession, initialsOf } from '@/src/client/Session'
 import { useLocalStorage } from '../lib/useLocalStorage'
 import { buildWeeks } from '../lib/weeks'
-import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays, isoOf } from '../lib/availability'
+import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays, isoOf, clampDayHours } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { availabilityService } from '../data/availabilityData'
 
@@ -199,7 +199,7 @@ function MiniCalendar() {
   }
 
   const todayIso = isoOf(now.getFullYear(), now.getMonth(), now.getDate())
-  const setDayHours = (iso: string, h: number) => setPlan((prev) => ({ ...prev, [iso]: Math.max(0, h) }))
+  const setDayHours = (iso: string, h: number) => setPlan((prev) => ({ ...prev, [iso]: clampDayHours(h) }))
 
   // Selected-day editor data
   const selIso = selected != null ? isoOf(year, month, selected) : null

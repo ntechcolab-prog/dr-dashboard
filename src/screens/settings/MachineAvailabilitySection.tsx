@@ -1,22 +1,25 @@
 import { useState } from 'react'
 import { FormSection, Field, NumberInput } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
+import ReplicatePanel from './ReplicatePanel'
 import { Sun, Info, Calendar, Plus, Trash, Download, ChevronDown } from '../../icons/Icons'
 import {
   WEEKDAYS,
   WEEKDAY_LABELS,
   WEEKDAY_LONG,
+  clampDayHours,
   parseISO,
   toISO,
   isoOf,
   daysInMonth,
   plannedHoursForMonth,
-  useAvailabilitySettings,
-  useAvailabilityPlan,
-  useWorkingHolidays,
+  useMachineAvailability,
+  MAX_DAY_HOURS,
+  type AvailabilityScopeKey,
   type Weekday,
 } from '../../lib/availability'
 import { useHolidays } from '../../lib/holidays'
+import { MACHINES } from '../../data/mockData'
 import { parseAssistant, type ParsedRule } from '../../components/planning/assistantParser'
 
 const MONTH_NAMES = [
@@ -24,16 +27,26 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-export default function AvailabilitySettingsTab() {
-  const [settings, setSettings] = useAvailabilitySettings()
-  const [plan, setPlan] = useAvailabilityPlan()
+const REPLICATE_SCOPES: { key: AvailabilityScopeKey; label: string }[] = [
+  { key: 'settings', label: 'Working schedule & target' },
+  { key: 'plan', label: 'Planning calendar' },
+  { key: 'workingHolidays', label: 'Working-holiday flags' },
+]
+
+// Availability configuration for ONE machine (Settings › Production).
+// Same building blocks as the old plant-wide Availability tab, but everything
+// here reads/writes the selected machine's own config — a machine starts out
+// inheriting the plant setup and owns each piece from the first edit on.
+export default function MachineAvailabilitySection({ machine }: { machine: string }) {
+  const ma = useMachineAvailability(machine)
+  const { settings, plan, setSettings, setPlan } = ma
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth())
 
   const holidays = useHolidays(year)
-  const workingHols = useWorkingHolidays()
+  const workingHols = { set: ma.workingHolidays, setWorking: ma.setWorkingHoliday }
 
   // Apply-over-range (working schedule → plan).
   const [showApplyPeriod, setShowApplyPeriod] = useState(false)
@@ -56,7 +69,7 @@ export default function AvailabilitySettingsTab() {
       for (let d = 1; d <= Math.min(bound, n); d++) {
         const wd = new Date(year, month, d).getDay() as Weekday
         const h = preview.hoursByWeekday[wd]
-        if (h != null) next[isoOf(year, month, d)] = h
+        if (h != null) next[isoOf(year, month, d)] = clampDayHours(h)
       }
       return next
     })
@@ -78,7 +91,7 @@ export default function AvailabilitySettingsTab() {
         let h = 0
         if (holidays.set.has(iso)) h = workingHols.set.has(iso) ? settings.defaultHoursByWeekday[wd] ?? 0 : 0
         else if (settings.workingDays.includes(wd)) h = settings.defaultHoursByWeekday[wd] ?? 0
-        next[iso] = h
+        next[iso] = clampDayHours(h)
         cur.setDate(cur.getDate() + 1)
       }
       return next
@@ -125,7 +138,7 @@ export default function AvailabilitySettingsTab() {
   const setDefaultHours = (d: Weekday, hours: number) =>
     setSettings((prev) => ({
       ...prev,
-      defaultHoursByWeekday: { ...prev.defaultHoursByWeekday, [d]: hours },
+      defaultHoursByWeekday: { ...prev.defaultHoursByWeekday, [d]: clampDayHours(hours) },
     }))
 
   const monthTotal = plannedHoursForMonth(year, month, plan, settings, holidays.set, workingHols.set)
@@ -165,7 +178,7 @@ export default function AvailabilitySettingsTab() {
           </Field>
         </div>
         <p className="mt-3 text-xs text-muted">
-          The availability goal for the month — used across the dashboard, the monthly goal card and
+          The availability goal for {machine}’s month — used across the dashboard, the monthly goal card and
           the machine rankings to flag whether availability is on track.
         </p>
       </FormSection>
@@ -215,9 +228,10 @@ export default function AvailabilitySettingsTab() {
                         <input
                           type="number"
                           min={0}
+                          max={MAX_DAY_HOURS}
                           step={0.5}
                           value={settings.defaultHoursByWeekday[d] ?? 0}
-                          onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)))}
+                          onChange={(e) => setDefaultHours(d, e.target.value === '' ? 0 : Number(e.target.value))}
                           className="no-spin w-full min-w-0 bg-transparent text-center text-sm font-semibold tabular-nums text-ink outline-none"
                         />
                         <span className="text-xs text-muted">h</span>
@@ -276,7 +290,7 @@ export default function AvailabilitySettingsTab() {
           <div>
             <p className="mb-1 text-sm font-medium text-ink">Use the Planning assistant</p>
             <p className="mb-3 text-xs text-muted">
-              Describe the plan in plain English — applied to {MONTH_NAMES[month]} {year} (the month shown in the calendar below).
+              Describe {machine}’s plan in plain English — applied to {MONTH_NAMES[month]} {year} (the month shown in the calendar below).
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -310,7 +324,7 @@ export default function AvailabilitySettingsTab() {
                       .sort((a, b) => Number(a[0]) - Number(b[0]))
                       .map(([wd, h]) => (
                         <li key={wd} className="rounded-md bg-primary-soft px-2.5 py-1 font-medium text-primary">
-                          {WEEKDAY_LONG[Number(wd)]} · {h}h
+                          {WEEKDAY_LONG[Number(wd)]} · {clampDayHours(h)}h
                         </li>
                       ))}
                   </ul>
@@ -358,7 +372,19 @@ export default function AvailabilitySettingsTab() {
         />
       </FormSection>
 
-      {/* 2. Holidays */}
+      {/* Copy configuration between machines */}
+      <ReplicatePanel
+        machine={machine}
+        machines={MACHINES}
+        scopes={REPLICATE_SCOPES}
+        isCustomized={(m) => {
+          const e = ma.map[m]
+          return !!e && Object.keys(e).length > 0
+        }}
+        onApply={(direction, others, scopeKeys) => ma.replicate(direction, others, scopeKeys as AvailabilityScopeKey[])}
+      />
+
+      {/* Holidays */}
       <FormSection
         title={`Holidays · ${year}`}
         action={
@@ -385,8 +411,8 @@ export default function AvailabilitySettingsTab() {
       >
         <p className="mb-3 flex items-start gap-2 text-sm text-muted">
           <Info size={15} className="mt-0.5 shrink-0 text-primary" />
-          Holidays are days off in the calendar above. Need to produce on one? Toggle
-          “Working day” on that day. Add your own holidays, or import the public list for {year}.
+          Holidays are plant-wide days off; whether {machine} works through one (the “Working day” toggle in the
+          calendar above) is saved per machine. Add your own holidays, or import the public list for {year}.
         </p>
 
         {importMsg && <p className="mb-3 rounded-lg bg-page px-3 py-2 text-xs text-muted">{importMsg}</p>}

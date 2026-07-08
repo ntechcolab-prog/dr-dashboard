@@ -39,9 +39,12 @@ function mulberry32(seed: number): () => number {
 const round1 = (n: number) => Math.round(n * 10) / 10
 
 // Executed/planned efficiency for a day — mostly high, with occasional dips.
-// Deterministic per ISO date so reloads are stable.
-function efficiency(iso: string): number {
-  const rng = mulberry32(hashStr(`avail|${iso}`))
+// Deterministic per ISO date (and machine, when the view is machine-scoped) so
+// reloads are stable. No machine → the plant-wide series everyone saw before.
+function efficiency(iso: string, machine = ''): number {
+  // Seed shape is unchanged when no machine is given, so the plant-wide
+  // numbers everyone already saw stay exactly the same.
+  const rng = mulberry32(hashStr(machine ? `avail|${iso}|${machine}` : `avail|${iso}`))
   let eff = 0.82 + rng() * 0.17 // 0.82–0.99 baseline
   if (rng() < 0.12) eff -= 0.22 + rng() * 0.18 // bad day
   return Math.max(0.4, Math.min(1, eff))
@@ -85,22 +88,37 @@ export interface DayAvailability {
   pct: number
 }
 
-export function executedHours(iso: string, planned: number): number {
+export function executedHours(iso: string, planned: number, machine?: string): number {
   if (planned <= 0) return 0
-  return round1(planned * efficiency(iso))
+  return round1(planned * efficiency(iso, machine))
 }
 
 export interface AvailabilityService {
-  day(iso: string, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): DayAvailability
+  day(
+    iso: string,
+    plan: PlanMap,
+    settings: AvailabilitySettings,
+    holidays: Set<string>,
+    workingHolidays?: Set<string>,
+    machine?: string
+  ): DayAvailability
   monthSeries(
     year: number,
     month: number,
     plan: PlanMap,
     settings: AvailabilitySettings,
     holidays: Set<string>,
-    workingHolidays?: Set<string>
+    workingHolidays?: Set<string>,
+    machine?: string
   ): SeriesResult
-  yearSeries(year: number, plan: PlanMap, settings: AvailabilitySettings, holidays: Set<string>, workingHolidays?: Set<string>): SeriesResult
+  yearSeries(
+    year: number,
+    plan: PlanMap,
+    settings: AvailabilitySettings,
+    holidays: Set<string>,
+    workingHolidays?: Set<string>,
+    machine?: string
+  ): SeriesResult
   alarmsByDay(year: number, month: number): { day: number; iso: string; count: number }[]
   machineRanking(year: number, month: number, machines: string[]): { machine: string; pct: number }[]
   machineRankingDetailed(year: number, month: number, machines: string[]): MachineRankRow[]
@@ -132,10 +150,11 @@ function dayAvailability(
   plan: PlanMap,
   settings: AvailabilitySettings,
   holidays: Set<string>,
-  workingHolidays?: Set<string>
+  workingHolidays?: Set<string>,
+  machine?: string
 ): DayAvailability {
   const planned = plannedHoursForDay(iso, plan, settings, holidays, workingHolidays)
-  const executed = executedHours(iso, planned)
+  const executed = executedHours(iso, planned, machine)
   return { iso, day: parseISO(iso).getDate(), planned, executed, pct: availabilityPct(planned, executed) }
 }
 
@@ -150,14 +169,14 @@ const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 export const availabilityService: AvailabilityService = {
   day: dayAvailability,
 
-  monthSeries(year, month, plan, settings, holidays, workingHolidays) {
+  monthSeries(year, month, plan, settings, holidays, workingHolidays, machine) {
     const n = daysInMonth(year, month)
     const labels: string[] = []
     const planned: number[] = []
     const executed: number[] = []
     const pct: number[] = []
     for (let d = 1; d <= n; d++) {
-      const da = dayAvailability(isoOf(year, month, d), plan, settings, holidays, workingHolidays)
+      const da = dayAvailability(isoOf(year, month, d), plan, settings, holidays, workingHolidays, machine)
       labels.push(String(d).padStart(2, '0'))
       planned.push(round1(da.planned))
       executed.push(round1(da.executed))
@@ -166,13 +185,13 @@ export const availabilityService: AvailabilityService = {
     return { labels, planned, executed, pct, ...overall(planned, executed) }
   },
 
-  yearSeries(year, plan, settings, holidays, workingHolidays) {
+  yearSeries(year, plan, settings, holidays, workingHolidays, machine) {
     const labels: string[] = []
     const planned: number[] = []
     const executed: number[] = []
     const pct: number[] = []
     for (let m = 0; m < 12; m++) {
-      const ms = this.monthSeries(year, m, plan, settings, holidays, workingHolidays)
+      const ms = this.monthSeries(year, m, plan, settings, holidays, workingHolidays, machine)
       labels.push(MONTH_SHORT[m])
       planned.push(round1(ms.totalPlanned))
       executed.push(round1(ms.totalExecuted))

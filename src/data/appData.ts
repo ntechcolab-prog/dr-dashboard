@@ -24,7 +24,7 @@ export const REGISTRY_ROWS: RegistryRow[] = [
 
 export const SETTINGS_TABS = [
   'General',
-  'Availability',
+  'Production',
   'Data Export',
 ]
 

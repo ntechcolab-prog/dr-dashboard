@@ -102,9 +102,18 @@ export interface MachinePerfRow {
 
 export interface RecipePerfRow {
   recipe: string
-  pct: number
+  pct: number // grind-time-weighted average
+  minPct: number // worst batch of the month
+  maxPct: number // best batch of the month
   actualRate: number
   idealRate: number
+  batches: number
+}
+
+export interface MachineProductionRow {
+  machine: string
+  tons: number // produced mass this month
+  producedH: number // hours actually grinding (from the batches)
   batches: number
 }
 
@@ -193,6 +202,47 @@ export const performanceService = {
     return { labels, pct, overallPct: weightedPct(rows) }
   },
 
+  // Weekly performance % — calendar weeks (Sun–Sat, matching the calendars
+  // across the app), only weeks with production. Labels carry the day range.
+  weeklySeries(year: number, month: number): PerfSeries {
+    const rows = monthBatches(year, month)
+    const days = new Date(year, month + 1, 0).getDate()
+    const labels: string[] = []
+    const pct: number[] = []
+    let weekStart = 1
+    let w = 1
+    while (weekStart <= days) {
+      // A week row ends on Saturday (getDay() === 6) or at the end of the month.
+      let weekEnd = weekStart
+      while (weekEnd < days && new Date(year, month, weekEnd).getDay() !== 6) weekEnd++
+      const weekRows = rows.filter((r) => r.batch.day >= weekStart && r.batch.day <= weekEnd)
+      if (weekRows.length) {
+        labels.push(`W${w} · ${String(weekStart).padStart(2, '0')}–${String(weekEnd).padStart(2, '0')}`)
+        pct.push(weightedPct(weekRows))
+      }
+      w++
+      weekStart = weekEnd + 1
+    }
+    return { labels, pct, overallPct: weightedPct(rows) }
+  },
+
+  // Tons produced + grinding hours per machine in a month (from the batches).
+  machineMonthProduction(year: number, month: number): MachineProductionRow[] {
+    const rows = monthBatches(year, month)
+    const machines = [...new Set(rows.map((r) => r.batch.machine))]
+    return machines
+      .map((machine) => {
+        const mr = rows.filter((r) => r.batch.machine === machine)
+        return {
+          machine,
+          tons: round1(mr.reduce((a, r) => a + r.batch.mass, 0)),
+          producedH: round1(mr.reduce((a, r) => a + r.batch.grindMin, 0) / 60),
+          batches: mr.length,
+        }
+      })
+      .sort((a, b) => b.tons - a.tons)
+  },
+
   // Monthly performance % — only months with data in the given year.
   yearSeries(year: number): PerfSeries {
     const labels: string[] = []
@@ -240,6 +290,8 @@ export const performanceService = {
         return {
           recipe,
           pct: weightedPct(rr),
+          minPct: Math.min(...rr.map((r) => r.pct)),
+          maxPct: Math.max(...rr.map((r) => r.pct)),
           actualRate: weightedRate(rr, (r) => r.actualRate),
           idealRate: weightedRate(rr, (r) => r.idealRate),
           batches: rr.length,

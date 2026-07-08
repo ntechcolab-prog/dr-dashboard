@@ -2,9 +2,11 @@ import { useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Sun } from '../../icons/Icons'
 import {
   WEEKDAY_LABELS,
+  clampDayHours,
   daysInMonth,
   isoOf,
   plannedHoursForDay,
+  MAX_DAY_HOURS,
   type AvailabilitySettings,
   type PlanMap,
   type Weekday,
@@ -58,7 +60,7 @@ export default function PlanningCalendar({
   const weeks = useMemo(() => buildWeeks(year, month), [year, month])
 
   const setDay = (iso: string, hours: number) =>
-    setPlan((prev) => ({ ...prev, [iso]: hours }))
+    setPlan((prev) => ({ ...prev, [iso]: clampDayHours(hours) }))
 
   // --- Derived: heatmap scale + month summary (for the new clearer UI) ---
   const totalDays = daysInMonth(year, month)
@@ -294,11 +296,12 @@ function DayPlanCell({
               <input
                 type="number"
                 min={0}
+                max={MAX_DAY_HOURS}
                 step={0.5}
                 value={hours}
                 onChange={(e) => {
                   const v = e.target.value === '' ? 0 : Number(e.target.value)
-                  onSet(Number.isFinite(v) ? Math.max(0, v) : 0)
+                  onSet(clampDayHours(v))
                 }}
                 className={`no-spin w-10 bg-transparent text-center text-base font-bold tabular-nums outline-none ${
                   hasHours ? 'text-ink' : 'text-faint'
@@ -306,7 +309,7 @@ function DayPlanCell({
               />
               <button
                 type="button"
-                onClick={() => onSet(Math.round((hours + 1) * 2) / 2)}
+                onClick={() => onSet(clampDayHours(Math.round((hours + 1) * 2) / 2))}
                 aria-label="Increase hours"
                 className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted hover:bg-white/70 hover:text-ink"
               >
