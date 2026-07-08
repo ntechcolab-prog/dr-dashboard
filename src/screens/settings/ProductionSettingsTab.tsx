@@ -168,23 +168,26 @@ export default function ProductionSettingsTab() {
                 </button>
               )
             })}
-            {/* interactive OEE explainer — pre-filled from this machine's config */}
-            <button
-              type="button"
-              onClick={() => setShowOee(true)}
-              className="ml-auto flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-page hover:text-ink"
-            >
-              <Info size={15} className="text-primary" />
-              How OEE works
-            </button>
           </div>
 
           {menu === 'availability' && <MachineAvailabilitySection machine={machine} />}
           {menu === 'performance' && <MachinePerformanceSection machine={machine} />}
-
-          {showOee && <OeeExplainer machine={machine} onClose={() => setShowOee(false)} />}
         </>
       )}
+
+      {/* FAB — interactive OEE explainer, pre-filled from the selected
+          machine's config (or the plant defaults before picking one) */}
+      <button
+        type="button"
+        onClick={() => setShowOee(true)}
+        title="How OEE works"
+        className="no-print fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-pop transition-transform hover:scale-105 hover:bg-primary-700"
+      >
+        <Info size={18} />
+        How OEE works
+      </button>
+
+      {showOee && <OeeExplainer machine={machine ?? undefined} onClose={() => setShowOee(false)} />}
     </div>
   )
 }

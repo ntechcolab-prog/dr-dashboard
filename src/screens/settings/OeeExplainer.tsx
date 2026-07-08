@@ -7,9 +7,11 @@ import { PERFORMANCE_GOAL_PCT } from '../../data/performanceData'
 // Interactive "how OEE works" explainer (Settings › Production).
 //
 // The classic Availability × Performance × Quality = OEE waterfall, live:
-// the five inputs start from the selected machine's own configuration
-// (working hours, availability target, target throughput, performance goal)
-// and every edit re-flows the bars, the derived captions and the final OEE.
+// the five inputs start from the machine's own configuration (working hours,
+// availability target, target throughput, performance goal) and every edit
+// re-flows the bars, the annotations and the final OEE — mirroring the
+// reference diagram: scheduled time on the left, losses annotated per bar,
+// max potential / actual / good products bridging the factors.
 
 const COLORS = {
   availability: '#22ab67',
@@ -24,13 +26,14 @@ const fmt = (n: number, digits = 1) => {
 }
 
 interface Props {
-  machine: string
+  machine?: string
   onClose: () => void
 }
 
 export default function OeeExplainer({ machine, onClose }: Props) {
   const { settings: avail } = useMachineAvailability(machine)
   const { settings: perf } = useMachinePerformance(machine)
+  const scopeLabel = machine ?? 'the plant defaults'
 
   // Defaults derived from the machine's configuration.
   const defaults = useMemo(() => {
@@ -67,10 +70,13 @@ export default function OeeExplainer({ machine, onClose }: Props) {
   }, [onClose])
 
   // --- the OEE math ---
-  const uptime = Math.max(0, scheduled - Math.min(downtime, scheduled))
+  const downClamped = Math.min(downtime, scheduled)
+  const uptime = Math.max(0, scheduled - downClamped)
   const maxPotential = uptime * idealRate
   const actualClamped = Math.min(actual, maxPotential)
   const goodClamped = Math.min(good, actualClamped)
+  const perfLossT = Math.max(0, maxPotential - actualClamped)
+  const scrapT = Math.max(0, actualClamped - goodClamped)
 
   const a = scheduled > 0 ? uptime / scheduled : 0
   const p = maxPotential > 0 ? actualClamped / maxPotential : 0
@@ -85,7 +91,7 @@ export default function OeeExplainer({ machine, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative max-h-full w-full max-w-4xl overflow-y-auto rounded-2xl bg-card p-6 shadow-pop">
+      <div className="relative max-h-full w-full max-w-5xl overflow-y-auto rounded-2xl bg-card p-6 shadow-pop">
         {/* header */}
         <div className="mb-1 flex items-start justify-between gap-3">
           <h3 className="text-lg font-bold text-ink">
@@ -107,87 +113,90 @@ export default function OeeExplainer({ machine, onClose }: Props) {
           </button>
         </div>
         <p className="mb-5 text-sm text-muted">
-          Pre-filled from <span className="font-medium text-ink">{machine}</span>’s configuration — change any value and
-          watch the three factors and the final OEE re-flow.
+          Pre-filled from <span className="font-medium text-ink">{scopeLabel}</span> — change any value and watch the
+          three factors and the final OEE re-flow.
         </p>
 
         {/* inputs */}
-        <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mb-2 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <ExplainerInput label="Scheduled time" suffix="h" value={scheduled} min={0} step={0.5} onChange={setScheduled} />
           <ExplainerInput label="Downtime" suffix="h" value={downtime} min={0} step={0.5} onChange={setDowntime} />
           <ExplainerInput label="Ideal rate" suffix="t/h" value={idealRate} min={0} step={0.1} onChange={setIdealRate} />
           <ExplainerInput label="Actual output" suffix="t" value={actual} min={0} step={0.1} onChange={setActual} />
           <ExplainerInput label="Good output" suffix="t" value={good} min={0} step={0.1} onChange={setGood} />
         </div>
-
-        {/* derived captions */}
-        <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-          <span>
-            Uptime <span className="font-semibold text-ink">{fmt(uptime)}h</span>
-          </span>
-          <span>
-            Max potential output <span className="font-semibold text-ink">{fmt(maxPotential)} t</span>
-          </span>
-          <span>
-            Actual output <span className="font-semibold text-ink">{fmt(actualClamped)} t</span>
-          </span>
-          <span>
-            Good products <span className="font-semibold text-ink">{fmt(goodClamped)} t</span>
-          </span>
+        <div className="mb-6 flex justify-end">
           <button
             type="button"
             onClick={reset}
-            className="ml-auto flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
+            className="flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
           >
             <Refresh size={13} />
-            Reset to {machine}’s config
+            Reset to {machine ? `${machine}’s config` : 'plant defaults'}
           </button>
         </div>
 
-        {/* diagram */}
-        <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1.2fr] items-end gap-2 sm:gap-3">
+        {/* diagram — scheduled-time label, 3 factor bars bridged by the
+            derived quantities, and the stacked result on the right */}
+        <div className="grid grid-cols-[auto_1fr_minmax(5.5rem,auto)_1fr_minmax(5.5rem,auto)_1fr_minmax(5.5rem,auto)_1.25fr] items-end gap-1.5 sm:gap-2">
+          {/* left axis: scheduled time */}
+          <div className="flex flex-col items-end justify-center self-stretch pb-16 pr-1">
+            <p className="max-w-[4.5rem] text-right text-[0.625rem] leading-tight text-muted">Scheduled time</p>
+            <p className="text-sm font-bold tabular-nums text-ink">{fmt(scheduled)}h</p>
+          </div>
+
           <FactorBar
             name="Availability"
             color={COLORS.availability}
             pct={a}
-            lossLabel={`Downtime ${fmt(Math.min(downtime, scheduled))}h`}
-            mainLabel={`Uptime ${fmt(uptime)}h`}
+            lossTitle="Downtime"
+            lossValue={`${fmt(downClamped)}h`}
+            mainTitle="Uptime"
+            mainValue={`${fmt(uptime)}h`}
           />
-          <Operator symbol="×" />
+          <GapCol symbol="×" caption="Max potential output during uptime" value={`${fmt(maxPotential)} t`} />
           <FactorBar
             name="Performance"
             color={COLORS.performance}
             pct={p}
-            lossLabel={`Perf. loss ${fmt(Math.max(0, maxPotential - actualClamped))} t`}
-            mainLabel={`Output ${fmt(actualClamped)} t`}
+            lossTitle="Perf. loss"
+            lossValue={`${fmt(perfLossT)} t`}
+            mainTitle="Actual output"
+            mainValue={`${fmt(actualClamped)} t`}
           />
-          <Operator symbol="×" />
+          <GapCol symbol="×" caption="Actual output" value={`${fmt(actualClamped)} t`} />
           <FactorBar
             name="Quality"
             color={COLORS.quality}
             pct={q}
-            lossLabel={`Scrap ${fmt(Math.max(0, actualClamped - goodClamped))} t`}
-            mainLabel={`Good ${fmt(goodClamped)} t`}
+            lossTitle="Scrap"
+            lossValue={`${fmt(scrapT)} t`}
+            mainTitle="Good products"
+            mainValue={`${fmt(goodClamped)} t`}
           />
-          <Operator symbol="=" />
+          <GapCol symbol="=" caption="Good products" value={`${fmt(goodClamped)} t`} />
           <OeeBar a={availLoss} p={perfLoss} q={qualLoss} oee={oee} />
         </div>
 
         {/* formula line */}
         <p className="mt-5 border-t border-line pt-3 text-center text-sm">
+          <span className="text-muted">Availability </span>
           <span className="font-semibold" style={{ color: COLORS.availability }}>
             {fmt(a * 100)}%
           </span>
-          <span className="text-muted"> × </span>
+          <span className="text-muted"> × Performance </span>
           <span className="font-semibold" style={{ color: COLORS.performance }}>
             {fmt(p * 100)}%
           </span>
-          <span className="text-muted"> × </span>
+          <span className="text-muted"> × Quality </span>
           <span className="font-semibold" style={{ color: COLORS.quality }}>
             {fmt(q * 100)}%
           </span>
           <span className="text-muted"> = </span>
           <span className="font-bold text-ink">OEE {fmt(oee * 100)}%</span>
+        </p>
+        <p className="mt-1 text-center text-xs text-muted">
+          OEE is the share of the scheduled time that became good product at the ideal rate.
         </p>
       </div>
     </div>
@@ -230,62 +239,94 @@ function ExplainerInput({
   )
 }
 
-const BAR_H = '13rem'
+const BAR_H = '15rem'
 
-// One factor column: light "loss" segment on top, solid value below.
+// One factor column: light "loss" segment on top (annotated), solid value
+// below (annotated) — the numbers live inside the segments like the drawing.
 function FactorBar({
   name,
   color,
   pct,
-  lossLabel,
-  mainLabel,
+  lossTitle,
+  lossValue,
+  mainTitle,
+  mainValue,
 }: {
   name: string
   color: string
   pct: number // 0–1
-  lossLabel: string
-  mainLabel: string
+  lossTitle: string
+  lossValue: string
+  mainTitle: string
+  mainValue: string
 }) {
   const valuePct = Math.max(0, Math.min(1, pct)) * 100
+  const lossPct = 100 - valuePct
   return (
     <div className="flex flex-col items-center">
-      <div className="flex w-full max-w-[5.5rem] flex-col overflow-hidden rounded-lg" style={{ height: BAR_H }}>
+      <div className="flex w-full max-w-[6.5rem] flex-col overflow-hidden rounded-lg" style={{ height: BAR_H }}>
         <div
-          className="flex w-full items-center justify-center transition-all duration-500"
-          style={{ height: `${100 - valuePct}%`, background: `color-mix(in oklab, ${color} 22%, white)` }}
-          title={lossLabel}
+          className="flex w-full flex-col items-center justify-center transition-all duration-500"
+          style={{ height: `${lossPct}%`, background: `color-mix(in oklab, ${color} 22%, white)` }}
+          title={`${lossTitle} ${lossValue}`}
         >
-          {100 - valuePct >= 10 && (
+          {lossPct >= 14 && (
+            <>
+              <span className="px-1 text-center text-xs font-bold tabular-nums" style={{ color }}>
+                {fmt(lossPct)}%
+              </span>
+              <span className="px-1 text-center text-[0.625rem] font-medium leading-tight" style={{ color }}>
+                {lossTitle} {lossValue}
+              </span>
+            </>
+          )}
+          {lossPct >= 7 && lossPct < 14 && (
             <span className="px-1 text-center text-[0.6875rem] font-semibold tabular-nums" style={{ color }}>
-              {fmt(100 - valuePct)}%
+              {fmt(lossPct)}%
             </span>
           )}
         </div>
         <div
-          className="flex w-full items-center justify-center transition-all duration-500"
+          className="flex w-full flex-col items-center justify-center transition-all duration-500"
           style={{ height: `${valuePct}%`, background: color }}
-          title={mainLabel}
+          title={`${mainTitle} ${mainValue}`}
         >
-          {valuePct >= 10 && (
+          {valuePct >= 14 && (
+            <>
+              <span className="px-1 text-center text-base font-bold tabular-nums text-white">{fmt(valuePct)}%</span>
+              <span className="px-1 text-center text-[0.625rem] font-medium leading-tight text-white/90">
+                {mainTitle} {mainValue}
+              </span>
+            </>
+          )}
+          {valuePct >= 7 && valuePct < 14 && (
             <span className="px-1 text-center text-xs font-bold tabular-nums text-white">{fmt(valuePct)}%</span>
           )}
         </div>
       </div>
-      <p className="mt-2 text-center text-xs font-semibold text-ink">{name}</p>
-      <p className="text-center text-[0.6875rem] tabular-nums text-muted">{mainLabel}</p>
+      <p className="mt-2 text-center text-xs font-semibold text-ink">
+        {name} <span className="tabular-nums" style={{ color }}>{fmt(valuePct)}%</span>
+      </p>
     </div>
   )
 }
 
-function Operator({ symbol }: { symbol: string }) {
+// Bridge column between two bars: the operator + the quantity that flows
+// from one factor into the next.
+function GapCol({ symbol, caption, value }: { symbol: string; caption: string; value: string }) {
   return (
-    <span className="pb-14 text-lg font-semibold text-muted" aria-hidden>
-      {symbol}
-    </span>
+    <div className="flex flex-col items-center justify-center gap-1.5 self-stretch pb-16">
+      <span className="text-xl font-semibold text-muted" aria-hidden>
+        {symbol}
+      </span>
+      <p className="max-w-[6.5rem] text-center text-[0.625rem] leading-tight text-muted">{caption}</p>
+      <p className="text-center text-xs font-bold tabular-nums text-ink">{value}</p>
+    </div>
   )
 }
 
-// The stacked result: the three losses on top, OEE at the bottom.
+// The stacked result: the three losses on top, OEE at the bottom, with a
+// 100% reference at the top of the column.
 function OeeBar({ a, p, q, oee }: { a: number; p: number; q: number; oee: number }) {
   const seg = (v: number) => Math.max(0, v) * 100
   const rows: { label: string; pct: number; bg: string; fg: string }[] = [
@@ -296,24 +337,38 @@ function OeeBar({ a, p, q, oee }: { a: number; p: number; q: number; oee: number
   ]
   return (
     <div className="flex flex-col items-center">
-      <div className="flex w-full max-w-[8rem] flex-col overflow-hidden rounded-lg" style={{ height: BAR_H }}>
+      <p className="mb-1 text-[0.625rem] font-medium tabular-nums text-faint">100% of scheduled time</p>
+      <div className="flex w-full max-w-[9rem] flex-col overflow-hidden rounded-lg" style={{ height: BAR_H }}>
         {rows.map((r) => (
           <div
             key={r.label}
-            className="flex w-full items-center justify-center transition-all duration-500"
+            className="flex w-full flex-col items-center justify-center transition-all duration-500"
             style={{ height: `${r.pct}%`, background: r.bg }}
             title={`${r.label} · ${fmt(r.pct)}%`}
           >
-            {r.pct >= 9 && (
-              <span className="px-1 text-center text-[0.625rem] font-semibold leading-tight" style={{ color: r.fg }}>
-                {r.label === 'OEE' ? `${fmt(r.pct)}% = OEE` : r.label}
+            {r.pct >= 13 && (
+              <>
+                <span className="px-1 text-center text-[0.625rem] font-semibold leading-tight" style={{ color: r.fg }}>
+                  {r.label === 'OEE' ? `${fmt(r.pct)}% = OEE` : r.label}
+                </span>
+                {r.label !== 'OEE' && (
+                  <span className="px-1 text-center text-[0.625rem] font-bold tabular-nums" style={{ color: r.fg }}>
+                    {fmt(r.pct)}%
+                  </span>
+                )}
+              </>
+            )}
+            {r.pct >= 6 && r.pct < 13 && (
+              <span className="px-1 text-center text-[0.5625rem] font-semibold leading-none" style={{ color: r.fg }}>
+                {r.label === 'OEE' ? `${fmt(r.pct)}%` : `${r.label} ${fmt(r.pct)}%`}
               </span>
             )}
           </div>
         ))}
       </div>
-      <p className="mt-2 text-center text-xs font-semibold text-ink">OEE</p>
-      <p className="text-center text-[0.6875rem] tabular-nums text-muted">{fmt(oee * 100)}%</p>
+      <p className="mt-2 text-center text-xs font-semibold text-ink">
+        OEE <span className="tabular-nums" style={{ color: '#b8940a' }}>{fmt(oee * 100)}%</span>
+      </p>
     </div>
   )
 }
