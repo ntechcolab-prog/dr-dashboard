@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import MachineAvailabilitySection from './MachineAvailabilitySection'
 import MachinePerformanceSection from './MachinePerformanceSection'
+import OeeExplainer from './OeeExplainer'
 import { FormSection } from '../../components/FormControls'
 import Dropdown from '../../components/Dropdown'
-import { Search } from '../../icons/Icons'
+import { Info, Search } from '../../icons/Icons'
 import { MACHINE_INFO } from '../../data/mockData'
 import { useMachineAvailabilityMap } from '../../lib/availability'
 import { useMachinePerformanceMap } from '../../lib/performanceSettings'
@@ -28,6 +29,7 @@ const FAMILY_OPTIONS = [ALL_FAMILIES, ...new Set(MACHINE_INFO.map((m) => m.famil
 export default function ProductionSettingsTab() {
   const [machine, setMachine] = useState<string | null>(null)
   const [menu, setMenu] = useState<ProductionMenu>('availability')
+  const [showOee, setShowOee] = useState(false)
 
   // Fleet filters — the picker has to scale past a handful of machines.
   const [query, setQuery] = useState('')
@@ -166,10 +168,21 @@ export default function ProductionSettingsTab() {
                 </button>
               )
             })}
+            {/* interactive OEE explainer — pre-filled from this machine's config */}
+            <button
+              type="button"
+              onClick={() => setShowOee(true)}
+              className="ml-auto flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-page hover:text-ink"
+            >
+              <Info size={15} className="text-primary" />
+              How OEE works
+            </button>
           </div>
 
           {menu === 'availability' && <MachineAvailabilitySection machine={machine} />}
           {menu === 'performance' && <MachinePerformanceSection machine={machine} />}
+
+          {showOee && <OeeExplainer machine={machine} onClose={() => setShowOee(false)} />}
         </>
       )}
     </div>
