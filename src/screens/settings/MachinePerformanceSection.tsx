@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { FormBlock, Field, NumberInput } from '../../components/FormControls'
 import Dropdown from '../../components/Dropdown'
 import ReplicatePanel from './ReplicatePanel'
+import MachineHeader from './MachineHeader'
 import { ChevronLeft, ChevronRight, Sun, Info } from '../../icons/Icons'
 import {
   WEEKDAY_LABELS,
@@ -88,10 +89,11 @@ export default function MachinePerformanceSection({ machine }: { machine: string
   const perWeek = round1((monthTarget * 7) / totalDays)
 
   return (
-    // One big card — targets, preview calendar and copy flow together
-    // without per-section chrome.
+    // One big card — a prominent machine header on top, then targets,
+    // preview calendar and copy separated by soft dividers.
     <section className="rounded-xl bg-card p-6 shadow-card">
-      <div className="flex flex-col gap-10">
+      <MachineHeader machine={machine} customized={mp.owns} />
+      <div className="flex flex-col divide-y divide-line/70 [&>*]:py-7 [&>*:first-child]:pt-6 [&>*:last-child]:pb-0">
       {/* Targets */}
       <FormBlock title="Performance targets">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">

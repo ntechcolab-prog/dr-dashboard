@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FormBlock, Field, NumberInput } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
+import MachineHeader from './MachineHeader'
 import ReplicatePanel from './ReplicatePanel'
 import { Sun, Info, Calendar, Plus, Trash, Download, ChevronDown } from '../../icons/Icons'
 import {
@@ -161,10 +162,11 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
     })
 
   return (
-    // One big card — target, schedule, calendar, copy and holidays flow
-    // together without per-section chrome.
+    // One big card — a prominent machine header on top, then target,
+    // schedule, calendar, copy and holidays separated by soft dividers.
     <section className="rounded-xl bg-card p-6 shadow-card">
-      <div className="flex flex-col gap-10">
+      <MachineHeader machine={machine} customized={ma.owns.settings || ma.owns.plan || ma.owns.workingHolidays} />
+      <div className="flex flex-col divide-y divide-line/70 [&>*]:py-7 [&>*:first-child]:pt-6 [&>*:last-child]:pb-0">
       {/* Availability target */}
       <FormBlock title="Availability target">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
