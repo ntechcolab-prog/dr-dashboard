@@ -15,6 +15,20 @@ export function FormSection({ title, action, children }: { title: string; action
   )
 }
 
+// FormSection's heading + content without the card chrome — for stacking
+// several groups inside ONE big card (e.g. Settings › Production).
+export function FormBlock({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 // Labeled wrapper around any control.
 export function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
   const id = useId()

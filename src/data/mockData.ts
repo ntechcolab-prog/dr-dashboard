@@ -63,6 +63,24 @@ function mulberry32(seed: number): () => number {
 
 export const MACHINES = ['Zeta 10', 'Zeta 60', 'Zeta 25', 'Omega 5', 'Alpha 22', 'Neos 40']
 
+// Fleet metadata for the machine filters (Settings › Production). Families
+// mirror the NETZSCH mill lines; line assignment matches PRODUCTION_LINES.
+export interface MachineInfo {
+  name: string
+  line: string
+  family: string // mill family — filterable
+  model: string // display subtitle
+}
+
+export const MACHINE_INFO: MachineInfo[] = [
+  { name: 'Zeta 10', line: 'Production Line A', family: 'Zeta', model: 'Circulation bead mill' },
+  { name: 'Zeta 60', line: 'Production Line A', family: 'Zeta', model: 'Circulation bead mill' },
+  { name: 'Zeta 25', line: 'Production Line B', family: 'Zeta', model: 'Circulation bead mill' },
+  { name: 'Omega 5', line: 'Production Line B', family: 'Omega', model: 'Economic bead mill' },
+  { name: 'Alpha 22', line: 'Production Line C', family: 'Alpha', model: 'Agitator bead mill' },
+  { name: 'Neos 40', line: 'Production Line C', family: 'Neos', model: 'High-performance mill' },
+]
+
 export const RECIPES = [
   'Dark Red',
   'White Chocolate',

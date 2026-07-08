@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { FormSection, Field, NumberInput } from '../../components/FormControls'
+import { FormBlock, Field, NumberInput } from '../../components/FormControls'
 import Dropdown from '../../components/Dropdown'
 import ReplicatePanel from './ReplicatePanel'
 import { ChevronLeft, ChevronRight, Sun, Info } from '../../icons/Icons'
@@ -88,9 +88,12 @@ export default function MachinePerformanceSection({ machine }: { machine: string
   const perWeek = round1((monthTarget * 7) / totalDays)
 
   return (
-    <div className="flex flex-col gap-4">
+    // One big card — targets, preview calendar and copy flow together
+    // without per-section chrome.
+    <section className="rounded-xl bg-card p-6 shadow-card">
+      <div className="flex flex-col gap-10">
       {/* Targets */}
-      <FormSection title="Performance targets">
+      <FormBlock title="Performance targets">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <Field label="Target throughput">
             <NumberInput
@@ -123,10 +126,10 @@ export default function MachinePerformanceSection({ machine }: { machine: string
           the machine is expected to deliver — set it per month, week or day; the calendar below always shows the
           resulting daily split.
         </p>
-      </FormSection>
+      </FormBlock>
 
       {/* Target preview calendar */}
-      <FormSection
+      <FormBlock
         title="Target preview"
         action={
           <span className="text-xs text-muted">
@@ -238,7 +241,7 @@ export default function MachinePerformanceSection({ machine }: { machine: string
           The daily split follows the availability plan — days with more planned hours carry more of the target.
           Change {machine}’s planned hours in the Availability menu and this preview updates.
         </p>
-      </FormSection>
+      </FormBlock>
 
       {/* Copy configuration between machines */}
       <ReplicatePanel
@@ -247,8 +250,10 @@ export default function MachinePerformanceSection({ machine }: { machine: string
         scopes={[{ key: 'targets', label: 'Performance targets' }]}
         isCustomized={(m) => !!mp.map[m]}
         onApply={(direction, others) => mp.replicate(direction, others)}
+        plain
       />
-    </div>
+      </div>
+    </section>
   )
 }
 

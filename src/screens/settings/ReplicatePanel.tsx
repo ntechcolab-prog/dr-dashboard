@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FormSection } from '../../components/FormControls'
+import { FormBlock, FormSection } from '../../components/FormControls'
 import { Copy, CheckCircle } from '../../icons/Icons'
 
 // Copy configuration between machines (Settings › Production).
@@ -24,9 +24,11 @@ interface Props {
   /** badge machines that already have their own config */
   isCustomized?: (machine: string) => boolean
   onApply: (direction: 'to' | 'from', otherMachines: string[], scopeKeys: string[]) => void
+  /** render without the card chrome (for use inside a bigger card) */
+  plain?: boolean
 }
 
-export default function ReplicatePanel({ machine, machines, scopes, isCustomized, onApply }: Props) {
+export default function ReplicatePanel({ machine, machines, scopes, isCustomized, onApply, plain }: Props) {
   const others = machines.filter((m) => m !== machine)
   const [direction, setDirection] = useState<'to' | 'from'>('to')
   const [selected, setSelected] = useState<string[]>([])
@@ -66,8 +68,9 @@ export default function ReplicatePanel({ machine, machines, scopes, isCustomized
     setSelected([])
   }
 
+  const Wrapper = plain ? FormBlock : FormSection
   return (
-    <FormSection
+    <Wrapper
       title="Copy configuration"
       action={
         <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -197,6 +200,6 @@ export default function ReplicatePanel({ machine, machines, scopes, isCustomized
           </span>
         )}
       </div>
-    </FormSection>
+    </Wrapper>
   )
 }

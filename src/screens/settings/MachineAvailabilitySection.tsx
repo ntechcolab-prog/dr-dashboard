@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FormSection, Field, NumberInput } from '../../components/FormControls'
+import { FormBlock, Field, NumberInput } from '../../components/FormControls'
 import PlanningCalendar from '../../components/planning/PlanningCalendar'
 import ReplicatePanel from './ReplicatePanel'
 import { Sun, Info, Calendar, Plus, Trash, Download, ChevronDown } from '../../icons/Icons'
@@ -161,9 +161,12 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
     })
 
   return (
-    <div className="flex flex-col gap-4">
+    // One big card — target, schedule, calendar, copy and holidays flow
+    // together without per-section chrome.
+    <section className="rounded-xl bg-card p-6 shadow-card">
+      <div className="flex flex-col gap-10">
       {/* Availability target */}
-      <FormSection title="Availability target">
+      <FormBlock title="Availability target">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field label="Monthly availability target">
             <NumberInput
@@ -181,10 +184,10 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
           The availability goal for {machine}’s month — used across the dashboard, the monthly goal card and
           the machine rankings to flag whether availability is on track.
         </p>
-      </FormSection>
+      </FormBlock>
 
       {/* Working schedule */}
-      <FormSection title="Working schedule">
+      <FormBlock title="Working schedule">
         {/* mode switch */}
         <div className="mb-5 inline-flex rounded-lg bg-page p-1">
           {([
@@ -345,10 +348,10 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
           )}
           </div>
         )}
-      </FormSection>
+      </FormBlock>
 
       {/* Planning calendar */}
-      <FormSection
+      <FormBlock
         title="Planning calendar"
         action={
           <span className="flex items-center gap-1.5 text-xs text-muted">
@@ -370,7 +373,7 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
           workingHolidays={workingHols.set}
           onToggleWorkingHoliday={workingHols.setWorking}
         />
-      </FormSection>
+      </FormBlock>
 
       {/* Copy configuration between machines */}
       <ReplicatePanel
@@ -382,10 +385,11 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
           return !!e && Object.keys(e).length > 0
         }}
         onApply={(direction, others, scopeKeys) => ma.replicate(direction, others, scopeKeys as AvailabilityScopeKey[])}
+        plain
       />
 
       {/* Holidays */}
-      <FormSection
+      <FormBlock
         title={`Holidays · ${year}`}
         action={
           <div className="flex items-center gap-2">
@@ -477,9 +481,10 @@ export default function MachineAvailabilitySection({ machine }: { machine: strin
             })}
           </ul>
         )}
-      </FormSection>
+      </FormBlock>
 
-    </div>
+      </div>
+    </section>
   )
 }
 
