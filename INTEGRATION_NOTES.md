@@ -26,13 +26,15 @@ code is additive; existing screens still run on mocks until migrated via the
 
 1. **Base URL: customer `api` vs `manager-api`.** Most endpoints are on `api`;
    confirm which surface the Batch Book targets (config supports both).
-2. **`web-components-ts` delivery to CI/Vercel.** The lib is a PRIVATE
-   `get-notify` repo. `package.json` points at `github:get-notify/web-components-ts`;
-   the Vercel build needs read access (deploy token / GitHub App) or the lib
-   must be published to a private registry. Local verification used a packed
-   tarball of the prebuilt `dist/`.
+2. **`web-components-ts` delivery — RESOLVED by vendoring.** The lib's prebuilt
+   `dist/` is committed at `vendor/web-components-ts/` and `package.json` points at
+   `file:vendor/web-components-ts`. The Vercel build needs NO access to the private
+   `get-notify` repo — `npm ci` fetches only the lib's PUBLIC deps (MUI 5, Emotion,
+   dayjs) from npm. Verified clean-room (`rm -rf node_modules && npm ci && next
+   build`) green. To update the lib: re-copy its `dist/` into `vendor/`.
    - Note: lib is **MUI 5**, app is **MUI 9** — they coexist in a green build
-     (Emotion/React are single/deduped), but keep an eye on styled components.
+     (Emotion/React are single/deduped; the lib's MUI 5 installs isolated under
+     `vendor/web-components-ts/node_modules`). Keep an eye on styled components.
 3. **`batch.target.value` semantics** — is it the recipe target size/mass? If so
    it feeds Performance's ideal rate directly; otherwise a per-recipe target
    config stays client-side.

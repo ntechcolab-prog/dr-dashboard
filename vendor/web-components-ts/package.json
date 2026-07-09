@@ -1,0 +1,34 @@
+{
+  "name": "web-components-ts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Vendored copy of get-notify/web-components-ts (prebuilt dist). Encapsulated inside the repo so the Vercel build needs no access to the private lib. Update by re-copying dist/ from the source repo. See INTEGRATION_NOTES.md.",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/web-components-ts.umd.cjs",
+  "module": "./dist/web-components-ts.js",
+  "types": "./dist/web-components-ts.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/web-components-ts.d.ts",
+      "import": "./dist/web-components-ts.js",
+      "require": "./dist/web-components-ts.umd.cjs"
+    }
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@fontsource/material-icons": "^5.0.11",
+    "@fontsource/roboto": "^5.0.8",
+    "@mui/icons-material": "^5.15.6",
+    "@mui/material": "^5.15.6",
+    "@mui/x-date-pickers": "^8.9.2",
+    "dayjs": "^1.11.13"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

@@ -36,3 +36,8 @@ yarn-error.log*
 
 # Storybook build output
 storybook-static
+
+# Vendored prebuilt lib — keep its dist despite the global `dist` ignore above.
+# (Its node_modules is still ignored by the `node_modules` rule.)
+!vendor/web-components-ts/dist
+!vendor/web-components-ts/dist/**
