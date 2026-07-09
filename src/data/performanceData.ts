@@ -105,7 +105,9 @@ export interface RecipePerfRow {
   pct: number // grind-time-weighted average
   minPct: number // worst batch of the month
   maxPct: number // best batch of the month
-  actualRate: number
+  actualRate: number // grind-time-weighted average rate (t/h)
+  minRate: number // slowest batch of the month (t/h)
+  maxRate: number // fastest batch of the month (t/h)
   idealRate: number
   batches: number
 }
@@ -293,6 +295,8 @@ export const performanceService = {
           minPct: Math.min(...rr.map((r) => r.pct)),
           maxPct: Math.max(...rr.map((r) => r.pct)),
           actualRate: weightedRate(rr, (r) => r.actualRate),
+          minRate: round2(Math.min(...rr.map((r) => r.actualRate))),
+          maxRate: round2(Math.max(...rr.map((r) => r.actualRate))),
           idealRate: weightedRate(rr, (r) => r.idealRate),
           batches: rr.length,
         }
