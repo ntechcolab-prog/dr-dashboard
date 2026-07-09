@@ -38,7 +38,7 @@ export default function IrisLoginPage() {
     setError(null)
     try {
       await login(loginId, password, captcha)
-      router.replace('/')
+      router.replace('/iris-status')
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Login failed. Check your credentials.')
       setLoading(false)

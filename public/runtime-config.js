@@ -6,9 +6,13 @@
 // All values here are PUBLIC (base URLs and the Turnstile *site* key are safe to
 // ship to the browser; the Turnstile *secret* stays server-side on the backend).
 window.configuration = {
-  // Most endpoints live on the customer `api`.
-  apiUrl: 'https://api.iris-cloud-stg.netzsch.com/api',
-  // A subset of endpoints live on the `manager-api`.
+  // Primary surface. Provisionally the `manager-api` (service) because the only
+  // staging credential we have is a `manager@` account, which authenticates
+  // there. Revisit once a customer account / the customer-vs-manager split for
+  // batch/machine data is confirmed — most domain endpoints may live on the
+  // customer `api` (https://api.iris-cloud-stg.netzsch.com/api).
+  apiUrl: 'https://manager-api.iris-cloud-stg.netzsch.com/api',
+  // The `manager-api` surface (subset of endpoints; call with request base 'manager').
   managerApiUrl: 'https://manager-api.iris-cloud-stg.netzsch.com/api',
   // Cloudflare Turnstile site key (public) for the login captcha.
   turnstileSiteKey: '0x4AAAAAAAzNZxeP8rafvM96',
