@@ -17,6 +17,8 @@ import MenuIcon from '@mui/icons-material/Menu'
 import { IrisLogo } from '@/src/client/iris/IrisLogo'
 import { useSession, initialsOf } from '@/src/client/Session'
 import { iris } from '@/src/client/mui/theme'
+import { isLiveMode } from '@/src/data/mockData'
+import { logout as irisLogout } from '@/src/api/auth'
 
 // MUI counterpart of IrisTopBar — same IRIS Cloud chrome, dark #41414a bar.
 export default function TopBarV2() {
@@ -24,7 +26,17 @@ export default function TopBarV2() {
   const router = useRouter()
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
 
+  // In the live (IRIS) app, home is the app itself and auth is IRIS — never the
+  // legacy launcher / cookie login.
+  const live = isLiveMode()
+  const home = live ? '/iris-app' : '/'
+
   async function logout() {
+    if (live) {
+      await irisLogout().catch(() => {})
+      router.replace('/iris-login')
+      return
+    }
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
     router.refresh()
@@ -36,16 +48,22 @@ export default function TopBarV2() {
     <AppBar position="static" elevation={0} sx={{ bgcolor: iris.irisTopbar }}>
       <Toolbar sx={{ minHeight: 64, px: 3, justifyContent: 'space-between' }}>
         <Box sx={{ ...row, gap: 2.5 }}>
-          <IconButton href="/" LinkComponent={Link} aria-label="Applications" sx={{ color: '#fff' }}>
+          <IconButton href={home} LinkComponent={Link} aria-label="Applications" sx={{ color: '#fff' }}>
             <AppsIcon />
           </IconButton>
-          <Box component={Link} href="/" aria-label="Home" sx={row}>
-            <IrisLogo size="sm" />
+          <Box component={Link} href={home} aria-label="Home" sx={{ ...row, textDecoration: 'none', color: '#fff' }}>
+            {live ? (
+              <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                Batch&nbsp;Book
+              </Typography>
+            ) : (
+              <IrisLogo size="sm" />
+            )}
           </Box>
         </Box>
 
         <Box sx={{ ...row, gap: 2.5 }}>
-          <Box component={Link} href="/" sx={{ ...row, gap: 1.25, color: '#fff', textDecoration: 'none' }}>
+          <Box component={Link} href={home} sx={{ ...row, gap: 1.25, color: '#fff', textDecoration: 'none' }}>
             <Typography sx={{ fontSize: '0.95rem', fontWeight: 500 }}>Hello,</Typography>
             <Avatar sx={{ width: 36, height: 36, bgcolor: iris.irisBlue, fontSize: '0.8rem', fontWeight: 600 }}>
               {initialsOf(user.name)}
@@ -66,9 +84,11 @@ export default function TopBarV2() {
               </Typography>
             </Box>
             <Divider />
-            <MenuItem href="/batch-book" LinkComponent={Link} onClick={() => setAnchor(null)}>
-              Production Monitoring
-            </MenuItem>
+            {!live && (
+              <MenuItem href="/batch-book" LinkComponent={Link} onClick={() => setAnchor(null)}>
+                Production Monitoring
+              </MenuItem>
+            )}
             {user.isAdmin && (
               <MenuItem href="/admin" LinkComponent={Link} onClick={() => setAnchor(null)}>
                 Admin · Users

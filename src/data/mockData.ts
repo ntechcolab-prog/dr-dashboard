@@ -61,7 +61,7 @@ function mulberry32(seed: number): () => number {
   }
 }
 
-export const MACHINES = ['Zeta 10', 'Zeta 60', 'Zeta 25', 'Omega 5', 'Alpha 22', 'Neos 40']
+export let MACHINES = ['Zeta 10', 'Zeta 60', 'Zeta 25', 'Omega 5', 'Alpha 22', 'Neos 40']
 
 // Fleet metadata for the machine filters (Settings › Production). Families
 // mirror the NETZSCH mill lines; line assignment matches PRODUCTION_LINES.
@@ -81,7 +81,7 @@ export let MACHINE_INFO: MachineInfo[] = [
   { name: 'Neos 40', line: 'Production Line C', family: 'Neos', model: 'High-performance mill' },
 ]
 
-export const RECIPES = [
+export let RECIPES = [
   'Dark Red',
   'White Chocolate',
   'Dark Chocolate',
@@ -327,10 +327,14 @@ export function setLiveDatasets(d: {
   months?: MonthMeta[]
   liveBatches?: LiveBatch[]
   machineInfo?: MachineInfo[]
+  machines?: string[]
+  recipes?: string[]
 }): void {
   if (d.batches) ALL_BATCHES = d.batches
   if (d.months) MONTHS = d.months
   if (d.liveBatches) LIVE_BATCHES = d.liveBatches
   if (d.machineInfo) MACHINE_INFO = d.machineInfo
+  if (d.machines) MACHINES = d.machines
+  if (d.recipes) RECIPES = d.recipes
   _liveMode = true
 }

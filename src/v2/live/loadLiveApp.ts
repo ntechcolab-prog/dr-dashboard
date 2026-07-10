@@ -58,10 +58,16 @@ export async function loadLiveApp(limit = 60): Promise<void> {
   const records = await Promise.all(ids.map((id) => getBatch(id).catch(() => null)))
   const batches = records.filter((r): r is NonNullable<typeof r> => r != null).map(batchRecordToBatch)
 
+  // Filter options come from what actually has data (no fictitious mock items).
+  const machineNames = Array.from(new Set(batches.map((b) => b.machine))).filter(Boolean)
+  const recipeNames = Array.from(new Set(batches.map((b) => b.recipe))).filter((r) => r && r !== '-' && r !== '—')
+
   setLiveDatasets({
     batches,
     months: monthsFromBatches(batches),
     liveBatches: running.data.map(toLiveBatch),
     machineInfo: machines.map(machineToMachineInfo),
+    machines: machineNames,
+    recipes: recipeNames,
   })
 }

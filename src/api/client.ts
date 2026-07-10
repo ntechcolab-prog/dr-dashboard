@@ -94,7 +94,7 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
     if (!refreshInFlight) refreshInFlight = refreshTokens().finally(() => (refreshInFlight = null))
     const refreshed = await refreshInFlight
     if (refreshed) return request<T>(path, { ...opts, skipAuthRefresh: true })
-    if (typeof window !== 'undefined') window.location.assign('/login')
+    if (typeof window !== 'undefined') window.location.assign('/iris-login')
     throw new ApiRequestError(res.status, await parseError(res))
   }
 
