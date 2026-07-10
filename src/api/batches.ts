@@ -18,12 +18,13 @@ export interface BatchListParams {
   recipe?: string
 }
 
+// `page` is a REQUIRED query param on the backend (validated server-side) — default it.
 export function listCompletedBatches(params: BatchListParams = {}): Promise<PaginatedBatches> {
-  return request<PaginatedBatches>('/v1/batch/completed', { query: { ...params } })
+  return request<PaginatedBatches>('/v1/batch/completed', { query: { page: 1, limit: 20, ...params } })
 }
 
 export function listRunningBatches(params: BatchListParams = {}): Promise<PaginatedBatches> {
-  return request<PaginatedBatches>('/v1/batch/running', { query: { ...params } })
+  return request<PaginatedBatches>('/v1/batch/running', { query: { page: 1, limit: 20, ...params } })
 }
 
 export function getBatch(batchId: string): Promise<BatchRecord> {

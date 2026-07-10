@@ -24,8 +24,18 @@ code is additive; existing screens still run on mocks until migrated via the
 
 ## Open items / decisions for the backend team
 
-1. **Base URL: customer `api` vs `manager-api`.** Most endpoints are on `api`;
-   confirm which surface the Batch Book targets (config supports both).
+1. **Base URL — CONFIRMED: customer `api`.** Validated against staging: the
+   `manager@staging-notify.com` account + machines/batches/production endpoints
+   all live on `https://api.iris-cloud-stg.netzsch.com/api`. The `manager-api`
+   returned INVALID_CREDENTIALS for these accounts.
+   - Login needs a captcha; on staging pass the **reCaptcha bypass hash** as
+     `recaptchaValue` to skip Turnstile. The hash is a security-bypass value —
+     it is NOT stored in the repo; inject it into `runtime-config.js`
+     (`recaptchaBypassHash`) locally / at staging deploy time. Its value is in the
+     backend's `api/.env.public.example` (public surface) — ask devops to confirm.
+     Verified: login → 202 `{access,refresh}`; token carries org `d12dc0a8-…`,
+     roles coordinator/manager, features DATA_EXPORTS + BATCH_RECORDS.
+     `/v1/batch/*` requires a `page` param (now defaulted).
 2. **`web-components-ts` delivery — RESOLVED by vendoring.** The lib's prebuilt
    `dist/` is committed at `vendor/web-components-ts/` and `package.json` points at
    `file:vendor/web-components-ts`. The Vercel build needs NO access to the private

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { login } from '@/src/api/auth'
 import { ApiRequestError } from '@/src/api/client'
-import { turnstileSiteKey } from '@/src/config/runtimeConfig'
+import { recaptchaBypassHash, turnstileSiteKey } from '@/src/config/runtimeConfig'
 
 // Browser-only widget (needs the DOM) — load client-side so it isn't evaluated
 // during server prerender.
@@ -22,9 +22,12 @@ const CloudflareCaptcha = dynamic(() => import('web-components-ts').then((m) => 
 
 export default function IrisLoginPage() {
   const router = useRouter()
+  // On staging a bypass hash stands in for the Turnstile token, so the widget
+  // is skipped; in prod the widget must produce a real token.
+  const bypass = recaptchaBypassHash()
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
-  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(bypass || null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -77,14 +80,18 @@ export default function IrisLoginPage() {
           required
         />
 
-        <div className="mb-4">
-          <CloudflareCaptcha
-            id="login-captcha"
-            siteKey={turnstileSiteKey()}
-            onVerify={(token: string) => setCaptcha(token)}
-            onExpire={() => setCaptcha(null)}
-          />
-        </div>
+        {bypass ? (
+          <p className="mb-4 text-[0.6875rem] text-muted">Staging: captcha bypassed.</p>
+        ) : (
+          <div className="mb-4">
+            <CloudflareCaptcha
+              id="login-captcha"
+              siteKey={turnstileSiteKey()}
+              onVerify={(token: string) => setCaptcha(token)}
+              onExpire={() => setCaptcha(null)}
+            />
+          </div>
+        )}
 
         {error && <p className="mb-4 text-sm text-warning">{error}</p>}
 

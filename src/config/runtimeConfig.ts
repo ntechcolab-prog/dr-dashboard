@@ -17,6 +17,7 @@ declare global {
       managerApiUrl?: string
       irisCloudUrl?: string
       turnstileSiteKey?: string
+      recaptchaBypassHash?: string
       releaseVersion?: string
     }
   }
@@ -47,6 +48,12 @@ export function baseUrlFor(base: ApiBase): string {
 /** Cloudflare Turnstile site key (public) for the login captcha. */
 export function turnstileSiteKey(): string {
   return config().turnstileSiteKey ?? ''
+}
+
+/** Staging-only reCaptcha bypass hash. When set, the login can skip the Turnstile
+ *  widget and send this as `recaptchaValue`. Empty in prod. */
+export function recaptchaBypassHash(): string {
+  return config().recaptchaBypassHash ?? ''
 }
 
 export {}
