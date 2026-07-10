@@ -127,11 +127,17 @@ export default function IrisStatusPage() {
     <main className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-ink">Integration diagnostic</h1>
-        <div className="flex items-center gap-4">
-          <Link href="/iris-registry" className="text-xs text-primary hover:underline">
-            Batch registry →
+        <div className="flex items-center gap-4 text-xs">
+          <Link href="/iris-machines" className="text-primary hover:underline">
+            Machines
           </Link>
-          <button onClick={() => logout().then(() => setAuthed(false))} className="text-xs text-muted hover:text-ink">
+          <Link href="/iris-registry" className="text-primary hover:underline">
+            Registry
+          </Link>
+          <Link href="/iris-production" className="text-primary hover:underline">
+            Production
+          </Link>
+          <button onClick={() => logout().then(() => setAuthed(false))} className="text-muted hover:text-ink">
             Log out
           </button>
         </div>
