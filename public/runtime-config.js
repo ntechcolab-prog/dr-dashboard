@@ -13,8 +13,9 @@ window.configuration = {
   // The `manager-api` (service) surface, for the subset of endpoints that live
   // there (call with request base 'manager').
   managerApiUrl: 'https://manager-api.iris-cloud-stg.netzsch.com/api',
-  // Cloudflare Turnstile site key (public) for the login captcha.
-  turnstileSiteKey: '0x4AAAAAAAzNZxeP8rafvM96',
+  // Cloudflare Turnstile site key (public) for the login captcha — the key whose
+  // allowed-domains list includes batchbook.ntechcolab.com.
+  turnstileSiteKey: '0x4AAAAAAAzSTGqzFmL6s3aC',
   // Staging-only reCaptcha bypass hash. Leave EMPTY in the repo (it is a
   // security-bypass value) — inject it at deploy time / in your local copy for
   // staging so the login can skip Turnstile. When empty, the widget is required.
