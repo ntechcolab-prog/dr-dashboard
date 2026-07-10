@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { logout } from '@/src/api/auth'
 
 const LINKS: { href: string; label: string }[] = [
+  { href: '/iris-app', label: 'Full app' },
   { href: '/iris-dashboard', label: 'Dashboard' },
   { href: '/iris-machines', label: 'Machines' },
   { href: '/iris-registry', label: 'Registry' },

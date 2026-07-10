@@ -72,7 +72,7 @@ export interface MachineInfo {
   model: string // display subtitle
 }
 
-export const MACHINE_INFO: MachineInfo[] = [
+export let MACHINE_INFO: MachineInfo[] = [
   { name: 'Zeta 10', line: 'Production Line A', family: 'Zeta', model: 'Circulation bead mill' },
   { name: 'Zeta 60', line: 'Production Line A', family: 'Zeta', model: 'Circulation bead mill' },
   { name: 'Zeta 25', line: 'Production Line B', family: 'Zeta', model: 'Circulation bead mill' },
@@ -163,7 +163,7 @@ function buildMonth(year: number, month: number /* 0-indexed */, seed: number): 
   return batches
 }
 
-export const MONTHS: MonthMeta[] = [
+export let MONTHS: MonthMeta[] = [
   { key: '2025-09', label: 'September 2025', year: 2025, month: 8 },
   { key: '2025-10', label: 'October 2025', year: 2025, month: 9 },
   { key: '2025-11', label: 'November 2025', year: 2025, month: 10 },
@@ -176,12 +176,12 @@ export const MONTHS: MonthMeta[] = [
   { key: '2026-06', label: 'June 2026', year: 2026, month: 5 },
 ]
 
-export const ALL_BATCHES: Batch[] = MONTHS.flatMap((m) =>
+export let ALL_BATCHES: Batch[] = MONTHS.flatMap((m) =>
   buildMonth(m.year, m.month, m.year * 10000 + (m.month + 1) * 100 + 1)
 )
 
 // Live batches for the "In operation" carousel (3 visible per page).
-export const LIVE_BATCHES: LiveBatch[] = [
+export let LIVE_BATCHES: LiveBatch[] = [
   {
     id: '#12031',
     recipe: 'Dark Red',
@@ -308,3 +308,29 @@ export const LIVE_BATCHES: LiveBatch[] = [
     ],
   },
 ]
+
+// --- Live-data injection -----------------------------------------------------
+// The v2 app reads these datasets by import (live ES bindings). A live route can
+// replace them with real backend data before rendering AppV2, so the SAME app
+// shows real data. Defaults above stay in place for the mock routes.
+
+let _liveMode = false
+
+/** True once real datasets have been injected (used to flag metrics without a
+ *  backend source, e.g. cooling/carbon, as "—"). */
+export function isLiveMode(): boolean {
+  return _liveMode
+}
+
+export function setLiveDatasets(d: {
+  batches?: Batch[]
+  months?: MonthMeta[]
+  liveBatches?: LiveBatch[]
+  machineInfo?: MachineInfo[]
+}): void {
+  if (d.batches) ALL_BATCHES = d.batches
+  if (d.months) MONTHS = d.months
+  if (d.liveBatches) LIVE_BATCHES = d.liveBatches
+  if (d.machineInfo) MACHINE_INFO = d.machineInfo
+  _liveMode = true
+}

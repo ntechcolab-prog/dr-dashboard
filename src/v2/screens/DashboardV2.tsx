@@ -14,7 +14,7 @@ import DetailsDrawerV2, { type DrawerData } from '../components/metrics/DetailsD
 import RankingsV2 from '../components/machine/RankingsV2'
 import InOperationV2 from '../components/machine/InOperationV2'
 import MachineTabV2 from '../components/machine/MachineTabV2'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '@/src/data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, isLiveMode } from '@/src/data/mockData'
 import {
   filterBatches, buildKpis, byDay, buildRankings,
   metricByDaySeries, metricByMachine, metricByRecipe,
@@ -31,11 +31,29 @@ const CLOSED_DRAWER: DrawerData = { open: false, kind: 'day', title: '', subtitl
 // edit-mode metric grid, calendar, rankings, in-operation strip, machine tab
 // and the KPI/day details drawer.
 export default function DashboardV2() {
+  const live = isLiveMode()
   const [tab, setTab] = useState(0)
-  const [machines, setMachines] = useState<string[]>(['Zeta 10', 'Zeta 60'])
-  const [recipes, setRecipes] = useState<string[]>(['Dark Red'])
+  // Live mode derives its defaults from the real datasets; mock keeps its exact
+  // original defaults so /batch-book-v2 is unchanged.
+  // Live defaults: every machine that has batches, and the month with the most
+  // batches — so the dashboard opens on data instead of an empty filter.
+  const [machines, setMachines] = useState<string[]>(() =>
+    live ? Array.from(new Set(ALL_BATCHES.map((b) => b.machine))) : ['Zeta 10', 'Zeta 60'],
+  )
+  const [recipes, setRecipes] = useState<string[]>(() => (live ? [] : ['Dark Red']))
   const [period, setPeriod] = useState<Period>('monthly')
-  const [monthKey, setMonthKey] = useState('2026-06')
+  const [monthKey, setMonthKey] = useState(() => {
+    if (!live) return '2026-06'
+    const counts = new Map<string, number>()
+    for (const b of ALL_BATCHES) {
+      const k = `${b.year}-${String(b.month + 1).padStart(2, '0')}`
+      counts.set(k, (counts.get(k) ?? 0) + 1)
+    }
+    let best = MONTHS[MONTHS.length - 1]?.key ?? '2026-06'
+    let max = -1
+    for (const [k, c] of counts) if (c > max) [max, best] = [c, k]
+    return best
+  })
   const [weekIdx, setWeekIdx] = useState(0)
 
   useEffect(() => { setWeekIdx(0) }, [monthKey])
@@ -52,7 +70,13 @@ export default function DashboardV2() {
     () => (prevMeta ? filtered.filter((b) => b.year === prevMeta.year && b.month === prevMeta.month) : []),
     [filtered, prevMeta])
 
-  const kpis = useMemo(() => buildKpis(monthBatches, prevBatches), [monthBatches, prevBatches])
+  // In live mode, metrics with no backend source render "—" (cooling, carbon, prod/idle).
+  const kpis = useMemo(() => {
+    const k = buildKpis(monthBatches, prevBatches)
+    if (!live) return k
+    const NA = new Set(['coolingEnergy', 'carbon', 'ratio'])
+    return k.map((x) => (NA.has(x.key) ? { ...x, na: true } : x))
+  }, [monthBatches, prevBatches, live])
   const dayMap = useMemo(() => byDay(monthBatches), [monthBatches])
   const rankings = useMemo(() => buildRankings(monthBatches), [monthBatches])
 
