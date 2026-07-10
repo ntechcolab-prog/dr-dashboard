@@ -19,6 +19,35 @@ export interface MetricsWindow {
   to: string
 }
 
+// --- Sensor list + latest values (typed) --------------------------------
+
+export interface MachineSensor {
+  type: string
+  is_custom: boolean
+  is_static: boolean
+}
+
+export interface LastMetric {
+  name: string
+  type: string
+  units?: string
+  status?: string
+  is_custom?: boolean
+  custom_sensor_id?: number
+  values: { time: string; value: number }[]
+}
+
+/** The machine's sensor list: `{ machine_id, sensors: [{ type, ... }] }`. */
+export function machineSensorList(machineId: string): Promise<{ machine_id: string; sensors: MachineSensor[] }> {
+  return request(`/v2/filters/machine/${machineId}/sensors`)
+}
+
+/** Latest values. `metricParams` are `"<type>,<unit>"` strings (see sensorUnits).
+ *  Only sensors that currently have a value are returned. */
+export function latestSensorValues(machineId: string, metricParams: string[]): Promise<LastMetric[]> {
+  return request<LastMetric[]>('/v1/metrics/last', { query: { machine_id: machineId, metrics: metricParams } })
+}
+
 export function latestMetrics<T = unknown>(machineId: string, metrics: string[]): Promise<T> {
   return request<T>('/v1/metrics/last', { query: { machine_id: machineId, metrics } })
 }
