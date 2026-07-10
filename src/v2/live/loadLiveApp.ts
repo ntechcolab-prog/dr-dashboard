@@ -8,6 +8,7 @@ import { listMachinesResumed } from '@/src/api/machines'
 import { batchRecordToBatch, machineToMachineInfo, statusToDisplay } from '@/src/api/adapters'
 import { setLiveDatasets } from '@/src/data/mockData'
 import { setLiveAppData, type RegistryRow } from '@/src/data/appData'
+import { setLiveBatchRecords } from './liveBatchStore'
 import type { Batch, LiveBatch, MonthMeta } from '@/src/data/mockData'
 import type { BatchSummary } from '@/src/api/types'
 
@@ -83,8 +84,15 @@ export async function loadLiveApp(limit = 60): Promise<void> {
   ])
 
   const ids = completed.data.map((r) => r.id).filter(Boolean)
-  const records = await Promise.all(ids.map((id) => getBatch(id).catch(() => null)))
+  const runIds = running.data.map((r) => r.id).filter(Boolean)
+  const [records, runRecords] = await Promise.all([
+    Promise.all(ids.map((id) => getBatch(id).catch(() => null))),
+    Promise.all(runIds.map((id) => getBatch(id).catch(() => null))),
+  ])
   const batches = records.filter((r): r is NonNullable<typeof r> => r != null).map(batchRecordToBatch)
+
+  // Full records (completed + running) for the batch editor.
+  setLiveBatchRecords([...records, ...runRecords].filter((r): r is NonNullable<typeof r> => r != null))
 
   // Filter options come from what actually has data (no fictitious mock items).
   const machineNames = Array.from(new Set(batches.map((b) => b.machine))).filter(Boolean)

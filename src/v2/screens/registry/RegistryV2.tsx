@@ -17,6 +17,8 @@ import SearchIcon from '@mui/icons-material/Search'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined'
 import { REGISTRY_ROWS, type RegistryRow } from '@/src/data/appData'
 import { makeDraft, type BatchForm } from '@/src/data/batchForm'
+import { isLiveMode } from '@/src/data/mockData'
+import { getLiveBatchRecord, batchRecordToForm } from '@/src/v2/live/liveBatchStore'
 import { useLocalStorage } from '@/src/lib/useLocalStorage'
 import type { Sheet } from '@/src/lib/exportData'
 import BatchEditorV2 from './BatchEditorV2'
@@ -72,7 +74,14 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
   }
 
   const newBatch = () => setEditing(makeDraft(seq))
-  const editExisting = (row: RegistryRow) => setEditing({ ...makeDraft(0), id: row.id })
+  const editExisting = (row: RegistryRow) => {
+    if (isLiveMode()) {
+      const rec = getLiveBatchRecord(row.id)
+      setEditing(rec ? batchRecordToForm(rec) : { ...makeDraft(0), id: row.id })
+      return
+    }
+    setEditing({ ...makeDraft(0), id: row.id })
+  }
 
   const onSave = (formData: BatchForm) => {
     const newRow: RegistryRow = {

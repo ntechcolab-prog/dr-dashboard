@@ -19,6 +19,9 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import type { BatchForm } from '@/src/data/batchForm'
+import { isLiveMode } from '@/src/data/mockData'
+import { getLiveBatchRecord } from '@/src/v2/live/liveBatchStore'
+import { statusToDisplay } from '@/src/api/adapters'
 import { useProductionMonitoring } from '@/src/screens/settings/MiscSettings'
 import { SectionCard, Stat, KvGroup, KvList, withAlpha } from '../ui'
 import SensorChartV2 from '../SensorChartV2'
@@ -126,7 +129,48 @@ const ACTIVITY = [
   ['7', 'Batch BA-0074 created', 'Batch start', '05/05/2021 08:30:00'],
 ]
 
+const dash = (v: unknown, unit = ''): string => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : ''}`)
+const fmtDateTime = (iso?: string): string =>
+  iso ? new Date(iso).toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+const durationStr = (a?: string, b?: string): string => {
+  if (!a || !b) return '—'
+  const ms = new Date(b).getTime() - new Date(a).getTime()
+  if (!(ms > 0)) return '—'
+  const s = Math.floor(ms / 1000)
+  return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+}
+
 export default function ResumeTab({ form }: { form: BatchForm }) {
+  // Live: pull the real batch record so the summary shows real values ("—" where
+  // there is no backend source).
+  const rec = isLiveMode() ? getLiveBatchRecord(form.id) : undefined
+  const d = rec?.details
+  const p = rec?.property
+  const statusText = rec ? statusToDisplay(String(d?.status)) : 'Complete'
+  const progressText = rec ? String(Math.round(d?.progress ?? 0)) : '100'
+  const lengthText = rec ? durationStr(d?.date?.start, d?.date?.end) : '3:00:00'
+  const startText = rec ? fmtDateTime(d?.date?.start) : '15 May, 2023, 08:30:21'
+  const endText = rec ? fmtDateTime(d?.date?.end) : '15 May, 2023, 12:30:21'
+  const targetRows: string[][] = rec
+    ? [
+        ['Target Type', dash(rec.target?.type)],
+        ['Target Value', dash(rec.target?.value)],
+        ['Maximum Temperature Allowed (°C)', dash(d?.max_allowed_temperature)],
+      ]
+    : TARGET_ROWS
+  const processRows: string[][] = rec
+    ? [
+        ['Energy', dash(p?.grinding_energy, 'kWh')],
+        ['Specific Energy (kWh/kg)', dash(p?.specific_energy)],
+        ['Estimated Energy Consumption (kWh)', dash(p?.est_energy_consumption)],
+        ['Total Runtime', dash(p?.total_grinding_time)],
+        ['Cycles', dash(d?.cycles)],
+      ]
+    : PROCESS_ROWS
+  const machineBasic: string[][] = rec
+    ? [['Manufacturer', dash(rec.machine?.brand ?? 'NETZSCH')], ['Type', dash(rec.machine?.type)]]
+    : MACHINE_BASIC
+
   const [template, setTemplate] = useState(GRAPH_TEMPLATES[0].name)
   const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
@@ -285,21 +329,21 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2.5 }}>
           <Stat label="Status">
             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'success.main', fontWeight: 500 }}>
-              <CheckCircleIcon sx={{ fontSize: 16 }} /> Complete
+              <CheckCircleIcon sx={{ fontSize: 16 }} /> {statusText}
             </Box>
           </Stat>
-          <Stat label="Progress (%)" value="100" />
-          <Stat label="Batch Length" value="3:00:00" />
-          <Stat label="Total Batch Size" value={`${form.product.weight} kg`} />
-          <Stat label="Start Time" value="15 May, 2023, 08:30:21" />
-          <Stat label="End Time" value="15 May, 2023, 12:30:21" />
+          <Stat label="Progress (%)" value={progressText} />
+          <Stat label="Batch Length" value={lengthText} />
+          <Stat label="Total Batch Size" value={dash(form.product.weight, 'kg')} />
+          <Stat label="Start Time" value={startText} />
+          <Stat label="End Time" value={endText} />
         </Box>
       </SectionCard>
 
       <SectionCard title="Batch Details" id="resume-details">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
-          <KvGroup heading="Target" rows={TARGET_ROWS} />
-          <KvGroup heading="Process" rows={PROCESS_ROWS} />
+          <KvGroup heading="Target" rows={targetRows} />
+          <KvGroup heading="Process" rows={processRows} />
         </Box>
       </SectionCard>
 
@@ -308,7 +352,7 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
             <Box>
               <Typography variant="caption" sx={{ display: 'block', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.dark' }}>Basic information</Typography>
-              <KvList rows={MACHINE_BASIC} />
+              <KvList rows={machineBasic} />
             </Box>
             <Box>
               <Typography variant="caption" sx={{ display: 'block', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.dark' }}>Technology</Typography>
