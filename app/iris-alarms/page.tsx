@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { alarmHistory, alertHistory } from '@/src/api/alarms'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { MetricAlarm, MetricAlert } from '@/src/api/types'
 
@@ -75,12 +76,8 @@ export default function IrisAlarmsPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Alarms &amp; alerts · live</h1>
-        <Link href="/iris-status" className="text-xs text-muted hover:text-ink">
-          Diagnostic
-        </Link>
-      </div>
+      <IrisNav />
+      <h1 className="mb-4 text-lg font-semibold text-ink">Alarms &amp; alerts · live</h1>
 
       <div className="mb-4 flex gap-1">
         {(['alarms', 'alerts'] as Tab[]).map((t) => (

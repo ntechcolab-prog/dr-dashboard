@@ -7,7 +7,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { currentClaims, enabledFeatures, activeOrganizationId, logout } from '@/src/api/auth'
+import { currentClaims, enabledFeatures, activeOrganizationId } from '@/src/api/auth'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { listMachinesResumed, getProductionMetrics } from '@/src/api/machines'
 import { listCompletedBatches } from '@/src/api/batches'
@@ -125,29 +126,8 @@ export default function IrisStatusPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Integration diagnostic</h1>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/iris-machines" className="text-primary hover:underline">
-            Machines
-          </Link>
-          <Link href="/iris-registry" className="text-primary hover:underline">
-            Registry
-          </Link>
-          <Link href="/iris-production" className="text-primary hover:underline">
-            Production
-          </Link>
-          <Link href="/iris-sensors" className="text-primary hover:underline">
-            Sensors
-          </Link>
-          <Link href="/iris-alarms" className="text-primary hover:underline">
-            Alarms
-          </Link>
-          <button onClick={() => logout().then(() => setAuthed(false))} className="text-muted hover:text-ink">
-            Log out
-          </button>
-        </div>
-      </div>
+      <IrisNav />
+      <h1 className="mb-6 text-lg font-semibold text-ink">Integration diagnostic</h1>
 
       <section className="mb-4 rounded-xl border border-line/70 bg-card p-4 shadow-card">
         <h2 className="mb-2 text-sm font-semibold text-ink">Session</h2>

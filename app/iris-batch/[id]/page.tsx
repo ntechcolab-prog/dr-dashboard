@@ -9,6 +9,7 @@ import { useParams } from 'next/navigation'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { getBatch } from '@/src/api/batches'
 import { statusToDisplay } from '@/src/api/adapters'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { BatchRecord } from '@/src/api/types'
 
@@ -73,6 +74,7 @@ export default function IrisBatchDetailPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
+      <IrisNav />
       <div className="mb-4">
         <Link href="/iris-registry" className="text-xs text-muted hover:text-ink">
           ← Registry

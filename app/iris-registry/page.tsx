@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { listCompletedBatches, listRunningBatches, type BatchListParams } from '@/src/api/batches'
 import { statusToDisplay } from '@/src/api/adapters'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { BatchSummary, PaginatedBatches } from '@/src/api/types'
 
@@ -82,12 +83,8 @@ export default function IrisRegistryPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Batch registry · live</h1>
-        <Link href="/iris-status" className="text-xs text-muted hover:text-ink">
-          Diagnostic
-        </Link>
-      </div>
+      <IrisNav />
+      <h1 className="mb-4 text-lg font-semibold text-ink">Batch registry · live</h1>
 
       <div className="mb-4 flex gap-1">
         {(['completed', 'running'] as Tab[]).map((t) => (

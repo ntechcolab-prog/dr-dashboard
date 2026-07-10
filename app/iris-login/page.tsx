@@ -30,12 +30,15 @@ declare global {
 
 export default function IrisLoginPage() {
   const router = useRouter()
-  const bypass = recaptchaBypassHash()
-  const siteKey = turnstileSiteKey()
+  // Read from window.configuration only after mount — reading it during render
+  // would differ between server ('' — no window) and client, causing a
+  // hydration mismatch (React #418).
+  const [bypass, setBypass] = useState('')
+  const [siteKey, setSiteKey] = useState('')
 
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
-  const [captcha, setCaptcha] = useState<string | null>(bypass || null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -43,6 +46,13 @@ export default function IrisLoginPage() {
   const [scriptReady, setScriptReady] = useState(false)
   const captchaRef = useRef<(t: string | null) => void>(() => {})
   captchaRef.current = setCaptcha
+
+  useEffect(() => {
+    const bp = recaptchaBypassHash()
+    setBypass(bp)
+    setSiteKey(turnstileSiteKey())
+    if (bp) setCaptcha(bp)
+  }, [])
 
   // Explicitly render the Turnstile widget once the script is ready (prod path).
   useEffect(() => {
@@ -71,7 +81,7 @@ export default function IrisLoginPage() {
     setError(null)
     try {
       await login(loginId, password, captcha)
-      router.replace('/iris-status')
+      router.replace('/iris-machines')
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Login failed. Check your credentials.')
       setLoading(false)

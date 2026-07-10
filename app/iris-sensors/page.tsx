@@ -12,6 +12,7 @@ import { isAuthenticated } from '@/src/api/tokenStore'
 import { listMachinesResumed } from '@/src/api/machines'
 import { machineSensorList, latestSensorValues, type LastMetric } from '@/src/api/metrics'
 import { metricParam } from '@/src/api/sensorUnits'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { Machine } from '@/src/api/types'
 
@@ -79,20 +80,8 @@ export default function IrisSensorsPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Sensors · live</h1>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/iris-machines" className="text-muted hover:text-ink">
-            Machines
-          </Link>
-          <Link href="/iris-production" className="text-muted hover:text-ink">
-            Production
-          </Link>
-          <Link href="/iris-trends" className="text-muted hover:text-ink">
-            Trends
-          </Link>
-        </div>
-      </div>
+      <IrisNav />
+      <h1 className="mb-4 text-lg font-semibold text-ink">Sensors · live</h1>
 
       <select
         value={selected}

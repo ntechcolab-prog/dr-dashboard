@@ -13,6 +13,7 @@ import { isAuthenticated } from '@/src/api/tokenStore'
 import { listMachinesResumed, getProductionMetrics } from '@/src/api/machines'
 import { oeeFromProduction } from '@/src/api/adapters'
 import { toPct } from '@/src/lib/oee'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { Machine, MachineProductionMetrics, ProductionMetrics } from '@/src/api/types'
 
@@ -119,17 +120,8 @@ export default function IrisProductionPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Production · OEE (live)</h1>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/iris-machines" className="text-muted hover:text-ink">
-            Machines
-          </Link>
-          <Link href="/iris-registry" className="text-muted hover:text-ink">
-            Registry
-          </Link>
-        </div>
-      </div>
+      <IrisNav />
+      <h1 className="mb-4 text-lg font-semibold text-ink">Production · OEE (live)</h1>
 
       <select
         value={selected}

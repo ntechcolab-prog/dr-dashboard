@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { listMachinesResumed } from '@/src/api/machines'
 import { machineToMachineInfo } from '@/src/api/adapters'
+import IrisNav from '@/src/client/iris/IrisNav'
 import { ApiRequestError } from '@/src/api/client'
 import type { Machine } from '@/src/api/types'
 
@@ -62,20 +63,8 @@ export default function IrisMachinesPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-ink">Machines · live</h1>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/iris-registry" className="text-muted hover:text-ink">
-            Registry
-          </Link>
-          <Link href="/iris-production" className="text-muted hover:text-ink">
-            Production
-          </Link>
-          <Link href="/iris-status" className="text-muted hover:text-ink">
-            Diagnostic
-          </Link>
-        </div>
-      </div>
+      <IrisNav />
+      <h1 className="mb-4 text-lg font-semibold text-ink">Machines · live</h1>
 
       {loading && <p className="text-sm text-muted">Loading…</p>}
       {error && <p className="text-sm text-warning">{error}</p>}
