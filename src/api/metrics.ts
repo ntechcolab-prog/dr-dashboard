@@ -48,6 +48,25 @@ export function latestSensorValues(machineId: string, metricParams: string[]): P
   return request<LastMetric[]>('/v1/metrics/last', { query: { machine_id: machineId, metrics: metricParams } })
 }
 
+export interface ChartDataPoint {
+  time: number // epoch ms
+  activeStatus?: string
+  warning?: number
+  labels: { labelName: string; value: number; type: string }[]
+}
+
+/** Time series for a set of sensors (wide format: each point carries every
+ *  requested sensor's value in `labels`). */
+export function sensorHistoryChart(
+  machineId: string,
+  metricParams: string[],
+  window: MetricsWindow,
+): Promise<{ chartData: ChartDataPoint[] }> {
+  return request('/v1/metrics/history/chart-data', {
+    query: { machine_id: machineId, metrics: metricParams, from: window.from, to: window.to },
+  })
+}
+
 export function latestMetrics<T = unknown>(machineId: string, metrics: string[]): Promise<T> {
   return request<T>('/v1/metrics/last', { query: { machine_id: machineId, metrics } })
 }

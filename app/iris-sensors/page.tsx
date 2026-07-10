@@ -88,6 +88,9 @@ export default function IrisSensorsPage() {
           <Link href="/iris-production" className="text-muted hover:text-ink">
             Production
           </Link>
+          <Link href="/iris-trends" className="text-muted hover:text-ink">
+            Trends
+          </Link>
         </div>
       </div>
 
