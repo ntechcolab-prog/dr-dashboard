@@ -140,6 +140,9 @@ export default function IrisStatusPage() {
           <Link href="/iris-sensors" className="text-primary hover:underline">
             Sensors
           </Link>
+          <Link href="/iris-alarms" className="text-primary hover:underline">
+            Alarms
+          </Link>
           <button onClick={() => logout().then(() => setAuthed(false))} className="text-muted hover:text-ink">
             Log out
           </button>
