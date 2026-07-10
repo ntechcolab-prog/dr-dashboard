@@ -10,7 +10,7 @@ export interface RegistryRow {
   source: 'IRIS' | 'Manual'
 }
 
-export const REGISTRY_ROWS: RegistryRow[] = [
+export let REGISTRY_ROWS: RegistryRow[] = [
   { id: 'BATCH1234', product: 'Blue', start: '18/05/2026 - 10:30:00', end: '18/05/2026 - 12:30:00', line: 'Line A - Zeta', status: 'In progress', source: 'IRIS' },
   { id: 'BATCH1235', product: 'Blue', start: '18/05/2026 - 14:30:00', end: '18/05/2026 - 18:30:00', line: 'Line A - Zeta', status: 'In progress', source: 'IRIS' },
   { id: 'BATCH1236', product: 'Yellow', start: '17/05/2026 - 08:00:00', end: '17/05/2026 - 12:00:00', line: 'Line B - Beta', status: 'In progress', source: 'Manual' },
@@ -28,7 +28,7 @@ export const SETTINGS_TABS = [
   'Data Export',
 ]
 
-export const PRODUCTION_LINES = ['Production Line A', 'Production Line B', 'Production Line C']
+export let PRODUCTION_LINES = ['Production Line A', 'Production Line B', 'Production Line C']
 export const MACHINE_NAMES = ['ZETA', 'DISCUS', 'OMEGA', 'MASTERMIX']
 
 // Machine-tab chart datasets (synthetic but plausible).
@@ -142,4 +142,10 @@ export function machinePerformance(machine: string, line: string, period: string
     downtime,
     performance: performance.map((v) => ({ label: String(v), value: v })),
   }
+}
+
+// --- Live-data injection (see mockData.setLiveDatasets) ---------------------
+export function setLiveAppData(d: { registryRows?: RegistryRow[]; productionLines?: string[] }): void {
+  if (d.registryRows) REGISTRY_ROWS = d.registryRows
+  if (d.productionLines && d.productionLines.length) PRODUCTION_LINES = d.productionLines
 }

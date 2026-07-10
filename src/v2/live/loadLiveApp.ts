@@ -7,6 +7,7 @@ import { getBatch, listCompletedBatches, listRunningBatches } from '@/src/api/ba
 import { listMachinesResumed } from '@/src/api/machines'
 import { batchRecordToBatch, machineToMachineInfo, statusToDisplay } from '@/src/api/adapters'
 import { setLiveDatasets } from '@/src/data/mockData'
+import { setLiveAppData, type RegistryRow } from '@/src/data/appData'
 import type { Batch, LiveBatch, MonthMeta } from '@/src/data/mockData'
 import type { BatchSummary } from '@/src/api/types'
 
@@ -47,6 +48,33 @@ function toLiveBatch(s: BatchSummary): LiveBatch {
   }
 }
 
+function fmtDateTime(iso?: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} - ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+function registryStatus(s: string): RegistryRow['status'] {
+  const u = s.toUpperCase()
+  if (u === 'IN_OPERATION' || u === 'LOADING') return 'In progress'
+  if (u === 'CANCELLED' || u === 'STOPPED') return 'Cancelled'
+  return 'Completed'
+}
+
+function toRegistryRow(s: BatchSummary): RegistryRow {
+  return {
+    id: s.batch_id || s.id,
+    product: s.recipe && s.recipe !== '-' ? s.recipe : '—',
+    start: fmtDateTime(s.start_time),
+    end: fmtDateTime(s.end_time),
+    line: s.machine,
+    status: registryStatus(String(s.status)),
+    source: s.origin === 'MANUAL' ? 'Manual' : 'IRIS',
+  }
+}
+
 export async function loadLiveApp(limit = 60): Promise<void> {
   const [machines, completed, running] = await Promise.all([
     listMachinesResumed().catch(() => []),
@@ -62,12 +90,20 @@ export async function loadLiveApp(limit = 60): Promise<void> {
   const machineNames = Array.from(new Set(batches.map((b) => b.machine))).filter(Boolean)
   const recipeNames = Array.from(new Set(batches.map((b) => b.recipe))).filter((r) => r && r !== '-' && r !== '—')
 
+  const machineInfo = machines.map(machineToMachineInfo)
+
   setLiveDatasets({
     batches,
     months: monthsFromBatches(batches),
     liveBatches: running.data.map(toLiveBatch),
-    machineInfo: machines.map(machineToMachineInfo),
+    machineInfo,
     machines: machineNames,
     recipes: recipeNames,
+  })
+
+  // Registry list (running + completed) and real production lines.
+  setLiveAppData({
+    registryRows: [...running.data.map(toRegistryRow), ...completed.data.map(toRegistryRow)],
+    productionLines: Array.from(new Set(machineInfo.map((m) => m.line).filter(Boolean))),
   })
 }
