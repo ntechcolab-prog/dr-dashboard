@@ -7,7 +7,11 @@ export async function middleware(req: NextRequest) {
   const session = token ? await verifySessionToken(token) : null
   const { pathname } = req.nextUrl
   const isAuthPage =
-    pathname === '/login' || pathname === '/signup' || pathname === '/iris-login' || pathname === '/iris-status'
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/iris-login' ||
+    pathname === '/iris-status' ||
+    pathname === '/iris-registry'
 
   if (!session && !isAuthPage) {
     const url = req.nextUrl.clone()
