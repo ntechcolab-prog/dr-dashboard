@@ -1,35 +1,65 @@
 'use client'
 
 // Real login against the Notify / IRIS Cloud API, with a Cloudflare Turnstile
-// captcha (CloudflareCaptcha from the shared web-components-ts library). On
-// success the JWT pair is stored (localStorage) and we land on the app.
+// captcha. On success the JWT pair is stored (localStorage) and we land on the
+// diagnostic. On staging a bypass hash stands in for the token (see runtime
+// config), so the widget is skipped.
 //
-// Additive route — the legacy cookie login (/login) is untouched until the auth
-// gate is deliberately flipped to IRIS tokens.
+// Turnstile is loaded via Cloudflare's official script directly (NOT the
+// web-components-ts CloudflareCaptcha wrapper) — that lib's bundle crashes at
+// runtime here with a React-internals mismatch (ReactCurrentOwner), so it is
+// kept out of this page's runtime path.
+//
+// Additive route — the legacy cookie login (/login) is untouched.
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
+import Script from 'next/script'
 import { login } from '@/src/api/auth'
 import { ApiRequestError } from '@/src/api/client'
 import { recaptchaBypassHash, turnstileSiteKey } from '@/src/config/runtimeConfig'
 
-// Browser-only widget (needs the DOM) — load client-side so it isn't evaluated
-// during server prerender.
-const CloudflareCaptcha = dynamic(() => import('web-components-ts').then((m) => m.CloudflareCaptcha), {
-  ssr: false,
-})
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: Record<string, unknown>) => string
+      remove: (id: string) => void
+    }
+  }
+}
 
 export default function IrisLoginPage() {
   const router = useRouter()
-  // On staging a bypass hash stands in for the Turnstile token, so the widget
-  // is skipped; in prod the widget must produce a real token.
   const bypass = recaptchaBypassHash()
+  const siteKey = turnstileSiteKey()
+
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [captcha, setCaptcha] = useState<string | null>(bypass || null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const widgetRef = useRef<HTMLDivElement>(null)
+  const [scriptReady, setScriptReady] = useState(false)
+  const captchaRef = useRef<(t: string | null) => void>(() => {})
+  captchaRef.current = setCaptcha
+
+  // Explicitly render the Turnstile widget once the script is ready (prod path).
+  useEffect(() => {
+    if (bypass || !scriptReady || !widgetRef.current || !window.turnstile) return
+    const id = window.turnstile.render(widgetRef.current, {
+      sitekey: siteKey,
+      callback: (token: string) => captchaRef.current(token),
+      'expired-callback': () => captchaRef.current(null),
+    })
+    return () => {
+      try {
+        window.turnstile?.remove(id)
+      } catch {
+        /* widget already gone */
+      }
+    }
+  }, [bypass, scriptReady, siteKey])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -50,6 +80,14 @@ export default function IrisLoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-page px-4">
+      {!bypass && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onLoad={() => setScriptReady(true)}
+          onReady={() => setScriptReady(true)}
+        />
+      )}
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl border border-line/70 bg-card p-8 shadow-card">
         <h1 className="mb-1 text-lg font-semibold text-ink">Sign in</h1>
         <p className="mb-6 text-sm text-muted">Batch Book · Notify / IRIS Cloud</p>
@@ -83,14 +121,7 @@ export default function IrisLoginPage() {
         {bypass ? (
           <p className="mb-4 text-[0.6875rem] text-muted">Staging: captcha bypassed.</p>
         ) : (
-          <div className="mb-4">
-            <CloudflareCaptcha
-              id="login-captcha"
-              siteKey={turnstileSiteKey()}
-              onVerify={(token: string) => setCaptcha(token)}
-              onExpire={() => setCaptcha(null)}
-            />
-          </div>
+          <div ref={widgetRef} className="mb-4" />
         )}
 
         {error && <p className="mb-4 text-sm text-warning">{error}</p>}
