@@ -324,11 +324,13 @@ function EditableKpiCard({
               {kpi.label}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, fontWeight: 600, fontSize: '0.75rem',
-            color: up ? 'success.main' : 'error.main' }}>
-            {up ? <ArrowUpIcon fontSize="small" /> : <ArrowDownIcon fontSize="small" />}
-            {up ? '+' : ''}{Math.round(kpi.delta)}%
-          </Box>
+          {!kpi.na && (
+            <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, fontWeight: 600, fontSize: '0.75rem',
+              color: up ? 'success.main' : 'error.main' }}>
+              {up ? <ArrowUpIcon fontSize="small" /> : <ArrowDownIcon fontSize="small" />}
+              {up ? '+' : ''}{Math.round(kpi.delta)}%
+            </Box>
+          )}
         </Box>
 
         {/* row 2 — value on the left, viz on the right */}
@@ -336,9 +338,9 @@ function EditableKpiCard({
           <Box sx={{ minWidth: 0 }}>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 0.5, lineHeight: 1 }}>
               <Typography component="span" sx={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>
-                {formatValue(kpi.value, kpi.fmt)}
+                {kpi.na ? '—' : formatValue(kpi.value, kpi.fmt)}
               </Typography>
-              <Typography component="span" variant="caption" color="text.secondary">{kpi.unit}</Typography>
+              <Typography component="span" variant="caption" color="text.secondary">{kpi.na ? '' : kpi.unit}</Typography>
             </Box>
           </Box>
           <Box sx={{ height: 64, overflow: 'hidden' }}>

@@ -12,6 +12,8 @@ export interface Kpi {
   unit: string
   fmt: ValueFormat
   delta: number
+  // When true the metric has no real backend source — the card shows "—".
+  na?: boolean
 }
 
 export interface DayRollup {
