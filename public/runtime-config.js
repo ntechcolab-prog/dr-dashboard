@@ -16,10 +16,12 @@ window.configuration = {
   // Cloudflare Turnstile site key (public) for the login captcha — the key whose
   // allowed-domains list includes batchbook.ntechcolab.com.
   turnstileSiteKey: '0x4AAAAAAAzSTGqzFmL6s3aC',
-  // Staging-only reCaptcha bypass hash. Leave EMPTY in the repo (it is a
-  // security-bypass value) — inject it at deploy time / in your local copy for
-  // staging so the login can skip Turnstile. When empty, the widget is required.
-  recaptchaBypassHash: '',
+  // Staging reCaptcha bypass hash. TEMPORARY palliative so login works while the
+  // Turnstile site-key ↔ backend-secret pair is sorted out. The login sends this
+  // as `recaptchaValue` and skips the Turnstile widget entirely.
+  // ⚠️ REMOVE (set to '') before pointing at the real prod backend — it lets
+  // anyone skip the captcha on staging.
+  recaptchaBypassHash: 'd417dc64-63cb-40b0-adb9-820f44e75715',
   releaseVersion: 'dev',
 }
 
