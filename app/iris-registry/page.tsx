@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { isAuthenticated } from '@/src/api/tokenStore'
 import { listCompletedBatches, listRunningBatches, type BatchListParams } from '@/src/api/batches'
 import { statusToDisplay } from '@/src/api/adapters'
@@ -28,6 +29,7 @@ function statusClass(status: string): string {
 }
 
 export default function IrisRegistryPage() {
+  const router = useRouter()
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [tab, setTab] = useState<Tab>('completed')
   const [page, setPage] = useState(1)
@@ -115,7 +117,11 @@ export default function IrisRegistryPage() {
           </thead>
           <tbody>
             {rows.map((b) => (
-              <tr key={b.id || b.batch_id} className="border-b border-line/40 last:border-0">
+              <tr
+                key={b.id || b.batch_id}
+                onClick={() => b.id && router.push(`/iris-batch/${b.id}`)}
+                className="cursor-pointer border-b border-line/40 last:border-0 hover:bg-page/50"
+              >
                 <td className="px-3 py-2.5 font-medium text-ink">{b.batch_id || b.id}</td>
                 <td className="px-3 py-2.5 text-muted">{b.machine}</td>
                 <td className="px-3 py-2.5 text-muted">{b.recipe || '—'}</td>
