@@ -1,22 +1,17 @@
 'use client'
 
-// Real login against the Notify / IRIS Cloud API, with a Cloudflare Turnstile
-// captcha. On success the JWT pair is stored (localStorage) and we land on the
-// diagnostic. On staging a bypass hash stands in for the token (see runtime
-// config), so the widget is skipped.
-//
-// Turnstile is loaded via Cloudflare's official script directly (NOT the
-// web-components-ts CloudflareCaptcha wrapper) — that lib's bundle crashes at
-// runtime here with a React-internals mismatch (ReactCurrentOwner), so it is
-// kept out of this page's runtime path.
-//
-// Additive route — the legacy cookie login (/login) is untouched.
+// Main entry (batchbook.ntechcolab.com). If already authenticated with IRIS, go
+// straight to the app; otherwise show the login. Real login against the Notify /
+// IRIS Cloud API with a Cloudflare Turnstile captcha (on staging a bypass hash
+// stands in for the token). Turnstile is loaded via Cloudflare's official script
+// directly — the web-components-ts wrapper crashes at runtime here.
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { login } from '@/src/api/auth'
 import { ApiRequestError } from '@/src/api/client'
+import { isAuthenticated } from '@/src/api/tokenStore'
 import { recaptchaBypassHash, turnstileSiteKey } from '@/src/config/runtimeConfig'
 
 declare global {
@@ -28,14 +23,12 @@ declare global {
   }
 }
 
-export default function IrisLoginPage() {
+export default function HomePage() {
   const router = useRouter()
-  // Read from window.configuration only after mount — reading it during render
-  // would differ between server ('' — no window) and client, causing a
-  // hydration mismatch (React #418).
+  const [checked, setChecked] = useState(false)
+
   const [bypass, setBypass] = useState('')
   const [siteKey, setSiteKey] = useState('')
-
   const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [captcha, setCaptcha] = useState<string | null>(null)
@@ -48,15 +41,19 @@ export default function IrisLoginPage() {
   captchaRef.current = setCaptcha
 
   useEffect(() => {
+    if (isAuthenticated()) {
+      router.replace('/iris-app')
+      return
+    }
     const bp = recaptchaBypassHash()
     setBypass(bp)
     setSiteKey(turnstileSiteKey())
     if (bp) setCaptcha(bp)
-  }, [])
+    setChecked(true)
+  }, [router])
 
-  // Explicitly render the Turnstile widget once the script is ready (prod path).
   useEffect(() => {
-    if (bypass || !scriptReady || !widgetRef.current || !window.turnstile) return
+    if (!checked || bypass || !scriptReady || !widgetRef.current || !window.turnstile) return
     const id = window.turnstile.render(widgetRef.current, {
       sitekey: siteKey,
       callback: (token: string) => captchaRef.current(token),
@@ -69,7 +66,7 @@ export default function IrisLoginPage() {
         /* widget already gone */
       }
     }
-  }, [bypass, scriptReady, siteKey])
+  }, [checked, bypass, scriptReady, siteKey])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -87,6 +84,9 @@ export default function IrisLoginPage() {
       setLoading(false)
     }
   }
+
+  // Don't flash the form while deciding whether to redirect an authed user.
+  if (!checked) return null
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-page px-4">

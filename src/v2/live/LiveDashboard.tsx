@@ -23,7 +23,7 @@ export default function LiveDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace('/iris-login')
+      router.replace('/')
       return
     }
     loadLiveKpis()

@@ -41,7 +41,7 @@ export default function IrisNav() {
         )
       })}
       <button
-        onClick={() => logout().then(() => router.replace('/iris-login'))}
+        onClick={() => logout().then(() => router.replace('/'))}
         className="ml-auto rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-page hover:text-ink"
       >
         Log out

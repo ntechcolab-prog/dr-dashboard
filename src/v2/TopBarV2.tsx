@@ -34,7 +34,7 @@ export default function TopBarV2() {
   async function logout() {
     if (live) {
       await irisLogout().catch(() => {})
-      router.replace('/iris-login')
+      router.replace('/')
       return
     }
     await fetch('/api/auth/logout', { method: 'POST' })

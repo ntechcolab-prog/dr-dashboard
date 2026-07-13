@@ -33,7 +33,7 @@ export default function LiveApp() {
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      router.replace('/iris-login')
+      router.replace('/')
       return
     }
     loadLiveApp()

@@ -110,7 +110,7 @@ export default function IrisProductionPage() {
       <main className="flex min-h-screen items-center justify-center bg-page px-4">
         <div className="max-w-sm text-center">
           <p className="mb-4 text-sm text-muted">Not authenticated with IRIS.</p>
-          <Link href="/iris-login" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
             Go to login
           </Link>
         </div>
