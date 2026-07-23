@@ -41,3 +41,4 @@ storybook-static
 # (Its node_modules is still ignored by the `node_modules` rule.)
 !vendor/web-components-ts/dist
 !vendor/web-components-ts/dist/**
+_vr.mjs
