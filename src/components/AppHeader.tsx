@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AppsGrid, Calendar, Bell, ChevronDown } from '../icons/Icons'
+import { BatchBookMark, BATCH_BOOK_GLYPH } from './BatchBookMark'
 import { useSession, initialsOf } from '@/src/client/Session'
 import { useLocalStorage } from '../lib/useLocalStorage'
 import { buildWeeks } from '../lib/weeks'
@@ -12,14 +13,6 @@ interface AppHeaderProps {
   name: string
   icon: string | null
   restricted?: boolean
-}
-
-// Up to two uppercase initials from the app name (e.g. "Batch Book" → "BB").
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return 'DR'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[1][0]).toUpperCase()
 }
 
 const MONTH_NAMES = [
@@ -61,9 +54,7 @@ export default function AppHeader({ name, icon, restricted = false }: AppHeaderP
         {icon ? (
           <img src={icon} alt="" className="h-8 w-auto max-w-[10rem] object-contain" />
         ) : (
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-[0.6875rem] font-bold">
-            {initials(name)}
-          </div>
+          <BatchBookMark size={32} />
         )}
         <span className="text-base font-medium tracking-tight">{name}</span>
         </div>
@@ -468,14 +459,6 @@ interface Product {
   internal?: boolean // same-tab navigation (switches the app version)
 }
 
-const BOOK_GLYPH = (
-  <>
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="8" y1="13" x2="16" y2="13" />
-    <line x1="8" y1="17" x2="13" y2="17" />
-  </>
-)
 
 const PRODUCTS: Product[] = [
   {
@@ -484,7 +467,7 @@ const PRODUCTS: Product[] = [
     href: '#',
     color: '#46aa9f',
     current: true,
-    glyph: BOOK_GLYPH,
+    glyph: BATCH_BOOK_GLYPH,
   },
   {
     name: 'Batch Book v0',
@@ -492,7 +475,7 @@ const PRODUCTS: Product[] = [
     href: '/batch-book?v=0',
     color: '#6ca8c9',
     internal: true,
-    glyph: BOOK_GLYPH,
+    glyph: BATCH_BOOK_GLYPH,
   },
   {
     name: 'Batch Book v1',
@@ -500,7 +483,7 @@ const PRODUCTS: Product[] = [
     href: '/batch-book?v=1',
     color: '#5b97b8',
     internal: true,
-    glyph: BOOK_GLYPH,
+    glyph: BATCH_BOOK_GLYPH,
   },
   {
     name: 'Batch Book v2',
@@ -508,7 +491,7 @@ const PRODUCTS: Product[] = [
     href: '/batch-book-v2?v=2',
     color: '#008d84',
     internal: true,
-    glyph: BOOK_GLYPH,
+    glyph: BATCH_BOOK_GLYPH,
   },
   {
     name: 'IRIS Cloud',

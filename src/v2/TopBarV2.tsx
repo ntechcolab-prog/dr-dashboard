@@ -15,6 +15,7 @@ import Divider from '@mui/material/Divider'
 import AppsIcon from '@mui/icons-material/Apps'
 import MenuIcon from '@mui/icons-material/Menu'
 import { IrisLogo } from '@/src/client/iris/IrisLogo'
+import { BatchBookMark } from '@/src/components/BatchBookMark'
 import { useSession, initialsOf } from '@/src/client/Session'
 import { iris } from '@/src/client/mui/theme'
 import { isLiveMode } from '@/src/data/mockData'
@@ -53,9 +54,12 @@ export default function TopBarV2() {
           </IconButton>
           <Box component={Link} href={home} aria-label="Home" sx={{ ...row, textDecoration: 'none', color: '#fff' }}>
             {live ? (
-              <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
-                Batch&nbsp;Book
-              </Typography>
+              <Box sx={{ ...row, gap: 1.25 }}>
+                <BatchBookMark size={30} />
+                <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                  Batch&nbsp;Book
+                </Typography>
+              </Box>
             ) : (
               <IrisLogo size="sm" />
             )}
