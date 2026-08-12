@@ -119,14 +119,16 @@ const ALERTS = [
   ['02 Mar 2021 / 10:04am', '02 Mar 2021 / 10:05am', 'Cooling pump speed reduced'],
   ['02 Mar 2021 / 09:41am', '02 Mar 2021 / 09:42am', 'Sample interval exceeded'],
 ]
+// [#, description, operator, event, date] — automatic events have no human
+// operator, so they are logged as "System".
 const ACTIVITY = [
-  ['1', 'MR completed by Antoni Newton', 'Commissioning ER alarm', '11/05/2021 12:46:34'],
-  ['2', 'User logged in', 'User Login', '11/05/2021 11:32:08'],
-  ['3', 'User logged out', 'User Logout', '09/05/2021 18:14:51'],
-  ['4', 'Recipe Start: Action Start', 'Manual action', '09/05/2021 09:02:10'],
-  ['5', 'Recipe Start: Action Start', 'Manual action', '08/05/2021 17:48:22'],
-  ['6', 'Limit value reached for fill level', 'Automatic change', '08/05/2021 16:12:03'],
-  ['7', 'Batch BA-0074 created', 'Batch start', '05/05/2021 08:30:00'],
+  ['1', 'MR completed by Antoni Newton', 'A. Newton', 'Commissioning ER alarm', '11/05/2021 12:46:34'],
+  ['2', 'User logged in', 'A. Newton', 'User Login', '11/05/2021 11:32:08'],
+  ['3', 'User logged out', 'M. Hoffmann', 'User Logout', '09/05/2021 18:14:51'],
+  ['4', 'Recipe Start: Action Start', 'M. Hoffmann', 'Manual action', '09/05/2021 09:02:10'],
+  ['5', 'Recipe Start: Action Start', 'A. Costa', 'Manual action', '08/05/2021 17:48:22'],
+  ['6', 'Limit value reached for fill level', 'System', 'Automatic change', '08/05/2021 16:12:03'],
+  ['7', 'Batch BA-0074 created', 'J. Tanaka', 'Batch start', '05/05/2021 08:30:00'],
 ]
 
 const dash = (v: unknown, unit = ''): string => (v == null || v === '' ? '—' : `${v}${unit ? ` ${unit}` : ''}`)
@@ -449,6 +451,7 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
                 <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
                   <TableCell sx={{ width: 48 }}>#</TableCell>
                   <TableCell>Description</TableCell>
+                  <TableCell sx={{ width: 160 }}>Operator</TableCell>
                   <TableCell>Event</TableCell>
                   <TableCell sx={{ width: 180 }}>Date</TableCell>
                 </TableRow>
@@ -459,11 +462,12 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
                     <TableCell sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>{r[0]}</TableCell>
                     <TableCell>{r[1]}</TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{r[2]}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>{r[3]}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{r[3]}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>{r[4]}</TableCell>
                   </TableRow>
                 ))}
                 {activity.length === 0 && (
-                  <TableRow><TableCell colSpan={4} align="center" sx={{ py: 4, color: 'text.secondary' }}>No entries match “{query}”.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>No entries match “{query}”.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

@@ -112,14 +112,16 @@ const ALERTS = [
   ['02 Mar 2021 / 10:04am', '02 Mar 2021 / 10:05am', 'Cooling pump speed reduced'],
   ['02 Mar 2021 / 09:41am', '02 Mar 2021 / 09:42am', 'Sample interval exceeded'],
 ]
+// [#, description, operator, event, date] — automatic events have no human
+// operator, so they are logged as "System".
 const ACTIVITY = [
-  ['1', 'MR completed by Antoni Newton', 'Commissioning ER alarm', '11/05/2021 12:46:34'],
-  ['2', 'User logged in', 'User Login', '11/05/2021 11:32:08'],
-  ['3', 'User logged out', 'User Logout', '09/05/2021 18:14:51'],
-  ['4', 'Recipe Start: Action Start', 'Manual action', '09/05/2021 09:02:10'],
-  ['5', 'Recipe Start: Action Start', 'Manual action', '08/05/2021 17:48:22'],
-  ['6', 'Limit value reached for fill level', 'Automatic change', '08/05/2021 16:12:03'],
-  ['7', 'Batch BA-0074 created', 'Batch start', '05/05/2021 08:30:00'],
+  ['1', 'MR completed by Antoni Newton', 'A. Newton', 'Commissioning ER alarm', '11/05/2021 12:46:34'],
+  ['2', 'User logged in', 'A. Newton', 'User Login', '11/05/2021 11:32:08'],
+  ['3', 'User logged out', 'M. Hoffmann', 'User Logout', '09/05/2021 18:14:51'],
+  ['4', 'Recipe Start: Action Start', 'M. Hoffmann', 'Manual action', '09/05/2021 09:02:10'],
+  ['5', 'Recipe Start: Action Start', 'A. Costa', 'Manual action', '08/05/2021 17:48:22'],
+  ['6', 'Limit value reached for fill level', 'System', 'Automatic change', '08/05/2021 16:12:03'],
+  ['7', 'Batch BA-0074 created', 'J. Tanaka', 'Batch start', '05/05/2021 08:30:00'],
 ]
 
 export default function ResumeTab({ form }: Props) {
@@ -371,18 +373,20 @@ export default function ResumeTab({ form }: Props) {
         }
       >
         <div className="overflow-hidden rounded-lg border border-line">
-          <div className="grid grid-cols-[48px_1fr_1fr_180px] bg-page/60 px-4 py-3 text-xs font-medium text-muted">
+          <div className="grid grid-cols-[48px_1fr_160px_1fr_180px] bg-page/60 px-4 py-3 text-xs font-medium text-muted">
             <span>#</span>
             <span>Description</span>
+            <span>Operator</span>
             <span>Event</span>
             <span>Date</span>
           </div>
           {activity.map((r) => (
-            <div key={r[0]} className="grid grid-cols-[48px_1fr_1fr_180px] items-center border-t border-line px-4 py-3 text-sm">
+            <div key={r[0]} className="grid grid-cols-[48px_1fr_160px_1fr_180px] items-center border-t border-line px-4 py-3 text-sm">
               <span className="text-muted tabular-nums">{r[0]}</span>
               <span className="text-ink">{r[1]}</span>
               <span className="text-muted">{r[2]}</span>
-              <span className="text-muted tabular-nums">{r[3]}</span>
+              <span className="text-muted">{r[3]}</span>
+              <span className="text-muted tabular-nums">{r[4]}</span>
             </div>
           ))}
           {activity.length === 0 && (
