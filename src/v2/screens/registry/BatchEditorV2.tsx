@@ -129,7 +129,12 @@ export default function BatchEditorV2({ initial, onBack, onSave, restricted = fa
 
       <Box id={EDITOR_PRINT_ID}>
         {step === 'Resume' && <ResumeTab form={form} />}
-        {step === 'Product' && <ProductTab value={form.product} onChange={(v) => update('product', v)} />}
+        {step === 'Product' && <ProductTab
+            value={form.product}
+            onChange={(v) => update('product', v)}
+            results={form.results}
+            onResultsChange={(v) => update('results', v)}
+          />}
         {step === 'Machine' && <MachineFormTab value={form.machine} onChange={(v) => update('machine', v)} />}
         {step === 'Period' && <PeriodTab value={form.period} onChange={(v) => update('period', v)} />}
         {step === 'Results' && <ResultsTab value={form.results} onChange={(v) => update('results', v)} />}

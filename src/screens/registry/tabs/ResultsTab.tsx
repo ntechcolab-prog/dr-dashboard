@@ -43,6 +43,7 @@ export default function ResultsTab({ value, onChange }: Props) {
   }
 
   const removeVariable = (v: string) => {
+    const { [v]: _dropped, ...expectedRest } = value.expected ?? {}
     onChange({
       variables: value.variables.filter((x) => x !== v),
       rows: value.rows.map((r) => {
@@ -50,6 +51,7 @@ export default function ResultsTab({ value, onChange }: Props) {
         delete rest[v]
         return { ...r, values: rest }
       }),
+      expected: expectedRest,
     })
   }
 
@@ -72,6 +74,7 @@ export default function ResultsTab({ value, onChange }: Props) {
     onChange({
       variables: value.variables.map((x) => (x === oldName ? nn : x)),
       rows: value.rows.map((r) => ({ ...r, values: renameKey(r.values) })),
+      expected: oldName in (value.expected ?? {}) ? renameKey(value.expected ?? {}) : value.expected,
     })
     setDraft((d) => ({ ...d, values: renameKey(d.values) }))
   }
@@ -185,7 +188,12 @@ export default function ResultsTab({ value, onChange }: Props) {
               <th className="px-4 py-3 font-medium">DATE</th>
               <th className="px-4 py-3 font-medium">Time</th>
               {value.variables.map((v) => (
-                <th key={v} className="px-4 py-3 font-medium">{v}</th>
+                <th key={v} className="px-4 py-3 font-medium">
+                  {v}
+                  {value.expected?.[v] ? (
+                    <span className="block text-[0.6875rem] font-normal text-muted/70">Expected {value.expected[v]}</span>
+                  ) : null}
+                </th>
               ))}
               <th className="w-24 px-4 py-3" aria-label="Actions" />
             </tr>

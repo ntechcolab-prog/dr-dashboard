@@ -53,6 +53,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
   }
 
   const removeVariable = (v: string) => {
+    const { [v]: _dropped, ...expectedRest } = value.expected ?? {}
     onChange({
       variables: value.variables.filter((x) => x !== v),
       rows: value.rows.map((r) => {
@@ -60,6 +61,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
         delete rest[v]
         return { ...r, values: rest }
       }),
+      expected: expectedRest,
     })
   }
 
@@ -78,6 +80,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
     onChange({
       variables: value.variables.map((x) => (x === oldName ? nn : x)),
       rows: value.rows.map((r) => ({ ...r, values: renameKey(r.values) })),
+      expected: oldName in (value.expected ?? {}) ? renameKey(value.expected ?? {}) : value.expected,
     })
     setDraft((d) => ({ ...d, values: renameKey(d.values) }))
   }
@@ -162,7 +165,16 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
             <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
               <TableCell>DATE</TableCell>
               <TableCell>Time</TableCell>
-              {value.variables.map((v) => <TableCell key={v}>{v}</TableCell>)}
+              {value.variables.map((v) => (
+                <TableCell key={v}>
+                  {v}
+                  {value.expected?.[v] ? (
+                    <Box component="span" sx={{ display: 'block', fontWeight: 400, fontSize: '0.6875rem', color: 'text.disabled' }}>
+                      Expected {value.expected[v]}
+                    </Box>
+                  ) : null}
+                </TableCell>
+              ))}
               <TableCell align="right" />
             </TableRow>
           </TableHead>

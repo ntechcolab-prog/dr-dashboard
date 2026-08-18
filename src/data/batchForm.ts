@@ -47,6 +47,10 @@ export interface ResultRow {
 export interface ResultsData {
   variables: string[]
   rows: ResultRow[]
+  /** Expected (target) value per variable, entered on the Product tab. Keyed by
+   *  variable name, so it follows the same list the Results table is built from.
+   *  Optional: forms saved before this field existed simply have no targets. */
+  expected?: Record<string, string>
 }
 
 export interface NoteRow {
@@ -139,6 +143,7 @@ export function makeDraft(seq: number): BatchForm {
     },
     results: {
       variables: ['d10', 'd50', 'd90'],
+      expected: { d10: '0,70', d50: '1,60', d90: '2,50' },
       rows: [
         { date: '19/11/2024', time: '10:15:00', values: { d10: '1,77', d50: '14', d90: '112' } },
         { date: '19/11/2024', time: '10:45:00', values: { d10: '0,795', d50: '2,2', d90: '5,56' } },
