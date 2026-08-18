@@ -163,6 +163,25 @@ function buildMonth(year: number, month: number /* 0-indexed */, seed: number): 
   return batches
 }
 
+const MONTH_LABELS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/** MonthMeta for a "YYYY-MM" key. Falls back to a synthesized month when the key
+ *  is not in MONTHS — live mode can end up with no months at all (an org with no
+ *  batches, or batch details that failed to load), and the dashboards used to
+ *  read `.year` off the undefined result and take the whole app down. */
+export function monthMetaFor(key: string): MonthMeta {
+  const found = MONTHS.find((m) => m.key === key)
+  if (found) return found
+  const [rawYear, rawMonth] = key.split('-').map(Number)
+  const now = new Date()
+  const year = Number.isFinite(rawYear) ? rawYear : now.getFullYear()
+  const monthIdx = Number.isFinite(rawMonth) && rawMonth >= 1 && rawMonth <= 12 ? rawMonth - 1 : now.getMonth()
+  return { key, label: `${MONTH_LABELS[monthIdx]} ${year}`, year, month: monthIdx }
+}
+
 export let MONTHS: MonthMeta[] = [
   { key: '2025-09', label: 'September 2025', year: 2025, month: 8 },
   { key: '2025-10', label: 'October 2025', year: 2025, month: 9 },

@@ -91,6 +91,13 @@ export async function loadLiveApp(limit = 60): Promise<void> {
   ])
   const batches = records.filter((r): r is NonNullable<typeof r> => r != null).map(batchRecordToBatch)
 
+  // Every per-batch detail failing while the list returned rows is a load
+  // failure, not an empty organization — say so instead of mounting an app with
+  // no data behind it.
+  if (ids.length > 0 && batches.length === 0) {
+    throw new Error(`could not load any of the ${ids.length} batches returned by the list`)
+  }
+
   // Full records (completed + running) for the batch editor.
   setLiveBatchRecords([...records, ...runRecords].filter((r): r is NonNullable<typeof r> => r != null))
 

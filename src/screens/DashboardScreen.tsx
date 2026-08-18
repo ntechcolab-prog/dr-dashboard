@@ -11,7 +11,7 @@ import EmptyState from '../components/EmptyState'
 import ExportMenu from '../components/ExportMenu'
 import { AnalysisIcon } from '../icons/Icons'
 import type { Sheet } from '../lib/exportData'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, monthMetaFor } from '../data/mockData'
 import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '../lib/availability'
 import { useHolidays } from '../lib/holidays'
 import { useLocalStorage } from '../lib/useLocalStorage'
@@ -70,7 +70,7 @@ export default function DashboardScreen({ onNavigate }: DashboardScreenProps) {
     null
   )
 
-  const monthMeta = MONTHS.find((m) => m.key === monthKey)!
+  const monthMeta = monthMetaFor(monthKey)
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
   const prevMeta = monthIdx > 0 ? MONTHS[monthIdx - 1] : null
 

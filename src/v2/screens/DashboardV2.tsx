@@ -14,7 +14,7 @@ import DetailsDrawerV2, { type DrawerData } from '../components/metrics/DetailsD
 import RankingsV2 from '../components/machine/RankingsV2'
 import InOperationV2 from '../components/machine/InOperationV2'
 import MachineTabV2 from '../components/machine/MachineTabV2'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS, isLiveMode } from '@/src/data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, isLiveMode, monthMetaFor } from '@/src/data/mockData'
 import {
   filterBatches, buildKpis, byDay, buildRankings,
   metricByDaySeries, metricByMachine, metricByRecipe,
@@ -58,7 +58,7 @@ export default function DashboardV2() {
 
   useEffect(() => { setWeekIdx(0) }, [monthKey])
 
-  const monthMeta = MONTHS.find((m) => m.key === monthKey)!
+  const monthMeta = monthMetaFor(monthKey)
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
   const prevMeta = monthIdx > 0 ? MONTHS[monthIdx - 1] : null
 

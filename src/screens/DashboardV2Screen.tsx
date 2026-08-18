@@ -8,7 +8,7 @@ import InOperation from '../components/InOperation'
 import DetailsDrawer, { type DrawerData } from '../components/DetailsDrawer'
 import MachineTab from '../components/MachineTab'
 import EmptyState from '../components/EmptyState'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS } from '../data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, monthMetaFor } from '../data/mockData'
 import {
   filterBatches,
   buildKpis,
@@ -52,7 +52,7 @@ export default function DashboardV2Screen() {
 
   const [drawer, setDrawer] = useState<DrawerData>(CLOSED_DRAWER)
 
-  const monthMeta = MONTHS.find((m) => m.key === monthKey)!
+  const monthMeta = monthMetaFor(monthKey)
   const monthIdx = MONTHS.findIndex((m) => m.key === monthKey)
   const prevMeta = monthIdx > 0 ? MONTHS[monthIdx - 1] : null
 
