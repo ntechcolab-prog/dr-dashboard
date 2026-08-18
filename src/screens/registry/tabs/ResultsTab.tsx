@@ -3,6 +3,7 @@ import { Close, Pencil, CheckCircle } from '../../../icons/Icons'
 import type { ResultsData, ResultRow } from '../../../data/batchForm'
 import { RESULT_VARIABLES } from '../../../data/batchForm'
 import { maskDate, maskTime } from '../../../lib/masks'
+import { deltaLabel, latestValue } from '../../../lib/expected'
 
 interface Props {
   value: ResultsData
@@ -28,6 +29,7 @@ export default function ResultsTab({ value, onChange }: Props) {
 
   const addVariable = (v: string) => {
     onChange({
+      ...value,
       variables: [...value.variables, v],
       rows: value.rows.map((r) => ({ ...r, values: { ...r.values, [v]: '' } })),
     })
@@ -45,6 +47,7 @@ export default function ResultsTab({ value, onChange }: Props) {
   const removeVariable = (v: string) => {
     const { [v]: _dropped, ...expectedRest } = value.expected ?? {}
     onChange({
+      ...value,
       variables: value.variables.filter((x) => x !== v),
       rows: value.rows.map((r) => {
         const rest = { ...r.values }
@@ -72,6 +75,7 @@ export default function ResultsTab({ value, onChange }: Props) {
       return { ...rest, [nn]: ov ?? '' }
     }
     onChange({
+      ...value,
       variables: value.variables.map((x) => (x === oldName ? nn : x)),
       rows: value.rows.map((r) => ({ ...r, values: renameKey(r.values) })),
       expected: oldName in (value.expected ?? {}) ? renameKey(value.expected ?? {}) : value.expected,
@@ -105,6 +109,8 @@ export default function ResultsTab({ value, onChange }: Props) {
     }
     onChange({ ...value, rows: [...value.rows, sample] })
   }
+
+  const hasExpected = Object.keys(value.expected ?? {}).length > 0
 
   return (
     <section className="rounded-xl bg-card p-6 shadow-card">
@@ -188,17 +194,42 @@ export default function ResultsTab({ value, onChange }: Props) {
               <th className="px-4 py-3 font-medium">DATE</th>
               <th className="px-4 py-3 font-medium">Time</th>
               {value.variables.map((v) => (
-                <th key={v} className="px-4 py-3 font-medium">
-                  {v}
-                  {value.expected?.[v] ? (
-                    <span className="block text-[0.6875rem] font-normal text-muted/70">Expected {value.expected[v]}</span>
-                  ) : null}
-                </th>
+                <th key={v} className="px-4 py-3 font-medium">{v}</th>
               ))}
               <th className="w-24 px-4 py-3" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
+            {/* Target vs latest measurement, aligned with each variable column.
+                Only rendered once the batch has at least one expected value. */}
+            {hasExpected && (
+              <>
+                <tr className="border-t border-line bg-page/60">
+                  <td className="px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">Expected</td>
+                  <td />
+                  {value.variables.map((v) => (
+                    <td key={v} className="px-4 py-2 tabular-nums">{value.expected?.[v] || '—'}</td>
+                  ))}
+                  <td />
+                </tr>
+                <tr className="border-b-2 border-line bg-page/60">
+                  <td className="px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted">Current</td>
+                  <td />
+                  {value.variables.map((v) => {
+                    const current = latestValue(value.rows, v)
+                    const diff = deltaLabel(value.expected?.[v], current)
+                    return (
+                      <td key={v} className="px-4 py-2 tabular-nums">
+                        {current || '—'}
+                        {diff && <span className="block text-[0.6875rem] text-muted">{diff}</span>}
+                      </td>
+                    )
+                  })}
+                  <td />
+                </tr>
+              </>
+            )}
+
             {value.rows.map((r, i) =>
               editRow === i ? (
                 <tr key={i} className="border-t border-line bg-page/30">

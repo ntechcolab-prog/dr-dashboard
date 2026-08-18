@@ -22,6 +22,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import type { ResultsData, ResultRow } from '@/src/data/batchForm'
 import { RESULT_VARIABLES } from '@/src/data/batchForm'
 import { maskDate, maskTime } from '@/src/lib/masks'
+import { deltaLabel, latestValue } from '@/src/lib/expected'
 
 const emptyDraft = (vars: string[]): ResultRow => ({
   date: '', time: '', values: Object.fromEntries(vars.map((v) => [v, ''])),
@@ -39,6 +40,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
 
   const addVariable = (v: string) => {
     onChange({
+      ...value,
       variables: [...value.variables, v],
       rows: value.rows.map((r) => ({ ...r, values: { ...r.values, [v]: '' } })),
     })
@@ -55,6 +57,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
   const removeVariable = (v: string) => {
     const { [v]: _dropped, ...expectedRest } = value.expected ?? {}
     onChange({
+      ...value,
       variables: value.variables.filter((x) => x !== v),
       rows: value.rows.map((r) => {
         const rest = { ...r.values }
@@ -78,6 +81,7 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
       return { ...rest, [nn]: ov ?? '' }
     }
     onChange({
+      ...value,
       variables: value.variables.map((x) => (x === oldName ? nn : x)),
       rows: value.rows.map((r) => ({ ...r, values: renameKey(r.values) })),
       expected: oldName in (value.expected ?? {}) ? renameKey(value.expected ?? {}) : value.expected,
@@ -108,6 +112,12 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
   }
 
   const cell = { fontSize: '0.875rem' }
+  const hasExpected = Object.keys(value.expected ?? {}).length > 0
+  const summaryRow = { '& td': { bgcolor: 'background.default', py: 1 } }
+  const summaryLabel = {
+    fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase',
+    letterSpacing: '0.04em', color: 'text.secondary',
+  }
 
   return (
     <Card sx={{ p: 3 }}>
@@ -165,20 +175,47 @@ export default function ResultsTab({ value, onChange }: { value: ResultsData; on
             <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
               <TableCell>DATE</TableCell>
               <TableCell>Time</TableCell>
-              {value.variables.map((v) => (
-                <TableCell key={v}>
-                  {v}
-                  {value.expected?.[v] ? (
-                    <Box component="span" sx={{ display: 'block', fontWeight: 400, fontSize: '0.6875rem', color: 'text.disabled' }}>
-                      Expected {value.expected[v]}
-                    </Box>
-                  ) : null}
-                </TableCell>
-              ))}
+              {value.variables.map((v) => <TableCell key={v}>{v}</TableCell>)}
               <TableCell align="right" />
             </TableRow>
           </TableHead>
           <TableBody>
+            {/* Target vs latest measurement, aligned with each variable column.
+                Only rendered once the batch has at least one expected value. */}
+            {hasExpected && (
+              <>
+                <TableRow sx={summaryRow}>
+                  <TableCell sx={summaryLabel}>Expected</TableCell>
+                  <TableCell />
+                  {value.variables.map((v) => (
+                    <TableCell key={v} sx={{ ...cell, fontVariantNumeric: 'tabular-nums' }}>
+                      {value.expected?.[v] || '—'}
+                    </TableCell>
+                  ))}
+                  <TableCell />
+                </TableRow>
+                <TableRow sx={{ ...summaryRow, '& td': { ...summaryRow['& td'], borderBottom: '2px solid', borderBottomColor: 'divider' } }}>
+                  <TableCell sx={summaryLabel}>Current</TableCell>
+                  <TableCell />
+                  {value.variables.map((v) => {
+                    const current = latestValue(value.rows, v)
+                    const diff = deltaLabel(value.expected?.[v], current)
+                    return (
+                      <TableCell key={v} sx={{ ...cell, fontVariantNumeric: 'tabular-nums' }}>
+                        {current || '—'}
+                        {diff && (
+                          <Box component="span" sx={{ display: 'block', fontSize: '0.6875rem', color: 'text.secondary' }}>
+                            {diff}
+                          </Box>
+                        )}
+                      </TableCell>
+                    )
+                  })}
+                  <TableCell />
+                </TableRow>
+              </>
+            )}
+
             {value.rows.map((r, i) =>
               editRow === i ? (
                 <TableRow key={i} sx={{ bgcolor: 'background.default' }}>
