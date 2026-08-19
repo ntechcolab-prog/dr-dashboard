@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { IrisLogo } from '@/src/client/iris/IrisLogo'
-import { IrisField } from '@/src/client/iris/IrisField'
+import { IrisLogo } from '@/src/shared/client/iris/IrisLogo'
+import { IrisField } from '@/src/shared/client/iris/IrisField'
 
 export default function SignupPage() {
   const router = useRouter()

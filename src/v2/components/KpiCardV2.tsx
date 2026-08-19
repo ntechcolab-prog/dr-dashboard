@@ -8,8 +8,8 @@ import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
 import type { EChartsOption } from 'echarts'
 import EChart from '@/src/v2/components/echarts/EChart'
-import { formatValue, type Kpi } from '@/src/lib/compute'
-import { metaFor, withAlpha, VIZ, VIZ_CAPTION } from '@/src/components/metricViz'
+import { formatValue, type Kpi } from '@/src/shared/lib/compute'
+import { metaFor, withAlpha, VIZ, VIZ_CAPTION } from '@/src/shared/viz/metricViz'
 
 // MUI-native KPI card. Reuses the same compute/metricViz logic as v0/v1; the
 // hand-rolled SVG sparkline is replaced by a tiny ECharts sparkline (line/bar,

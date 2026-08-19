@@ -13,7 +13,8 @@ import RegistryIcon from '@mui/icons-material/DescriptionOutlined'
 import AnalysisIcon from '@mui/icons-material/InsightsOutlined'
 import SettingsIcon from '@mui/icons-material/SettingsOutlined'
 import CollapseIcon from '@mui/icons-material/MenuOpen'
-import { iris } from '@/src/client/mui/theme'
+import { iris } from '@/src/shared/client/mui/theme'
+import { isScreenGated } from '@/src/shared/versionGate'
 
 interface NavItem {
   key: string
@@ -33,6 +34,7 @@ interface SidebarProps {
   active: string
   onSelect: (key: string) => void
   onToggle: () => void
+  // v0: only the screens in V0_ALLOWED_SCREENS stay enabled (see shared/versionGate).
   restricted?: boolean
 }
 
@@ -55,7 +57,7 @@ export default function SidebarV2({ open, active, onSelect, onToggle, restricted
     >
       <List sx={{ flex: 1, p: 1.5, pt: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         {NAV.map(({ key, label, Icon }) => {
-          const disabled = restricted && key !== 'registry'
+          const disabled = isScreenGated(key, restricted)
           const isActive = key === active
           return (
             <Tooltip key={key} title={!open || disabled ? (disabled ? `${label} (coming soon)` : label) : ''} placement="right">

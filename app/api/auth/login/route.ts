@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { eq } from 'drizzle-orm'
-import { db } from '@/src/server/db'
-import { users } from '@/src/server/db/schema'
-import { verifyPassword } from '@/src/server/auth/password'
-import { createSessionToken } from '@/src/server/auth/session'
-import { setSessionCookie } from '@/src/server/auth'
+import { db } from '@/src/shared/server/db'
+import { users } from '@/src/shared/server/db/schema'
+import { verifyPassword } from '@/src/shared/server/auth/password'
+import { createSessionToken } from '@/src/shared/server/auth/session'
+import { setSessionCookie } from '@/src/shared/server/auth'
 
 export async function POST(req: Request) {
   let body: Record<string, unknown>

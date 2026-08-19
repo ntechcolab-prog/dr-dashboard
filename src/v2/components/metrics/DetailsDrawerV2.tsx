@@ -10,10 +10,10 @@ import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
 import type { EChartsOption } from 'echarts'
 import EChart, { chartPalette } from '@/src/v2/components/echarts/EChart'
-import { formatValue, type Kpi, type RankItem } from '@/src/lib/compute'
-import type { Batch } from '@/src/data/mockData'
-import { VIZ, metaFor, withAlpha, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/components/metricViz'
-import { useLocalStorage } from '@/src/lib/useLocalStorage'
+import { formatValue, type Kpi, type RankItem } from '@/src/shared/lib/compute'
+import type { Batch } from '@/src/shared/data/mockData'
+import { VIZ, metaFor, withAlpha, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/shared/viz/metricViz'
+import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
 
 // MUI-native rebuild of DetailsDrawer (Tailwind original in src/components).
 // Same DrawerData contract as v0/v1 so the orchestrator can feed it unchanged.

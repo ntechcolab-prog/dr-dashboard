@@ -9,13 +9,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { listMachinesResumed, getProductionMetrics } from '@/src/api/machines'
-import { oeeFromProduction } from '@/src/api/adapters'
-import { toPct } from '@/src/lib/oee'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { ApiRequestError } from '@/src/api/client'
-import type { Machine, MachineProductionMetrics, ProductionMetrics } from '@/src/api/types'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { listMachinesResumed, getProductionMetrics } from '@/src/shared/api/machines'
+import { oeeFromProduction } from '@/src/shared/api/adapters'
+import { toPct } from '@/src/shared/lib/oee'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { ApiRequestError } from '@/src/shared/api/client'
+import type { Machine, MachineProductionMetrics, ProductionMetrics } from '@/src/shared/api/types'
 
 const errMsg = (e: unknown) =>
   e instanceof ApiRequestError ? `${e.status} ${e.code ?? ''} — ${e.message}` : e instanceof Error ? e.message : String(e)

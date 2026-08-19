@@ -6,12 +6,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { getBatch } from '@/src/api/batches'
-import { statusToDisplay } from '@/src/api/adapters'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { ApiRequestError } from '@/src/api/client'
-import type { BatchRecord } from '@/src/api/types'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { getBatch } from '@/src/shared/api/batches'
+import { statusToDisplay } from '@/src/shared/api/adapters'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { ApiRequestError } from '@/src/shared/api/client'
+import type { BatchRecord } from '@/src/shared/api/types'
 
 const errMsg = (e: unknown) =>
   e instanceof ApiRequestError ? `${e.status} ${e.code ?? ''} — ${e.message}` : e instanceof Error ? e.message : String(e)

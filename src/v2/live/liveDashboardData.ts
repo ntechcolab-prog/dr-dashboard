@@ -3,10 +3,10 @@
 // them to the mock `Batch` shape the compute pipeline expects, and marks the
 // metrics with no backend source as `na` so the cards render "—".
 
-import { getBatch, listCompletedBatches } from '@/src/api/batches'
-import { batchRecordToBatch } from '@/src/api/adapters'
-import { buildKpis, type Kpi } from '@/src/lib/compute'
-import type { Batch } from '@/src/data/mockData'
+import { getBatch, listCompletedBatches } from '@/src/shared/api/batches'
+import { batchRecordToBatch } from '@/src/shared/api/adapters'
+import { buildKpis, type Kpi } from '@/src/shared/lib/compute'
+import type { Batch } from '@/src/shared/data/mockData'
 
 // No real backend source: cooling energy, carbon footprint, prod/idle ratio.
 const NA_KEYS = new Set(['coolingEnergy', 'carbon', 'ratio'])

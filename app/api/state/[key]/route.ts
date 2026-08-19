@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { and, eq } from 'drizzle-orm'
-import { db } from '@/src/server/db'
-import { companyState } from '@/src/server/db/schema'
-import { getCurrentUser } from '@/src/server/auth'
+import { db } from '@/src/shared/server/db'
+import { companyState } from '@/src/shared/server/db/schema'
+import { getCurrentUser } from '@/src/shared/server/auth'
 
 // Per-company key/value store. Authorization is by the company_id on the
 // session — a user can only ever touch their own company's keys.

@@ -19,10 +19,10 @@ import EditIcon from '@mui/icons-material/EditOutlined'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import CheckIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import CloseIcon from '@mui/icons-material/Close'
-import type { ResultsData, ResultRow } from '@/src/data/batchForm'
-import { RESULT_VARIABLES } from '@/src/data/batchForm'
-import { maskDate, maskTime } from '@/src/lib/masks'
-import { deltaLabel, latestValue } from '@/src/lib/expected'
+import type { ResultsData, ResultRow } from '@/src/shared/data/batchForm'
+import { RESULT_VARIABLES } from '@/src/shared/data/batchForm'
+import { maskDate, maskTime } from '@/src/shared/lib/masks'
+import { deltaLabel, latestValue } from '@/src/shared/lib/expected'
 
 const emptyDraft = (vars: string[]): ResultRow => ({
   date: '', time: '', values: Object.fromEntries(vars.map((v) => [v, ''])),

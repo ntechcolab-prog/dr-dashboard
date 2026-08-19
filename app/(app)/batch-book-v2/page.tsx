@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { MuiProvider } from '@/src/client/mui/MuiProvider'
+import { MuiProvider } from '@/src/shared/client/mui/MuiProvider'
 
 // Like /batch-book, the app is fully client-side (localStorage hooks, charts,
 // window-sized layout), so render it client-only. Wrapped in MuiProvider so the

@@ -7,7 +7,7 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Typography from '@mui/material/Typography'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
-import { SETTINGS_TABS } from '@/src/data/appData'
+import { SETTINGS_TABS } from '@/src/shared/data/appData'
 import { GeneralSettingsV2, DataExportSettingsV2 } from './MiscSettingsV2'
 import AvailabilitySettingsV2 from './AvailabilitySettingsV2'
 

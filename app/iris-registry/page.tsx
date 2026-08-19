@@ -7,12 +7,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { listCompletedBatches, listRunningBatches, type BatchListParams } from '@/src/api/batches'
-import { statusToDisplay } from '@/src/api/adapters'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { ApiRequestError } from '@/src/api/client'
-import type { BatchSummary, PaginatedBatches } from '@/src/api/types'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { listCompletedBatches, listRunningBatches, type BatchListParams } from '@/src/shared/api/batches'
+import { statusToDisplay } from '@/src/shared/api/adapters'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { ApiRequestError } from '@/src/shared/api/client'
+import type { BatchSummary, PaginatedBatches } from '@/src/shared/api/types'
 
 type Tab = 'completed' | 'running'
 

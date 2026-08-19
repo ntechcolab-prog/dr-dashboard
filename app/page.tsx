@@ -9,10 +9,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Script from 'next/script'
-import { login } from '@/src/api/auth'
-import { ApiRequestError } from '@/src/api/client'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { recaptchaBypassHash, turnstileSiteKey } from '@/src/config/runtimeConfig'
+import { login } from '@/src/shared/api/auth'
+import { ApiRequestError } from '@/src/shared/api/client'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { recaptchaBypassHash, turnstileSiteKey } from '@/src/shared/config/runtimeConfig'
 
 declare global {
   interface Window {

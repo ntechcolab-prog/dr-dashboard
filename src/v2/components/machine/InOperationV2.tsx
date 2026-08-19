@@ -13,9 +13,9 @@ import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutlined'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CloseIcon from '@mui/icons-material/Close'
-import { iris } from '@/src/client/mui/theme'
-import { withAlpha } from '@/src/components/metricViz'
-import type { LiveBatch } from '@/src/data/mockData'
+import { iris } from '@/src/shared/client/mui/theme'
+import { withAlpha } from '@/src/shared/viz/metricViz'
+import type { LiveBatch } from '@/src/shared/data/mockData'
 
 // MUI-native rewrite of components/InOperation.tsx. Live-batches strip: fixed
 // cards (3 per view) in a snap-scrolling carousel; clicking a card opens the

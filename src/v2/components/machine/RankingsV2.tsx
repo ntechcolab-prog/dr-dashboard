@@ -4,9 +4,9 @@ import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
-import { chartPalette, iris } from '@/src/client/mui/theme'
-import { withAlpha } from '@/src/components/metricViz'
-import type { Rankings, RankItem } from '@/src/lib/compute'
+import { chartPalette, iris } from '@/src/shared/client/mui/theme'
+import { withAlpha } from '@/src/shared/viz/metricViz'
+import type { Rankings, RankItem } from '@/src/shared/lib/compute'
 
 // MUI-native rewrite of components/Rankings.tsx. Same data shape (Rankings from
 // lib/compute) — three ranked panels rendered as horizontal value bars with a

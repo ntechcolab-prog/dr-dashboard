@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { SESSION_COOKIE_NAME, verifySessionToken } from './src/server/auth/session'
+import { SESSION_COOKIE_NAME, verifySessionToken } from './src/shared/server/auth/session'
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl

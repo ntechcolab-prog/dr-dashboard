@@ -3,9 +3,9 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
-import { iris } from '@/src/client/mui/theme'
-import { withAlpha } from '@/src/components/metricViz'
-import type { DayRollup } from '@/src/lib/compute'
+import { iris } from '@/src/shared/client/mui/theme'
+import { withAlpha } from '@/src/shared/viz/metricViz'
+import type { DayRollup } from '@/src/shared/lib/compute'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 

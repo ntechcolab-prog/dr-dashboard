@@ -11,10 +11,9 @@ import Tooltip from '@mui/material/Tooltip'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SaveIcon from '@mui/icons-material/SaveOutlined'
 import EditIcon from '@mui/icons-material/EditOutlined'
-import type { BatchForm } from '@/src/data/batchForm'
-import { useLocalStorage } from '@/src/lib/useLocalStorage'
-import { useProductionMonitoring } from '@/src/screens/settings/MiscSettings'
-import type { Sheet } from '@/src/lib/exportData'
+import type { BatchForm } from '@/src/shared/data/batchForm'
+import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
+import type { Sheet } from '@/src/shared/lib/exportData'
 import ExportMenuV2 from './ExportMenuV2'
 import ResumeTab from './tabs/ResumeTab'
 import ProductTab from './tabs/ProductTab'
@@ -24,6 +23,8 @@ import ResultsTab from './tabs/ResultsTab'
 import RemarksTab from './tabs/RemarksTab'
 import LogsTab from './tabs/LogsTab'
 import ReportsTab from './tabs/ReportsTab'
+import { useProductionMonitoring } from '@/src/shared/lib/productionMonitoring'
+import { gatedEditorSteps } from '@/src/shared/versionGate'
 
 const EDITOR_PRINT_ID = 'batch-editor-print-v2'
 const STEPS = ['Resume', 'Product', 'Machine', 'Period', 'Results', 'Remarks', 'Details', 'Reports'] as const
@@ -33,11 +34,12 @@ interface Props {
   initial: BatchForm
   onBack: () => void
   onSave: (form: BatchForm) => void
+  // v0: only the tabs in V0_ALLOWED_EDITOR_STEPS stay enabled (see shared/versionGate).
   restricted?: boolean
 }
 
 export default function BatchEditorV2({ initial, onBack, onSave, restricted = false }: Props) {
-  const disabledSteps: Step[] = restricted ? STEPS.filter((s) => s !== 'Resume') : []
+  const disabledSteps: Step[] = gatedEditorSteps(STEPS, restricted)
   const [form, setForm] = useLocalStorage<BatchForm>(`dr-batch-form-${initial.id}`, initial)
   const [rawStep, setStep] = useState<Step>('Resume')
   const [saved, setSaved] = useState(false)

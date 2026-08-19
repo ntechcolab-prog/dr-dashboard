@@ -4,11 +4,11 @@ import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import InputAdornment from '@mui/material/InputAdornment'
-import type { MachineData } from '@/src/data/batchForm'
+import type { MachineData } from '@/src/shared/data/batchForm'
 import {
   MACHINE_TYPES, EQUIPMENTS, GRINDING_TECH, LINERS, SEPARATIONS,
   SEALING_LIQUIDS, SIEVE_SIZES, BEAD_MATERIALS, BEAD_TYPES,
-} from '@/src/data/batchForm'
+} from '@/src/shared/data/batchForm'
 import { SectionCard } from '../ui'
 
 function Select({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {

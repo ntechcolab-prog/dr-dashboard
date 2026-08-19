@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import TopBarV2 from './TopBarV2'
 import SidebarV2 from './SidebarV2'
@@ -9,29 +9,22 @@ import RegistryV2 from './screens/registry/RegistryV2'
 import AnalysisV2 from './screens/analysis/AnalysisV2'
 import SettingsV2 from './screens/settings/SettingsV2'
 import PlaceholderScreen from './screens/PlaceholderScreen'
+import { isRestricted, isScreenGated, initialScreen } from '@/src/shared/versionGate'
 
 const SCREENS = ['dashboard', 'registry', 'analysis', 'settings']
 
-// MUI counterpart of src/App.tsx. Same version model: ?v=0 = restricted
-// (Registry only), otherwise the full app. v0/v1 keep using the Tailwind App;
-// this one is reached via ?v=2 from the launcher.
+// MUI counterpart of src/v1/App.tsx. Same version model: ?v=0 = restricted
+// (Registry only), otherwise the full app. v1 (Tailwind) serves /batch-book;
+// this one is /batch-book-v2, reached with ?v=2 from the launcher.
+// The v0 rules come from src/shared/versionGate.ts — both versions obey the
+// same list.
 export default function AppV2() {
-  const restricted = useMemo(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('v') === '0'
-  }, [])
+  const [restricted] = useState(() => isRestricted('2'))
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeNav, setActiveNav] = useState(() => {
-    if (restricted) return 'registry'
-    if (typeof window !== 'undefined') {
-      const view = new URLSearchParams(window.location.search).get('view')
-      if (view && SCREENS.includes(view)) return view
-    }
-    return 'dashboard'
-  })
+  const [activeNav, setActiveNav] = useState(() => initialScreen(restricted, 'dashboard', SCREENS))
 
-  const gated = restricted && activeNav !== 'registry'
+  const gated = isScreenGated(activeNav, restricted)
   const screen = gated ? 'coming soon' : activeNav
 
   return (

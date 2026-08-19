@@ -14,15 +14,15 @@ import DetailsDrawerV2, { type DrawerData } from '../components/metrics/DetailsD
 import RankingsV2 from '../components/machine/RankingsV2'
 import InOperationV2 from '../components/machine/InOperationV2'
 import MachineTabV2 from '../components/machine/MachineTabV2'
-import { ALL_BATCHES, LIVE_BATCHES, MONTHS, isLiveMode, monthMetaFor } from '@/src/data/mockData'
+import { ALL_BATCHES, LIVE_BATCHES, MONTHS, isLiveMode, monthMetaFor } from '@/src/shared/data/mockData'
 import {
   filterBatches, buildKpis, byDay, buildRankings,
   metricByDaySeries, metricByMachine, metricByRecipe,
   type Kpi, type DayRollup,
-} from '@/src/lib/compute'
-import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '@/src/lib/availability'
-import { useHolidays } from '@/src/lib/holidays'
-import { availabilityService } from '@/src/data/availabilityData'
+} from '@/src/shared/lib/compute'
+import { useAvailabilitySettings, useAvailabilityPlan, useWorkingHolidays } from '@/src/shared/lib/availability'
+import { useHolidays } from '@/src/shared/lib/holidays'
+import { availabilityService } from '@/src/shared/data/availabilityData'
 
 const CLOSED_DRAWER: DrawerData = { open: false, kind: 'day', title: '', subtitle: '', batches: [] }
 

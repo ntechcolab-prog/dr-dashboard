@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
-import { iris, chartPalette } from '@/src/client/mui/theme'
+import { iris, chartPalette } from '@/src/shared/client/mui/theme'
 
 // IRIS ECharts theme — registered once, mirrors the product's tokens so every
 // v2 chart reads as the same system (not stock ECharts). Text uses the Roboto

@@ -14,12 +14,12 @@ import MenuItem from '@mui/material/MenuItem'
 import Divider from '@mui/material/Divider'
 import AppsIcon from '@mui/icons-material/Apps'
 import MenuIcon from '@mui/icons-material/Menu'
-import { IrisLogo } from '@/src/client/iris/IrisLogo'
-import { BatchBookMark } from '@/src/components/BatchBookMark'
-import { useSession, initialsOf } from '@/src/client/Session'
-import { iris } from '@/src/client/mui/theme'
-import { isLiveMode } from '@/src/data/mockData'
-import { logout as irisLogout } from '@/src/api/auth'
+import { IrisLogo } from '@/src/shared/client/iris/IrisLogo'
+import { BatchBookMark } from '@/src/shared/viz/BatchBookMark'
+import { useSession, initialsOf } from '@/src/shared/client/Session'
+import { iris } from '@/src/shared/client/mui/theme'
+import { isLiveMode } from '@/src/shared/data/mockData'
+import { logout as irisLogout } from '@/src/shared/api/auth'
 
 // MUI counterpart of IrisTopBar — same IRIS Cloud chrome, dark #41414a bar.
 export default function TopBarV2() {

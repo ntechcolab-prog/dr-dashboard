@@ -12,7 +12,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import RemoveIcon from '@mui/icons-material/Remove'
 import AddIcon from '@mui/icons-material/Add'
 import WbSunnyOutlinedIcon from '@mui/icons-material/WbSunnyOutlined'
-import { iris } from '@/src/client/mui/theme'
+import { iris } from '@/src/shared/client/mui/theme'
 import {
   WEEKDAY_LABELS,
   daysInMonth,
@@ -21,7 +21,7 @@ import {
   type AvailabilitySettings,
   type PlanMap,
   type Weekday,
-} from '@/src/lib/availability'
+} from '@/src/shared/lib/availability'
 
 // MUI rebuild of the Tailwind planning calendar. Same planning math (reuses
 // plannedHoursForDay + the availability model) — only presentation changes.
