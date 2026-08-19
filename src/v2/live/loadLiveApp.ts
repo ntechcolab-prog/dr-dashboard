@@ -3,14 +3,14 @@
 // Fields with no backend source stay at their neutral defaults and are flagged
 // "—" by the screens (isLiveMode).
 
-import { getBatch, listCompletedBatches, listRunningBatches } from '@/src/api/batches'
-import { listMachinesResumed } from '@/src/api/machines'
-import { batchRecordToBatch, machineToMachineInfo, statusToDisplay } from '@/src/api/adapters'
-import { setLiveDatasets } from '@/src/data/mockData'
-import { setLiveAppData, type RegistryRow } from '@/src/data/appData'
+import { getBatch, listCompletedBatches, listRunningBatches } from '@/src/shared/api/batches'
+import { listMachinesResumed } from '@/src/shared/api/machines'
+import { batchRecordToBatch, machineToMachineInfo, statusToDisplay } from '@/src/shared/api/adapters'
+import { setLiveDatasets } from '@/src/shared/data/mockData'
+import { setLiveAppData, type RegistryRow } from '@/src/shared/data/appData'
 import { setLiveBatchRecords } from './liveBatchStore'
-import type { Batch, LiveBatch, MonthMeta } from '@/src/data/mockData'
-import type { BatchSummary } from '@/src/api/types'
+import type { Batch, LiveBatch, MonthMeta } from '@/src/shared/data/mockData'
+import type { BatchSummary } from '@/src/shared/api/types'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 

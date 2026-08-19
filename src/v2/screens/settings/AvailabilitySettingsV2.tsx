@@ -30,10 +30,10 @@ import {
   useAvailabilityPlan,
   useWorkingHolidays,
   type Weekday,
-} from '@/src/lib/availability'
-import { useHolidays } from '@/src/lib/holidays'
-import { parseAssistant, type ParsedRule } from '@/src/components/planning/assistantParser'
-import { iris } from '@/src/client/mui/theme'
+} from '@/src/shared/lib/availability'
+import { useHolidays } from '@/src/shared/lib/holidays'
+import { parseAssistant, type ParsedRule } from '@/src/shared/lib/assistantParser'
+import { iris } from '@/src/shared/client/mui/theme'
 import { FormSectionV2, FieldV2 } from './settingsUi'
 import PlanningCalendarV2 from './PlanningCalendarV2'
 

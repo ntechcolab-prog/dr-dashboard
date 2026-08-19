@@ -2,23 +2,23 @@
 
 Status of wiring the (formerly mock) Batch Book to the real Go backend. All new
 code is additive; existing screens still run on mocks until migrated via the
-`src/data/dataSource.ts` seam.
+`src/shared/data/dataSource.ts` seam.
 
 ## What's in place
 
 - `public/runtime-config.js` → `window.configuration` (two base URLs: customer
   `api` + `manager-api`, Turnstile site key). Runtime, framework-neutral.
-- `src/config/runtimeConfig.ts` — reads the config.
-- `src/api/*` — typed client (Bearer + 401/403 refresh + per-call base routing),
+- `src/shared/config/runtimeConfig.ts` — reads the config.
+- `src/shared/api/*` — typed client (Bearer + 401/403 refresh + per-call base routing),
   auth (login w/ Turnstile, refresh, logout, JWT claims), and domain modules
   against the REAL contracts: `machines`, `batches`/`batch_notes`, `alarms`,
   `filters`, `metrics`, `dataExports`.
-- `src/api/adapters.ts` — real → UI shapes. Fields with no backend counterpart
+- `src/shared/api/adapters.ts` — real → UI shapes. Fields with no backend counterpart
   are 0/'' (never fabricated).
-- `src/lib/oee.ts` — OEE = Availability × Performance × Quality computed at
+- `src/shared/lib/oee.ts` — OEE = Availability × Performance × Quality computed at
   runtime from real data + business targets (planned time, ideal rate).
-- `src/data/dataSource.ts` — single mock↔api switch (default `mock`).
-- Tests: `src/lib/oee.test.ts`, `src/api/adapters.test.ts` (vitest).
+- `src/shared/data/dataSource.ts` — single mock↔api switch (default `mock`).
+- Tests: `src/shared/lib/oee.test.ts`, `src/shared/api/adapters.test.ts` (vitest).
 - `app/iris-login/page.tsx` — real IRIS login with Cloudflare Turnstile
   (`CloudflareCaptcha` from `web-components-ts`, loaded client-only).
 
@@ -49,8 +49,8 @@ code is additive; existing screens still run on mocks until migrated via the
    it feeds Performance's ideal rate directly; otherwise a per-recipe target
    config stays client-side.
 4. **Unit of `hour_meter` and `property.total_grinding_time`** — assumed hours
-   (or HH:MM:SS) and minutes respectively; confirm and adjust `src/lib/oee.ts`.
-5. **Metrics chart-data response shapes** — `src/api/metrics.ts` functions are
+   (or HH:MM:SS) and minutes respectively; confirm and adjust `src/shared/lib/oee.ts`.
+5. **Metrics chart-data response shapes** — `src/shared/api/metrics.ts` functions are
    generic pending the exact shapes from `api/specification.yaml`.
 
 ## Auth gate

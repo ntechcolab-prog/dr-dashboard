@@ -25,13 +25,13 @@ import {
   toISO,
   parseISO,
   type ChartType,
-} from '@/src/lib/availability'
-import { useHolidays } from '@/src/lib/holidays'
-import { availabilityService, type SeriesResult } from '@/src/data/availabilityData'
-import { MACHINES } from '@/src/data/mockData'
-import { PRODUCTION_LINES } from '@/src/data/appData'
-import { iris } from '@/src/client/mui/theme'
-import { withAlpha } from '@/src/components/metricViz'
+} from '@/src/shared/lib/availability'
+import { useHolidays } from '@/src/shared/lib/holidays'
+import { availabilityService, type SeriesResult } from '@/src/shared/data/availabilityData'
+import { MACHINES } from '@/src/shared/data/mockData'
+import { PRODUCTION_LINES } from '@/src/shared/data/appData'
+import { iris } from '@/src/shared/client/mui/theme'
+import { withAlpha } from '@/src/shared/viz/metricViz'
 
 // MUI-native rewrite of components/MachineTab.tsx (+ AvailabilityDashboard +
 // MachineRankingBoard). Reuses the entire availability service/hooks — no math

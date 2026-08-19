@@ -8,8 +8,8 @@ import type { Preview } from '@storybook/react'
 import '../app/globals.css'
 import './preview.css'
 
-import { SessionProvider, type SessionUser } from '../src/client/Session'
-import { CompanyStateProvider } from '../src/client/CompanyState'
+import { SessionProvider, type SessionUser } from '../src/shared/client/Session'
+import { CompanyStateProvider } from '../src/shared/client/CompanyState'
 
 // Fake logged-in user so components calling useSession() (AppHeader, …) render.
 const MOCK_USER: SessionUser = {

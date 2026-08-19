@@ -36,8 +36,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import DownloadIcon from '@mui/icons-material/Download'
 import BarChartIcon from '@mui/icons-material/BarChart'
 
-import { useLocalStorage } from '@/src/lib/useLocalStorage'
-import { ALL_BATCHES, type Batch } from '@/src/data/mockData'
+import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
+import { ALL_BATCHES, type Batch } from '@/src/shared/data/mockData'
 import {
   BATCH_METRICS,
   DEFAULT_METRIC_KEYS,
@@ -45,9 +45,9 @@ import {
   extremesFor,
   type BatchMetricDef,
   type MetricStats,
-} from '@/src/lib/batchMetrics'
-import { printElement } from '@/src/lib/exportPdf'
-import { exportCsv, exportXlsx, type Sheet, type Cell } from '@/src/lib/exportData'
+} from '@/src/shared/lib/batchMetrics'
+import { printElement } from '@/src/shared/lib/exportPdf'
+import { exportCsv, exportXlsx, type Sheet, type Cell } from '@/src/shared/lib/exportData'
 
 // MUI-native Analysis screen. Same business logic as the Tailwind v0/v1 version
 // (saved-analyses list persisted per company + an editor that picks up to 8

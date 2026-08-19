@@ -21,10 +21,10 @@ import ArrowUpIcon from '@mui/icons-material/ArrowDropUp'
 import ArrowDownIcon from '@mui/icons-material/ArrowDropDown'
 import EChart from '@/src/v2/components/echarts/EChart'
 import { sparkOption } from '@/src/v2/components/KpiCardV2'
-import { formatValue, type Kpi } from '@/src/lib/compute'
-import { metaFor, withAlpha, VIZ, VIZ_CAPTION, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/components/metricViz'
-import { useLocalStorage } from '@/src/lib/useLocalStorage'
-import type { ChartType } from '@/src/lib/availability'
+import { formatValue, type Kpi } from '@/src/shared/lib/compute'
+import { metaFor, withAlpha, VIZ, VIZ_CAPTION, METRIC_STYLE_KEY, type MetricStyleMap } from '@/src/shared/viz/metricViz'
+import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
+import type { ChartType } from '@/src/shared/lib/availability'
 
 // MUI-native rebuild of MetricsGridV2 (Tailwind original in src/components).
 // Reuses the same compute + metricViz language (VIZ/metaFor/withAlpha/captions)

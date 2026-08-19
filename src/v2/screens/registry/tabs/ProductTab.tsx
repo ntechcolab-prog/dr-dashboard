@@ -15,8 +15,8 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import UploadIcon from '@mui/icons-material/FileUploadOutlined'
-import type { ProductData, ResultsData } from '@/src/data/batchForm'
-import { RESULT_VARIABLES } from '@/src/data/batchForm'
+import type { ProductData, ResultsData } from '@/src/shared/data/batchForm'
+import { RESULT_VARIABLES } from '@/src/shared/data/batchForm'
 import { SectionCard, withAlpha } from '../ui'
 
 interface Props {

@@ -8,13 +8,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { listMachinesResumed } from '@/src/api/machines'
-import { machineSensorList, latestSensorValues, type LastMetric } from '@/src/api/metrics'
-import { metricParam } from '@/src/api/sensorUnits'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { ApiRequestError } from '@/src/api/client'
-import type { Machine } from '@/src/api/types'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { listMachinesResumed } from '@/src/shared/api/machines'
+import { machineSensorList, latestSensorValues, type LastMetric } from '@/src/shared/api/metrics'
+import { metricParam } from '@/src/shared/api/sensorUnits'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { ApiRequestError } from '@/src/shared/api/client'
+import type { Machine } from '@/src/shared/api/types'
 
 const errMsg = (e: unknown) =>
   e instanceof ApiRequestError ? `${e.status} ${e.code ?? ''} — ${e.message}` : e instanceof Error ? e.message : String(e)

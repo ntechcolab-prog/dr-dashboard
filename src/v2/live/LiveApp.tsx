@@ -1,5 +1,15 @@
 'use client'
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  BATCH BOOK v2 · LIVE — ENTRY POINT (real IRIS / Notify data)
+// ═══════════════════════════════════════════════════════════════════════════
+//  Mounted by app/iris-app/page.tsx, client-only, behind IRIS auth.
+//
+//  Same designed v2 screens as src/v2/AppV2.tsx, but fed by the real API
+//  (src/shared/api/) instead of the synthetic dataset (src/shared/data/).
+//  AppV2 is the demo/design build; this is the one wired to production data.
+// ═══════════════════════════════════════════════════════════════════════════
+
 // Renders the EXACT v2 app (TopBar + Sidebar + all screens) with REAL backend
 // data injected before mount. Secondary path — /batch-book-v2 (mock) untouched.
 
@@ -8,9 +18,9 @@ import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { activeOrganizationId, currentClaims } from '@/src/api/auth'
-import { SessionProvider, type SessionUser } from '@/src/client/Session'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { activeOrganizationId, currentClaims } from '@/src/shared/api/auth'
+import { SessionProvider, type SessionUser } from '@/src/shared/client/Session'
 import AppV2 from '@/src/v2/AppV2'
 import { loadLiveApp } from './loadLiveApp'
 

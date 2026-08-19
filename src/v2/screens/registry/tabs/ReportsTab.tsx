@@ -11,7 +11,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import DownloadIcon from '@mui/icons-material/FileDownloadOutlined'
 import DescriptionIcon from '@mui/icons-material/DescriptionOutlined'
-import type { ReportItem } from '@/src/data/batchForm'
+import type { ReportItem } from '@/src/shared/data/batchForm'
 import { SectionCard, withAlpha } from '../ui'
 
 const TEMPLATES = [

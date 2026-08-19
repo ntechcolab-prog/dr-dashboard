@@ -2,7 +2,7 @@
 
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
-import type { PeriodData } from '@/src/data/batchForm'
+import type { PeriodData } from '@/src/shared/data/batchForm'
 import { SectionCard } from '../ui'
 
 export default function PeriodTab({ value, onChange }: { value: PeriodData; onChange: (v: PeriodData) => void }) {

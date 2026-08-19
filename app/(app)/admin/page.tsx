@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
 import { desc, eq } from 'drizzle-orm'
-import { db } from '@/src/server/db'
-import { users, companies } from '@/src/server/db/schema'
-import { getCurrentUser } from '@/src/server/auth'
-import { IrisTopBar } from '@/src/client/iris/IrisTopBar'
+import { db } from '@/src/shared/server/db'
+import { users, companies } from '@/src/shared/server/db/schema'
+import { getCurrentUser } from '@/src/shared/server/auth'
+import { IrisTopBar } from '@/src/shared/client/iris/IrisTopBar'
 
 function fmt(d: Date | null): string {
   if (!d) return '—'

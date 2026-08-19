@@ -14,8 +14,8 @@ import OutlinedInput from '@mui/material/OutlinedInput'
 import Button from '@mui/material/Button'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import { MACHINES, RECIPES, MONTHS } from '@/src/data/mockData'
-import { buildWeeks, weekLabel } from '@/src/lib/weeks'
+import { MACHINES, RECIPES, MONTHS } from '@/src/shared/data/mockData'
+import { buildWeeks, weekLabel } from '@/src/shared/lib/weeks'
 
 export type Period = 'monthly' | 'weekly'
 

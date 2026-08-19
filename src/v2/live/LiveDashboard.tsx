@@ -9,11 +9,11 @@ import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { isAuthenticated } from '@/src/api/tokenStore'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
 import MetricsGridV2Mui from '@/src/v2/components/metrics/MetricsGridV2Mui'
 import { loadLiveKpis } from './liveDashboardData'
-import type { Kpi } from '@/src/lib/compute'
+import type { Kpi } from '@/src/shared/lib/compute'
 
 export default function LiveDashboard() {
   const router = useRouter()

@@ -5,7 +5,7 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import InputAdornment from '@mui/material/InputAdornment'
 import Typography from '@mui/material/Typography'
-import { useLocalStorage } from '@/src/lib/useLocalStorage'
+import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
 import { FormSectionV2, FieldV2 } from './settingsUi'
 
 // Same persisted model + localStorage keys as the Tailwind MiscSettings, so v0/v1

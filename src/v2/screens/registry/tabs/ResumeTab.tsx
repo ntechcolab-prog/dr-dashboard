@@ -18,13 +18,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
-import type { BatchForm } from '@/src/data/batchForm'
-import { isLiveMode } from '@/src/data/mockData'
+import type { BatchForm } from '@/src/shared/data/batchForm'
+import { isLiveMode } from '@/src/shared/data/mockData'
 import { getLiveBatchRecord } from '@/src/v2/live/liveBatchStore'
-import { statusToDisplay } from '@/src/api/adapters'
-import { useProductionMonitoring } from '@/src/screens/settings/MiscSettings'
+import { statusToDisplay } from '@/src/shared/api/adapters'
 import { SectionCard, Stat, KvGroup, KvList, withAlpha } from '../ui'
 import SensorChartV2 from '../SensorChartV2'
+import { useProductionMonitoring } from '@/src/shared/lib/productionMonitoring'
 
 const TARGET_ROWS = [
   ['Target Type', 'Energy'],

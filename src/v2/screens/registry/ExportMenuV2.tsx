@@ -10,8 +10,8 @@ import DownloadIcon from '@mui/icons-material/FileDownloadOutlined'
 import PdfIcon from '@mui/icons-material/PictureAsPdfOutlined'
 import GridIcon from '@mui/icons-material/GridOnOutlined'
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
-import { printElement } from '@/src/lib/exportPdf'
-import { exportCsv, exportXlsx, type Sheet } from '@/src/lib/exportData'
+import { printElement } from '@/src/shared/lib/exportPdf'
+import { exportCsv, exportXlsx, type Sheet } from '@/src/shared/lib/exportData'
 
 // MUI export button (PDF / CSV / XLSX). Reuses the exact export helpers from
 // src/lib — only the trigger UI is rebuilt on MUI. `sheets`/`title` resolve

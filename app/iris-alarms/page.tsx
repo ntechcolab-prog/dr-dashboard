@@ -6,11 +6,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { isAuthenticated } from '@/src/api/tokenStore'
-import { alarmHistory, alertHistory } from '@/src/api/alarms'
-import IrisNav from '@/src/client/iris/IrisNav'
-import { ApiRequestError } from '@/src/api/client'
-import type { MetricAlarm, MetricAlert } from '@/src/api/types'
+import { isAuthenticated } from '@/src/shared/api/tokenStore'
+import { alarmHistory, alertHistory } from '@/src/shared/api/alarms'
+import IrisNav from '@/src/shared/client/iris/IrisNav'
+import { ApiRequestError } from '@/src/shared/api/client'
+import type { MetricAlarm, MetricAlert } from '@/src/shared/api/types'
 
 type Tab = 'alarms' | 'alerts'
 

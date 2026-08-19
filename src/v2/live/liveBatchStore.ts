@@ -2,8 +2,8 @@
 // editor can open a batch with its real data. Adapts a BatchRecord to the
 // editor's BatchForm — mapped fields filled, invented ones left blank.
 
-import type { BatchRecord } from '@/src/api/types'
-import type { BatchForm } from '@/src/data/batchForm'
+import type { BatchRecord } from '@/src/shared/api/types'
+import type { BatchForm } from '@/src/shared/data/batchForm'
 
 const byKey = new Map<string, BatchRecord>()
 
