@@ -60,6 +60,14 @@ function dateParts(iso?: string): Pick<Batch, 'date' | 'day' | 'month' | 'year'>
   }
 }
 
+/** Clock time of an API timestamp, 'HH:mm'. Empty when absent or unparseable. */
+function clockTime(iso?: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 /** Best-effort map of a list-row summary. Summary rows carry no mass / grinding
  *  time / cooling / co2 — those are 0 here; use the full record for detail. */
 export function batchSummaryToBatch(s: BatchSummary): Batch {
@@ -72,6 +80,10 @@ export function batchSummaryToBatch(s: BatchSummary): Batch {
     mass: 0,
     energy: s.grinding_energy ?? 0,
     cooling: 0,
+    passes: 0,
+    cycles: 0,
+    startTime: clockTime(s.start_time),
+    endTime: clockTime(s.end_time),
     grindMin: 0,
     setupMin: 0,
     idleMin: 0,
@@ -96,6 +108,11 @@ export function batchRecordToBatch(r: BatchRecord): Batch {
     mass: r.details.size ?? 0,
     energy: r.property?.grinding_energy ?? 0,
     cooling: 0,
+    // The backend reports cycles; passes has no counterpart yet.
+    passes: 0,
+    cycles: r.details.cycles ?? 0,
+    startTime: clockTime(r.details.date?.start),
+    endTime: clockTime(r.details.date?.end),
     grindMin: Math.round(grindHours * 60),
     setupMin: 0,
     idleMin: 0,

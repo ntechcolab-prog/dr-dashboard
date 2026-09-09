@@ -13,6 +13,11 @@ export interface Batch {
   mass: number
   energy: number
   cooling: number
+  passes: number
+  cycles: number
+  // Clock window of the run, 'HH:mm' ('' when the source has no time).
+  startTime: string
+  endTime: string
   grindMin: number
   setupMin: number
   idleMin: number
@@ -59,6 +64,31 @@ function mulberry32(seed: number): () => number {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
+}
+
+// Stable [0,1) noise seeded by (batch id, salt). Used for fields added after
+// the dataset was in use: drawing them from `rng()` inside the generator would
+// shift every later number in the stream and change the whole dataset.
+function idNoise(id: string, salt: number): number {
+  let h = 2166136261 ^ salt
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  // Final avalanche: without it FNV leaves the high bits of sequential ids
+  // (#20000, #20001, …) nearly identical, and every batch lands on the same
+  // value once the result is scaled.
+  h ^= h >>> 15
+  h = Math.imul(h, 0x2c1b3c6d)
+  h ^= h >>> 12
+  h = Math.imul(h, 0x297a2d39)
+  h ^= h >>> 15
+  return (h >>> 0) / 4294967296
+}
+
+const hhmm = (minutesOfDay: number) => {
+  const m = ((minutesOfDay % 1440) + 1440) % 1440
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
 
 export let MACHINES = ['Zeta 10', 'Zeta 60', 'Zeta 25', 'Omega 5', 'Alpha 22', 'Neos 40']
@@ -138,20 +168,36 @@ function buildMonth(year: number, month: number /* 0-indexed */, seed: number): 
       else if (statusRoll > 0.62) status = 'Completed before target'
       else status = 'Completed'
 
+      const id = `#${serial++}`
+      // Drawn in this exact order — the rng stream is the dataset's identity,
+      // and reordering these calls changes every batch in it.
+      const machine = pick(rng, MACHINES)
+      const recipe = pick(rng, RECIPES)
+      const productionLine = pick(rng, PRODUCTION_LINES)
+      const cooling = round(120 + rng() * 110, 0) // liters
+      const grindMin = Math.round(40 + rng() * 90) // active grinding minutes
+      const setupMin = Math.round(8 + rng() * 22)
+      // Start slot in 15-minute steps between 06:00 and 20:00.
+      const startMin = 360 + Math.floor(idNoise(id, 3) * 57) * 15
+
       batches.push({
-        id: `#${serial++}`,
+        id,
         date,
         day,
         month,
         year,
-        machine: pick(rng, MACHINES),
-        recipe: pick(rng, RECIPES),
-        productionLine: pick(rng, PRODUCTION_LINES),
+        machine,
+        recipe,
+        productionLine,
         mass,
         energy,
-        cooling: round(120 + rng() * 110, 0), // liters
-        grindMin: Math.round(40 + rng() * 90), // active grinding minutes
-        setupMin: Math.round(8 + rng() * 22),
+        cooling,
+        passes: 1 + Math.floor(idNoise(id, 1) * 8),
+        cycles: 4 + Math.round(idNoise(id, 2) * 20),
+        startTime: hhmm(startMin),
+        endTime: hhmm(startMin + grindMin + setupMin),
+        grindMin,
+        setupMin,
         idleMin: Math.round(rng() * 30),
         alarmMin: Math.round(rng() * 12),
         status,

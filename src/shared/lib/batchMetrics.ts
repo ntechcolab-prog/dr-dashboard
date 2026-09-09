@@ -105,6 +105,9 @@ const CORE_METRICS: BatchMetricDef[] = [
     value: (b) => (b.grindMin + b.idleMin ? (b.grindMin / (b.grindMin + b.idleMin)) * 100 : 0),
     betterHigh: true,
   },
+  { key: 'runningHours', label: 'Running hours', unit: 'h', group: 'Production', fmt: 'dec1', value: (b) => b.grindMin / 60, betterHigh: false },
+  { key: 'passes', label: 'Passes', unit: '#', group: 'Production', fmt: 'int', value: (b) => b.passes, betterHigh: false },
+  { key: 'cycles', label: 'Cycles', unit: '#', group: 'Production', fmt: 'int', value: (b) => b.cycles, betterHigh: false },
 ]
 
 // Process parameters from the machine telemetry (synthetic per-batch readings).

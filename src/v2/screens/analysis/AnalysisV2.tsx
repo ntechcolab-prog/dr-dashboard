@@ -442,6 +442,11 @@ function ComparisonTable({
               <TableRow key={b.id} {...hover(b.id)} sx={{ bgcolor: hovered ? 'action.hover' : undefined }}>
                 <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: 'text.primary', ...stickyCell(hovered) }}>
                   {b.id}
+                  {(b.startTime || b.endTime) && (
+                    <Box component="span" sx={{ mt: 0.25, display: 'block', fontSize: '0.6875rem', fontWeight: 400, fontVariantNumeric: 'tabular-nums', color: 'text.disabled' }}>
+                      {b.startTime || '—'} – {b.endTime || '—'}
+                    </Box>
+                  )}
                 </TableCell>
                 {columns.map(({ metric: m, vals, max, min, spread }) => {
                   const isMax = spread && vals[row] === max

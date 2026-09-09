@@ -241,6 +241,11 @@ function ComparisonTable({
                 className={`sticky left-0 z-10 whitespace-nowrap border-r border-line px-4 py-3 text-left font-medium text-ink ${stickyCls(b.id)}`}
               >
                 {b.id}
+                {(b.startTime || b.endTime) && (
+                  <span className="mt-0.5 block text-[0.6875rem] font-normal tabular-nums text-faint">
+                    {b.startTime || '—'} – {b.endTime || '—'}
+                  </span>
+                )}
               </th>
               {columns.map(({ metric: m, vals, max, min, spread }) => {
                 const isMax = spread && vals[row] === max

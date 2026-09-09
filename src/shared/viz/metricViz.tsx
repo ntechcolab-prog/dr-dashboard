@@ -29,6 +29,9 @@ export const VIZ: Record<string, VizKind> = {
   specificEnergy: 'bullet',
   carbon: 'area',
   ratio: 'donut',
+  runningHours: 'area',
+  passes: 'column',
+  cycles: 'column',
 }
 
 export const VIZ_CAPTION: Record<string, string> = {
@@ -40,6 +43,9 @@ export const VIZ_CAPTION: Record<string, string> = {
   specificEnergy: 'monthly range',
   carbon: '30-day trend',
   ratio: 'production vs idle',
+  runningHours: '30-day trend',
+  passes: 'passes / day',
+  cycles: 'cycles / day',
 }
 
 export const META: Record<string, { accent: string; icon: ReactNode }> = {
@@ -51,6 +57,9 @@ export const META: Record<string, { accent: string; icon: ReactNode }> = {
   specificEnergy: { accent: '#8b5cf6', icon: <><path d="M3 17l5-5 4 3 6-7" /><path d="M17 5h4v4" /></> },
   carbon: { accent: '#16a34a', icon: <><path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 12-9 0 7-3 12-9 12Z" /><path d="M5 19c4-1 7-4 9-9" /></> },
   ratio: { accent: '#6366f1', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18Z" /></> },
+  runningHours: { accent: '#0ea5e9', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></> },
+  passes: { accent: '#f97316', icon: <><path d="M3 12h12" /><path d="m11 7 5 5-5 5" /><path d="M20 4v16" /></> },
+  cycles: { accent: '#a855f7', icon: <><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 3v5h-5" /></> },
 }
 const FALLBACK = { accent: '#46aa9f', icon: <circle cx="12" cy="12" r="8" /> }
 export const metaFor = (key: string) => META[key] ?? FALLBACK

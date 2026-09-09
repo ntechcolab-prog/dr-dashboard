@@ -60,6 +60,8 @@ export function aggregate(batches: Batch[]) {
   const idleMin = sum(batches, (b) => b.idleMin)
   const co2 = sum(batches, (b) => b.co2)
   const activeHours = grindMin / 60
+  const passes = sum(batches, (b) => b.passes)
+  const cycles = sum(batches, (b) => b.cycles)
 
   return {
     count,
@@ -67,6 +69,9 @@ export function aggregate(batches: Batch[]) {
     energy, // kWh
     cooling, // liters
     co2, // kg CO2
+    runningHours: activeHours, // h of active grinding
+    passes, // total passes through the mill
+    cycles, // total circulation cycles
     productionRate: activeHours ? mass / activeHours : 0, // ton/h
     specificEnergy: mass ? energy / mass : 0, // kWh/ton
     // share of productive time vs idle time, as a percentage
@@ -79,7 +84,7 @@ const pct = (cur: number, prev: number) => {
   return ((cur - prev) / prev) * 100
 }
 
-// Build the 8 KPI cards, comparing the current month against the previous one.
+// Build the KPI cards, comparing the current month against the previous one.
 export function buildKpis(current: Batch[], previous: Batch[]): Kpi[] {
   const c = aggregate(current)
   const p = aggregate(previous)
@@ -93,6 +98,9 @@ export function buildKpis(current: Batch[], previous: Batch[]): Kpi[] {
     { key: 'specificEnergy', label: 'Specific energy', value: c.specificEnergy, unit: 'kWh/ton', fmt: 'dec1', delta: pct(c.specificEnergy, p.specificEnergy) },
     { key: 'carbon', label: 'Carbon footprint', value: c.co2, unit: 'CO₂', fmt: 'dec3', delta: pct(c.co2, p.co2) },
     { key: 'ratio', label: 'Ratio production time / idle time', value: c.ratioProdIdle, unit: '%', fmt: 'int', delta: pct(c.ratioProdIdle, p.ratioProdIdle) },
+    { key: 'runningHours', label: 'Running hours', value: c.runningHours, unit: 'h', fmt: 'dec1', delta: pct(c.runningHours, p.runningHours) },
+    { key: 'passes', label: 'Number of passes', value: c.passes, unit: 'passes', fmt: 'int', delta: pct(c.passes, p.passes) },
+    { key: 'cycles', label: 'Number of cycles', value: c.cycles, unit: 'cycles', fmt: 'int', delta: pct(c.cycles, p.cycles) },
   ]
 }
 
@@ -174,6 +182,9 @@ type AggField =
   | 'productionRate'
   | 'specificEnergy'
   | 'ratioProdIdle'
+  | 'runningHours'
+  | 'passes'
+  | 'cycles'
 
 const METRIC_FIELD: Record<string, AggField> = {
   production: 'count',
@@ -184,6 +195,9 @@ const METRIC_FIELD: Record<string, AggField> = {
   specificEnergy: 'specificEnergy',
   carbon: 'co2',
   ratio: 'ratioProdIdle',
+  runningHours: 'runningHours',
+  passes: 'passes',
+  cycles: 'cycles',
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
