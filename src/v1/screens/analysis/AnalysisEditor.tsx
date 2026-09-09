@@ -205,75 +205,76 @@ function ComparisonTable({
   hoverBatch: string | null
   onHoverBatch: (id: string | null) => void
 }) {
-  const colCls = (id: string) => (hoverBatch === id ? 'bg-primary/10' : '')
+  // Batches read down the rows, metrics across the columns: adding metrics
+  // grows the table sideways, so it scrolls horizontally with the Batch ID
+  // column pinned to the left edge.
+  const columns = metrics.map((m) => {
+    const vals = batches.map((b) => m.value(b))
+    const max = Math.max(...vals)
+    const min = Math.min(...vals)
+    return { metric: m, vals, max, min, spread: max !== min }
+  })
+  const rowCls = (id: string) => (hoverBatch === id ? 'bg-primary/10' : '')
+  // The pinned cell has to be opaque to cover the columns sliding under it, so
+  // it carries a solid tint of its own instead of the row's translucent one.
+  const stickyCls = (id: string) => (hoverBatch === id ? 'bg-primary-soft' : 'bg-card')
+  const hover = (id: string) => ({ onMouseEnter: () => onHoverBatch(id), onMouseLeave: () => onHoverBatch(null) })
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-page/60 text-left text-xs text-muted">
-            <th className="rounded-l-lg px-4 py-3 font-medium">Metric</th>
-            {batches.map((b) => (
-              <th
-                key={b.id}
-                onMouseEnter={() => onHoverBatch(b.id)}
-                onMouseLeave={() => onHoverBatch(null)}
-                className={`cursor-default px-4 py-3 text-right font-medium last:rounded-r-lg ${colCls(b.id)}`}
-              >
-                {b.id}
+          <tr className="bg-page text-left text-xs text-muted">
+            <th className="sticky left-0 z-20 rounded-l-lg border-r border-line bg-page px-4 py-3 font-medium">Batch ID</th>
+            {columns.map(({ metric: m }) => (
+              <th key={m.key} className="whitespace-nowrap px-4 py-3 text-right font-medium last:rounded-r-lg">
+                {m.label} <span className="text-faint">({m.unit})</span>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {metrics.map((m) => {
-            const vals = batches.map((b) => m.value(b))
-            const max = Math.max(...vals)
-            const min = Math.min(...vals)
-            const spread = max !== min
-            return (
-              <tr key={m.key} className="border-b border-line last:border-0">
-                <td className="px-4 py-3 text-ink">
-                  {m.label} <span className="text-faint">({m.unit})</span>
-                </td>
-                {batches.map((b, i) => {
-                  const isMax = spread && vals[i] === max
-                  const isMin = spread && vals[i] === min
-                  const st = m.stats ? m.stats(b) : null
-                  return (
-                    <td
-                      key={b.id}
-                      onMouseEnter={() => onHoverBatch(b.id)}
-                      onMouseLeave={() => onHoverBatch(null)}
-                      className={`px-4 py-3 text-right tabular-nums text-ink ${colCls(b.id)}`}
-                    >
-                      {st ? (
-                        <div className="flex flex-col items-end gap-0.5 leading-tight">
-                          {([
-                            ['Max', st.max, false] as const,
-                            ['Avg', st.avg, true] as const,
-                            ['Min', st.min, false] as const,
-                          ]).map(([lbl, val, isAvg]) => (
-                            <span key={lbl} className={isAvg && isMax ? 'font-semibold text-up' : isAvg && isMin ? 'font-semibold text-down' : ''}>
-                              <span className="mr-1 text-[0.625rem] uppercase tracking-wide text-faint">{lbl}</span>
-                              {fmtNum(m, val)}
-                              {isAvg && isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
-                              {isAvg && isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className={isMax ? 'font-semibold text-up' : isMin ? 'font-semibold text-down' : ''}>
-                          {fmtNum(m, vals[i])}
-                          {isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
-                          {isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
-                        </span>
-                      )}
-                    </td>
-                  )
-                })}
-              </tr>
-            )
-          })}
+          {batches.map((b, row) => (
+            <tr key={b.id} {...hover(b.id)} className={`border-b border-line last:border-0 ${rowCls(b.id)}`}>
+              <th
+                scope="row"
+                className={`sticky left-0 z-10 whitespace-nowrap border-r border-line px-4 py-3 text-left font-medium text-ink ${stickyCls(b.id)}`}
+              >
+                {b.id}
+              </th>
+              {columns.map(({ metric: m, vals, max, min, spread }) => {
+                const isMax = spread && vals[row] === max
+                const isMin = spread && vals[row] === min
+                const st = m.stats ? m.stats(b) : null
+                return (
+                  <td key={m.key} className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink">
+                    {st ? (
+                      <div className="flex flex-col items-end gap-0.5 leading-tight">
+                        {([
+                          ['Max', st.max, false] as const,
+                          ['Avg', st.avg, true] as const,
+                          ['Min', st.min, false] as const,
+                        ]).map(([lbl, val, isAvg]) => (
+                          <span key={lbl} className={isAvg && isMax ? 'font-semibold text-up' : isAvg && isMin ? 'font-semibold text-down' : ''}>
+                            <span className="mr-1 text-[0.625rem] uppercase tracking-wide text-faint">{lbl}</span>
+                            {fmtNum(m, val)}
+                            {isAvg && isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
+                            {isAvg && isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className={isMax ? 'font-semibold text-up' : isMin ? 'font-semibold text-down' : ''}>
+                        {fmtNum(m, vals[row])}
+                        {isMax && <span className="ml-1 text-[0.625rem]">▲</span>}
+                        {isMin && <span className="ml-1 text-[0.625rem]">▼</span>}
+                      </span>
+                    )}
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
         </tbody>
       </table>
       <p className="mt-2 text-[0.6875rem] text-faint">

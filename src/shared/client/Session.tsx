@@ -34,3 +34,14 @@ export function initialsOf(name: string): string {
 export function firstNameOf(name: string): string {
   return name.trim().split(/\s+/)[0] || name
 }
+
+// The mock-data app (/batch-book, /batch-book-v2) is a public demo: it runs
+// without a login, so there is no real account to build a session from. Screens
+// that need a real account (/admin) check `getCurrentUser` themselves.
+export const DEMO_USER: SessionUser = {
+  id: 'demo',
+  name: 'Demo User',
+  email: 'demo@batchbook.local',
+  isAdmin: false,
+  company: { id: 'demo', name: 'NETZSCH Demo' },
+}

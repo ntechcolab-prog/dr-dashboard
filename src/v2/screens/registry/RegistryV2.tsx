@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
@@ -13,6 +13,7 @@ import TableHead from '@mui/material/TableHead'
 import TableBody from '@mui/material/TableBody'
 import TableRow from '@mui/material/TableRow'
 import TableCell from '@mui/material/TableCell'
+import Pagination from '@mui/material/Pagination'
 import SearchIcon from '@mui/icons-material/Search'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined'
 import { REGISTRY_ROWS, type RegistryRow } from '@/src/shared/data/appData'
@@ -29,8 +30,9 @@ import { withAlpha } from './ui'
 // screen (search filter → selection → export, New Batch draft, edit existing);
 // only the presentation is rebuilt on MUI. Batch editor with its tabs lives in
 // BatchEditorV2.
-const COLUMNS = ['Batch ID', 'Product', 'Start Date', 'End Date', 'Production Line', 'Status', 'Data source']
+const COLUMNS = ['Batch ID', 'Recipe', 'Start Date', 'End Date', 'Machine', 'Status']
 const REGISTRY_PRINT_ID = 'registry-batch-log-print-v2'
+const PAGE_SIZE = 10
 
 export default function RegistryV2({ restricted = false }: { restricted?: boolean }) {
   const [rows, setRows] = useLocalStorage<RegistryRow[]>('dr-registry-rows', REGISTRY_ROWS)
@@ -38,14 +40,24 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
   const [editing, setEditing] = useState<BatchForm | null>(null)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(0)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return rows
     return rows.filter((r) =>
-      [r.id, r.product, r.line, r.status, r.source, r.start, r.end].some((v) => v.toLowerCase().includes(q)),
+      [r.id, r.product, r.line, r.status, r.start, r.end].some((v) => v.toLowerCase().includes(q)),
     )
   }, [rows, query])
+
+  // Paginated view. The page index is clamped instead of reset so that deleting
+  // or filtering rows away can never leave the table showing an empty page.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const current = Math.min(page, pageCount - 1)
+  const visible = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE)
+  useEffect(() => {
+    setPage(0)
+  }, [query])
 
   const toggleRow = (id: string) =>
     setSelected((prev) => {
@@ -68,7 +80,7 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
     return [
       {
         name: 'Selected Batches',
-        rows: [COLUMNS, ...picked.map((r) => [r.id, r.product, r.start, r.end, r.line, r.status, r.source])],
+        rows: [COLUMNS, ...picked.map((r) => [r.id, r.product, r.start, r.end, r.line, r.status])],
       },
     ]
   }
@@ -89,7 +101,7 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
       product: formData.product.productType.split(' - ')[1] ?? formData.product.productType,
       start: `${formData.period.startDate} - ${formData.period.startTime}`,
       end: `${formData.period.endDate} - ${formData.period.endTime}`,
-      line: 'Line A - Zeta',
+      line: 'Zeta 10',
       status: 'In progress',
       source: 'Manual',
     }
@@ -114,8 +126,7 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
       </Box>
 
       <Card sx={{ p: 3 }}>
-        <Box sx={{ mb: 2.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
-          <Typography variant="overline" sx={{ fontWeight: 600, color: 'text.primary', letterSpacing: '0.06em' }}>Batch Log</Typography>
+        <Box sx={{ mb: 2.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <TextField
               size="small"
@@ -140,7 +151,7 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
         </Box>
 
         <Box id={REGISTRY_PRINT_ID} sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: '56.75rem' }}>
+          <Table sx={{ minWidth: '56.75rem', '& th, & td': { px: 3, whiteSpace: 'nowrap' } }}>
             <TableHead>
               <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
                 {!restricted && (
@@ -158,7 +169,7 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((r) => {
+              {visible.map((r) => {
                 const isSel = selected.has(r.id)
                 return (
                   <TableRow
@@ -179,7 +190,6 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
                     <TableCell sx={{ color: 'text.secondary' }}>{r.end}</TableCell>
                     <TableCell sx={{ color: 'text.primary' }}>{r.line}</TableCell>
                     <TableCell><StatusBadge status={r.status} /></TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{r.source}</TableCell>
                   </TableRow>
                 )
               })}
@@ -193,6 +203,22 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
             </TableBody>
           </Table>
         </Box>
+
+        {filtered.length > PAGE_SIZE && (
+          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, '@media print': { display: 'none' } }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Showing {current * PAGE_SIZE + 1}–{current * PAGE_SIZE + visible.length} of {filtered.length} batches
+            </Typography>
+            <Pagination
+              count={pageCount}
+              page={current + 1}
+              onChange={(_, p) => setPage(p - 1)}
+              color="primary"
+              shape="rounded"
+              size="small"
+            />
+          </Box>
+        )}
       </Card>
     </Box>
   )

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import SubHeader from '../components/SubHeader'
-import { RegistryIcon, Search } from '../icons/Icons'
+import { ChevronLeft, ChevronRight, RegistryIcon, Search } from '../icons/Icons'
 import ExportMenu from '../components/ExportMenu'
 import BatchEditor from './registry/BatchEditor'
 import { REGISTRY_ROWS, type RegistryRow } from '../../shared/data/appData'
@@ -8,8 +8,9 @@ import { makeDraft, type BatchForm } from '../../shared/data/batchForm'
 import { useLocalStorage } from '../../shared/lib/useLocalStorage'
 import type { Sheet } from '../../shared/lib/exportData'
 
-const COLUMNS = ['Batch ID', 'Product', 'Start Date', 'End Date', 'Production Line', 'Status', 'Data source']
+const COLUMNS = ['Batch ID', 'Recipe', 'Start Date', 'End Date', 'Machine', 'Status']
 const REGISTRY_PRINT_ID = 'registry-batch-log-print'
+const PAGE_SIZE = 10
 
 export default function RegistryScreen({ restricted = false }: { restricted?: boolean }) {
   const [rows, setRows] = useLocalStorage<RegistryRow[]>('dr-registry-rows', REGISTRY_ROWS)
@@ -17,14 +18,24 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
   const [editing, setEditing] = useState<BatchForm | null>(null)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [page, setPage] = useState(0)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return rows
     return rows.filter((r) =>
-      [r.id, r.product, r.line, r.status, r.source, r.start, r.end].some((v) => v.toLowerCase().includes(q)),
+      [r.id, r.product, r.line, r.status, r.start, r.end].some((v) => v.toLowerCase().includes(q)),
     )
   }, [rows, query])
+
+  // Paginated view. The page index is clamped instead of reset so that deleting
+  // or filtering rows away can never leave the table showing an empty page.
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const current = Math.min(page, pageCount - 1)
+  const visible = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE)
+  useEffect(() => {
+    setPage(0)
+  }, [query])
 
   // Selection helpers — "select all" / "clear" operate on the visible (filtered) rows.
   const toggleRow = (id: string) =>
@@ -48,7 +59,7 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
     return [
       {
         name: 'Selected Batches',
-        rows: [COLUMNS, ...picked.map((r) => [r.id, r.product, r.start, r.end, r.line, r.status, r.source])],
+        rows: [COLUMNS, ...picked.map((r) => [r.id, r.product, r.start, r.end, r.line, r.status])],
       },
     ]
   }
@@ -62,7 +73,7 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
       product: form.product.productType.split(' - ')[1] ?? form.product.productType,
       start: `${form.period.startDate} - ${form.period.startTime}`,
       end: `${form.period.endDate} - ${form.period.endTime}`,
-      line: 'Line A - Zeta',
+      line: 'Zeta 10',
       status: 'In progress',
       source: 'Manual',
     }
@@ -82,8 +93,7 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
       <SubHeader Icon={RegistryIcon} title="Registry" />
 
       <section className="rounded-xl bg-card p-6 shadow-card">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink">Batch Log</h2>
+        <div className="mb-5 flex flex-wrap items-center justify-end gap-3">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-lg border border-line px-3 py-2">
               <Search size={16} className="text-muted" />
@@ -116,7 +126,7 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
             <thead>
               <tr className="bg-page/60 text-left text-xs text-muted">
                 {!restricted && (
-                  <th className="w-10 rounded-l-lg px-4 py-3">
+                  <th className="w-10 rounded-l-lg px-6 py-3">
                     <Checkbox
                       checked={allFilteredSelected}
                       indeterminate={!allFilteredSelected && someFilteredSelected}
@@ -126,12 +136,12 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
                   </th>
                 )}
                 {COLUMNS.map((c) => (
-                  <th key={c} className="px-4 py-3 font-medium last:rounded-r-lg">{c}</th>
+                  <th key={c} className="whitespace-nowrap px-6 py-3 font-medium last:rounded-r-lg">{c}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
+              {visible.map((r) => {
                 const isSel = selected.has(r.id)
                 return (
                   <tr
@@ -140,29 +150,82 @@ export default function RegistryScreen({ restricted = false }: { restricted?: bo
                     className={`cursor-pointer border-b border-line last:border-0 hover:bg-page/50 ${isSel ? 'bg-primary/5' : ''}`}
                   >
                     {!restricted && (
-                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
                         <Checkbox checked={isSel} onChange={() => toggleRow(r.id)} label={`Select ${r.id}`} />
                       </td>
                     )}
-                    <td className="px-4 py-3.5 font-medium text-ink">{r.id}</td>
-                    <td className="px-4 py-3.5 text-ink">{r.product}</td>
-                    <td className="px-4 py-3.5 text-muted">{r.start}</td>
-                    <td className="px-4 py-3.5 text-muted">{r.end}</td>
-                    <td className="px-4 py-3.5 text-ink">{r.line}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
-                    <td className="px-4 py-3.5 text-muted">{r.source}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 font-medium text-ink">{r.id}</td>
+                    <td className="px-6 py-3.5 text-ink">{r.product}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 text-muted">{r.start}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 text-muted">{r.end}</td>
+                    <td className="whitespace-nowrap px-6 py-3.5 text-ink">{r.line}</td>
+                    <td className="px-6 py-3.5"><StatusBadge status={r.status} /></td>
                   </tr>
                 )
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={restricted ? COLUMNS.length : COLUMNS.length + 1} className="px-4 py-10 text-center text-muted">No batches match “{query}”.</td>
+                  <td colSpan={restricted ? COLUMNS.length : COLUMNS.length + 1} className="px-6 py-10 text-center text-muted">No batches match “{query}”.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {filtered.length > PAGE_SIZE && (
+          <Pagination
+            page={current}
+            pageCount={pageCount}
+            from={current * PAGE_SIZE + 1}
+            to={current * PAGE_SIZE + visible.length}
+            total={filtered.length}
+            onPage={setPage}
+          />
+        )}
       </section>
+    </div>
+  )
+}
+
+function Pagination({
+  page,
+  pageCount,
+  from,
+  to,
+  total,
+  onPage,
+}: {
+  page: number
+  pageCount: number
+  from: number
+  to: number
+  total: number
+  onPage: (p: number) => void
+}) {
+  const btn = 'flex h-8 min-w-8 items-center justify-center rounded-lg border border-line px-2 text-xs font-medium transition-colors'
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <p className="text-xs text-muted">
+        Showing {from}–{to} of {total} batches
+      </p>
+      <div className="flex items-center gap-1.5">
+        <button onClick={() => onPage(page - 1)} disabled={page === 0} className={`${btn} text-muted enabled:hover:text-ink disabled:opacity-40`} aria-label="Previous page">
+          <ChevronLeft size={16} />
+        </button>
+        {Array.from({ length: pageCount }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => onPage(i)}
+            aria-current={i === page ? 'page' : undefined}
+            className={`${btn} ${i === page ? 'border-primary bg-primary text-white' : 'text-muted hover:text-ink'}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button onClick={() => onPage(page + 1)} disabled={page >= pageCount - 1} className={`${btn} text-muted enabled:hover:text-ink disabled:opacity-40`} aria-label="Next page">
+          <ChevronRight size={16} />
+        </button>
+      </div>
     </div>
   )
 }

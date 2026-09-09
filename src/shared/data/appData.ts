@@ -10,16 +10,34 @@ export interface RegistryRow {
   source: 'IRIS' | 'Manual'
 }
 
+// The Registry demo dataset. `product` feeds the Recipe column and `line` the
+// Machine column; both keep their field names because the live adapters map
+// onto them. Enough rows here to page through (10 per page).
 export let REGISTRY_ROWS: RegistryRow[] = [
-  { id: 'BATCH1234', product: 'Blue', start: '18/05/2026 - 10:30:00', end: '18/05/2026 - 12:30:00', line: 'Line A - Zeta', status: 'In progress', source: 'IRIS' },
-  { id: 'BATCH1235', product: 'Blue', start: '18/05/2026 - 14:30:00', end: '18/05/2026 - 18:30:00', line: 'Line A - Zeta', status: 'In progress', source: 'IRIS' },
-  { id: 'BATCH1236', product: 'Yellow', start: '17/05/2026 - 08:00:00', end: '17/05/2026 - 12:00:00', line: 'Line B - Beta', status: 'In progress', source: 'Manual' },
-  { id: 'BATCH1237', product: 'Yellow', start: '17/05/2026 - 14:00:00', end: '17/05/2026 - 18:00:00', line: 'Line A - Zeta', status: 'Completed', source: 'IRIS' },
-  { id: 'BATCH1238', product: 'Blues', start: '16/05/2026 - 07:30:00', end: '16/05/2026 - 12:30:00', line: 'Line B - Beta', status: 'Completed', source: 'Manual' },
-  { id: 'BATCH1239', product: 'Green', start: '16/05/2026 - 15:30:00', end: '16/05/2026 - 17:30:00', line: 'Line A - Zeta', status: 'Completed', source: 'IRIS' },
-  { id: 'BATCH1240', product: 'Yellow', start: '16/05/2026 - 18:30:00', end: '16/05/2026 - 22:30:00', line: 'Line A - Zeta', status: 'Completed', source: 'IRIS' },
-  { id: 'BATCH1241', product: 'Green', start: '15/05/2026 - 09:00:00', end: '15/05/2026 - 13:00:00', line: 'Line B - Beta', status: 'Completed', source: 'Manual' },
-  { id: 'BATCH1242', product: 'Blue', start: '15/05/2026 - 14:30:00', end: '15/05/2026 - 19:00:00', line: 'Line A - Zeta', status: 'Cancelled', source: 'IRIS' },
+  { id: 'BATCH1234', product: 'Blue Paint', start: '18/05/2026 - 07:30:00', end: '18/05/2026 - 11:30:00', line: 'Zeta 10', status: 'In progress', source: 'Manual' },
+  { id: 'BATCH1235', product: 'White Chocolate', start: '18/05/2026 - 12:30:00', end: '18/05/2026 - 16:00:00', line: 'Zeta 60', status: 'In progress', source: 'IRIS' },
+  { id: 'BATCH1236', product: 'Dark Chocolate', start: '18/05/2026 - 17:00:00', end: '18/05/2026 - 21:30:00', line: 'Zeta 25', status: 'In progress', source: 'IRIS' },
+  { id: 'BATCH1237', product: 'Dark Chocolate', start: '17/05/2026 - 07:30:00', end: '17/05/2026 - 11:30:00', line: 'Omega 5', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1238', product: 'Black Paint', start: '17/05/2026 - 12:30:00', end: '17/05/2026 - 16:00:00', line: 'Alpha 22', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1239', product: 'Blue Paint', start: '17/05/2026 - 17:00:00', end: '17/05/2026 - 21:30:00', line: 'Neos 40', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1240', product: 'Green Paint', start: '16/05/2026 - 07:30:00', end: '16/05/2026 - 11:30:00', line: 'Zeta 10', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1241', product: 'Milk Chocolate', start: '16/05/2026 - 12:30:00', end: '16/05/2026 - 16:00:00', line: 'Zeta 60', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1242', product: 'Yellow Pigment', start: '16/05/2026 - 17:00:00', end: '16/05/2026 - 21:30:00', line: 'Zeta 25', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1243', product: 'Dark Red', start: '15/05/2026 - 07:30:00', end: '15/05/2026 - 11:30:00', line: 'Omega 5', status: 'Cancelled', source: 'Manual' },
+  { id: 'BATCH1244', product: 'Dark Red', start: '15/05/2026 - 12:30:00', end: '15/05/2026 - 16:00:00', line: 'Alpha 22', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1245', product: 'White Chocolate', start: '15/05/2026 - 17:00:00', end: '15/05/2026 - 21:30:00', line: 'Neos 40', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1246', product: 'White Chocolate', start: '14/05/2026 - 07:30:00', end: '14/05/2026 - 11:30:00', line: 'Zeta 10', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1247', product: 'Red Paint', start: '14/05/2026 - 12:30:00', end: '14/05/2026 - 16:00:00', line: 'Zeta 60', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1248', product: 'Black Paint', start: '14/05/2026 - 17:00:00', end: '14/05/2026 - 21:30:00', line: 'Zeta 25', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1249', product: 'Yellow Pigment', start: '13/05/2026 - 07:30:00', end: '13/05/2026 - 11:30:00', line: 'Omega 5', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1250', product: 'Green Paint', start: '13/05/2026 - 12:30:00', end: '13/05/2026 - 16:00:00', line: 'Alpha 22', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1251', product: 'Milk Chocolate', start: '13/05/2026 - 17:00:00', end: '13/05/2026 - 21:30:00', line: 'Neos 40', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1252', product: 'White Chocolate', start: '12/05/2026 - 07:30:00', end: '12/05/2026 - 11:30:00', line: 'Zeta 10', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1253', product: 'UV Coating', start: '12/05/2026 - 12:30:00', end: '12/05/2026 - 16:00:00', line: 'Zeta 60', status: 'Cancelled', source: 'IRIS' },
+  { id: 'BATCH1254', product: 'Dark Red', start: '12/05/2026 - 17:00:00', end: '12/05/2026 - 21:30:00', line: 'Zeta 25', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1255', product: 'Blue Paint', start: '11/05/2026 - 07:30:00', end: '11/05/2026 - 11:30:00', line: 'Omega 5', status: 'Completed', source: 'Manual' },
+  { id: 'BATCH1256', product: 'Dark Chocolate', start: '11/05/2026 - 12:30:00', end: '11/05/2026 - 16:00:00', line: 'Alpha 22', status: 'Completed', source: 'IRIS' },
+  { id: 'BATCH1257', product: 'Red Paint', start: '11/05/2026 - 17:00:00', end: '11/05/2026 - 21:30:00', line: 'Neos 40', status: 'Completed', source: 'IRIS' },
 ]
 
 export const SETTINGS_TABS = [

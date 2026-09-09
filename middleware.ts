@@ -12,6 +12,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // The mock-data app is a public demo — no user, no password. It still renders
+  // inside the (app) layout, which falls back to a demo session when there is
+  // no cookie. /admin stays behind the gate below.
+  if (pathname === '/batch-book' || pathname.startsWith('/batch-book/') || pathname === '/batch-book-v2' || pathname.startsWith('/batch-book-v2/')) {
+    return NextResponse.next()
+  }
+
   // Everything else is the legacy app, still gated by the bb_session cookie.
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value
   const session = token ? await verifySessionToken(token) : null

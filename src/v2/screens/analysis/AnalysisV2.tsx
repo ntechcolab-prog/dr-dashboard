@@ -22,8 +22,10 @@ import TableRow from '@mui/material/TableRow'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import type { Theme } from '@mui/material/styles'
 import type { EChartsOption } from 'echarts'
 import EChart from '@/src/v2/components/echarts/EChart'
+import { withAlpha } from '@/src/v2/screens/registry/ui'
 
 import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined'
 import AddIcon from '@mui/icons-material/Add'
@@ -395,42 +397,61 @@ function ComparisonTable({
   hoverBatch: string | null
   onHoverBatch: (id: string | null) => void
 }) {
-  const colBg = (id: string) => (hoverBatch === id ? 'action.hover' : undefined)
-  const hover = (id: string | null) => ({ onMouseEnter: () => onHoverBatch(id ?? null), onMouseLeave: () => onHoverBatch(null) })
+  // Batches read down the rows, metrics across the columns: adding metrics
+  // grows the table sideways, so it scrolls horizontally with the Batch ID
+  // column pinned to the left edge.
+  const columns = metrics.map((m) => {
+    const vals = batches.map((b) => m.value(b))
+    const max = Math.max(...vals)
+    const min = Math.min(...vals)
+    return { metric: m, vals, max, min, spread: max !== min }
+  })
+  const hover = (id: string) => ({ onMouseEnter: () => onHoverBatch(id), onMouseLeave: () => onHoverBatch(null) })
+  // The pinned cell has to be opaque to cover the columns sliding under it, so
+  // the hover tint goes on as a background image over a solid paper colour
+  // rather than as a translucent background.
+  const stickyCell = (hovered: boolean) => ({
+    position: 'sticky' as const,
+    left: 0,
+    zIndex: 2,
+    bgcolor: 'background.paper',
+    backgroundImage: hovered
+      ? (t: Theme) => `linear-gradient(${withAlpha(t.palette.primary.main, 0.1)}, ${withAlpha(t.palette.primary.main, 0.1)})`
+      : 'none',
+    borderRight: 1,
+    borderColor: 'divider',
+  })
+
   return (
     <TableContainer sx={{ overflowX: 'auto' }}>
-      <Table size="small">
+      <Table size="small" sx={{ '& th, & td': { whiteSpace: 'nowrap' } }}>
         <TableHead>
           <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
-            <TableCell>Metric</TableCell>
-            {batches.map((b) => (
-              <TableCell key={b.id} align="right" {...hover(b.id)} sx={{ bgcolor: colBg(b.id) }}>
-                {b.id}
+            <TableCell sx={{ position: 'sticky', left: 0, zIndex: 3, borderRight: 1, borderColor: 'divider' }}>Batch ID</TableCell>
+            {columns.map(({ metric: m }) => (
+              <TableCell key={m.key} align="right">
+                {m.label} <Box component="span" sx={{ color: 'text.disabled' }}>({m.unit})</Box>
               </TableCell>
             ))}
           </TableRow>
         </TableHead>
         <TableBody>
-          {metrics.map((m) => {
-            const vals = batches.map((b) => m.value(b))
-            const max = Math.max(...vals)
-            const min = Math.min(...vals)
-            const spread = max !== min
+          {batches.map((b, row) => {
+            const hovered = hoverBatch === b.id
             return (
-              <TableRow key={m.key}>
-                <TableCell sx={{ color: 'text.primary' }}>
-                  {m.label} <Box component="span" sx={{ color: 'text.disabled' }}>({m.unit})</Box>
+              <TableRow key={b.id} {...hover(b.id)} sx={{ bgcolor: hovered ? 'action.hover' : undefined }}>
+                <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: 'text.primary', ...stickyCell(hovered) }}>
+                  {b.id}
                 </TableCell>
-                {batches.map((b, i) => {
-                  const isMax = spread && vals[i] === max
-                  const isMin = spread && vals[i] === min
+                {columns.map(({ metric: m, vals, max, min, spread }) => {
+                  const isMax = spread && vals[row] === max
+                  const isMin = spread && vals[row] === min
                   const st = m.stats ? m.stats(b) : null
                   return (
                     <TableCell
-                      key={b.id}
+                      key={m.key}
                       align="right"
-                      {...hover(b.id)}
-                      sx={{ fontVariantNumeric: 'tabular-nums', color: 'text.primary', bgcolor: colBg(b.id) }}
+                      sx={{ fontVariantNumeric: 'tabular-nums', color: 'text.primary' }}
                     >
                       {st ? (
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.25, lineHeight: 1.2 }}>
@@ -464,7 +485,7 @@ function ComparisonTable({
                             color: isMax ? 'success.main' : isMin ? 'error.main' : 'inherit',
                           }}
                         >
-                          {fmtNum(m, vals[i])}
+                          {fmtNum(m, vals[row])}
                           {isMax && <Box component="span" sx={{ ml: 0.5, fontSize: '0.625rem' }}>▲</Box>}
                           {isMin && <Box component="span" sx={{ ml: 0.5, fontSize: '0.625rem' }}>▼</Box>}
                         </Box>
