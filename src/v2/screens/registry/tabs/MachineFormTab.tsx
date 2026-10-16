@@ -9,11 +9,15 @@ import {
   MACHINE_TYPES, EQUIPMENTS, GRINDING_TECH, LINERS, SEPARATIONS,
   SEALING_LIQUIDS, SIEVE_SIZES, BEAD_MATERIALS, BEAD_TYPES,
 } from '@/src/shared/data/batchForm'
-import { SectionCard } from '../ui'
+import { createContext, useContext } from 'react'
+import { EditableCard, useEditing } from '../cardEdit'
+
+// Fields are locked until the Mill card is in edit mode.
+const Locked = createContext(true)
 
 function Select({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void }) {
   return (
-    <TextField select size="small" fullWidth label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+    <TextField select size="small" fullWidth disabled={useContext(Locked)} label={label} value={value} onChange={(e) => onChange(e.target.value)}>
       {options.map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
     </TextField>
   )
@@ -22,7 +26,7 @@ function Select({ label, value, options, onChange }: { label: string; value: str
 function Text({ label, value, onChange, suffix }: { label: string; value: string; onChange: (v: string) => void; suffix?: string }) {
   return (
     <TextField
-      size="small" fullWidth label={label} value={value} onChange={(e) => onChange(e.target.value)}
+      size="small" fullWidth disabled={useContext(Locked)} label={label} value={value} onChange={(e) => onChange(e.target.value)}
       slotProps={suffix ? { input: { endAdornment: <InputAdornment position="end">{suffix}</InputAdornment> } } : undefined}
     />
   )
@@ -30,9 +34,11 @@ function Text({ label, value, onChange, suffix }: { label: string; value: string
 
 export default function MachineFormTab({ value, onChange }: { value: MachineData; onChange: (v: MachineData) => void }) {
   const set = <K extends keyof MachineData>(key: K, v: MachineData[K]) => onChange({ ...value, [key]: v })
+  const on = useEditing('machine')
 
   return (
-    <SectionCard title="Mill">
+    <Locked.Provider value={!on}>
+    <EditableCard cardId="machine" title="Mill">
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2.5 }}>
         <Text label="Name" value={value.name} onChange={(v) => set('name', v)} />
         <Select label="Machine Type" value={value.machineType} options={MACHINE_TYPES} onChange={(v) => set('machineType', v)} />
@@ -60,6 +66,7 @@ export default function MachineFormTab({ value, onChange }: { value: MachineData
           <Text label="Filling" value={value.bead2FillPct} onChange={(v) => set('bead2FillPct', v)} suffix="%" />
         </Box>
       </Box>
-    </SectionCard>
+    </EditableCard>
+    </Locked.Provider>
   )
 }

@@ -70,6 +70,13 @@ export interface ReportItem {
   createdAt: string
 }
 
+/** Batch target, editable from the Resume tab of the v2 editor. */
+export interface TargetData {
+  type: string
+  value: string
+  maxTemperature: string
+}
+
 export interface BatchForm {
   id: string
   version: string
@@ -79,7 +86,15 @@ export interface BatchForm {
   results: ResultsData
   remarks: RemarksData
   reports: ReportItem[]
+  /** v2 editor only (Resume → Batch Status / Batch Details). Optional so saved
+   *  batches and the v1 editor keep working without them. */
+  status?: string
+  progress?: string
+  target?: TargetData
 }
+
+export const BATCH_STATUSES = ['Completed', 'In progress', 'Cancelled']
+export const TARGET_TYPES = ['Energy', 'Passage', 'Time', 'Specific energy']
 
 // Option lists for the select fields.
 export const BRANCHES = ['A0 - Printing Inks', 'B1 - Coatings', 'C2 - Adhesives', 'D3 - Pigments']

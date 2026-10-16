@@ -17,7 +17,9 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import UploadIcon from '@mui/icons-material/FileUploadOutlined'
 import type { ProductData, ResultsData } from '@/src/shared/data/batchForm'
 import { RESULT_VARIABLES } from '@/src/shared/data/batchForm'
-import { SectionCard, withAlpha } from '../ui'
+import { withAlpha } from '../ui'
+import { EditableCard, useEditing } from '../cardEdit'
+import RichTextField from '@/src/v2/components/RichTextField'
 
 interface Props {
   value: ProductData
@@ -37,6 +39,9 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
   const [valDraft, setValDraft] = useState('')
 
   const available = RESULT_VARIABLES.filter((v) => !(v in expected))
+  const editInfo = useEditing('product-info')
+  const editExpected = useEditing('product-expected')
+  const editFiles = useEditing('product-attachments')
 
   // Adding a target also creates the variable on the Results tab (if it is not
   // there yet), so the column the operator will type into already exists.
@@ -78,18 +83,21 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <SectionCard title="Information">
-        <TextField
-          fullWidth
-          multiline
-          minRows={4}
+      <EditableCard cardId="product-info" title="Information">
+        {/* Remount on mode change so Discard shows the saved text again. */}
+        <RichTextField
+          key={editInfo ? 'edit' : 'view'}
           value={value.details}
-          onChange={(e) => set('details', e.target.value)}
+          onChange={(html) => set('details', html)}
+          readOnly={!editInfo}
           placeholder="Write product information here"
         />
-      </SectionCard>
+        {!editInfo && !value.details && (
+          <Typography variant="body2" color="text.secondary">No product information yet.</Typography>
+        )}
+      </EditableCard>
 
-      <SectionCard title="Expected Results">
+      <EditableCard cardId="product-expected" title="Expected Results">
         <Typography variant="body2" color="text.secondary">
           Set the value each variable is expected to reach. Variables added here become columns on the
           Results tab, where the target is shown next to what was measured.
@@ -101,42 +109,47 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
               <TableRow sx={{ '& th': { color: 'text.secondary', fontWeight: 500, bgcolor: 'background.default' } }}>
                 <TableCell sx={{ width: 220 }}>Variable</TableCell>
                 <TableCell>Expected value</TableCell>
-                <TableCell align="right" sx={{ width: 72 }} />
+                {editExpected && <TableCell align="right" sx={{ width: 72 }} />}
               </TableRow>
             </TableHead>
             <TableBody>
               {entries.map(([v, val]) => (
                 <TableRow key={v} hover>
                   <TableCell sx={{ fontSize: '0.875rem', fontWeight: 500 }}>{v}</TableCell>
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      value={val}
-                      onChange={(e) => setExpected(v, e.target.value)}
-                      placeholder="0000"
-                      aria-label={`Expected value for ${v}`}
-                      sx={{ width: 120 }}
-                    />
+                  <TableCell sx={{ fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>
+                    {editExpected ? (
+                      <TextField
+                        size="small"
+                        value={val}
+                        onChange={(e) => setExpected(v, e.target.value)}
+                        placeholder="0000"
+                        aria-label={`Expected value for ${v}`}
+                        sx={{ width: 120 }}
+                      />
+                    ) : (val || '—')}
                   </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Remove">
-                      <IconButton size="small" color="error" onClick={() => removeExpected(v)} aria-label={`Remove ${v}`}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
+                  {editExpected && (
+                    <TableCell align="right">
+                      <Tooltip title="Remove">
+                        <IconButton size="small" color="error" onClick={() => removeExpected(v)} aria-label={`Remove ${v}`}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
 
               {entries.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={3} sx={{ py: 2.5, color: 'text.secondary', fontSize: '0.875rem' }}>
+                  <TableCell colSpan={editExpected ? 3 : 2} sx={{ py: 2.5, color: 'text.secondary', fontSize: '0.875rem' }}>
                     No expected values yet.
                   </TableCell>
                 </TableRow>
               )}
 
-              {/* input row */}
+              {/* input row — only while the card is in edit mode */}
+              {editExpected && (
               <TableRow sx={{ bgcolor: 'background.default' }}>
                 <TableCell>
                   <TextField
@@ -167,20 +180,22 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
                     sx={{ width: 120 }}
                   />
                 </TableCell>
-                <TableCell />
+                <TableCell align="right">
+                  <Button size="small" variant="outlined" onClick={addExpected} disabled={!varDraft.trim()} sx={{ whiteSpace: 'nowrap' }}>
+                    + Add
+                  </Button>
+                </TableCell>
               </TableRow>
+              )}
             </TableBody>
           </Table>
         </Box>
+      </EditableCard>
 
-        <Box sx={{ mt: 2 }}>
-          <Button variant="outlined" onClick={addExpected} disabled={!varDraft.trim()}>
-            + Add expected value
-          </Button>
-        </Box>
-      </SectionCard>
-
-      <SectionCard title="Attachments">
+      <EditableCard cardId="product-attachments" title="Attachments">
+        {!editFiles ? (
+          <Typography variant="body2" color="text.secondary">No attachments yet.</Typography>
+        ) : (
         <Box
           sx={{
             display: 'grid',
@@ -198,7 +213,8 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
           <UploadIcon />
           <Typography variant="body2">Drag files here or click to upload</Typography>
         </Box>
-      </SectionCard>
+        )}
+      </EditableCard>
     </Box>
   )
 }

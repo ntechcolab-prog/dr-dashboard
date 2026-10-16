@@ -1,0 +1,1 @@
+{ "slug": "performance-tracking", "build": "node scripts/mira-build.mjs", "dir": "out" }

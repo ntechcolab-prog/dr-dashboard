@@ -15,14 +15,25 @@ export function SectionCard({
   action,
   children,
   id,
+  editing = false,
 }: {
   title: string
   action?: ReactNode
   children: ReactNode
   id?: string
+  /** Card is in edit mode (see cardEdit.tsx) — outlined in the primary colour. */
+  editing?: boolean
 }) {
   return (
-    <Card id={id} sx={{ p: 3, scrollMarginTop: 16 }}>
+    <Card
+      id={id}
+      sx={{
+        p: 3,
+        scrollMarginTop: 16,
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+        ...(editing && { borderColor: 'primary.main', boxShadow: (t) => `0 0 0 1px ${t.palette.primary.main}` }),
+      }}
+    >
       <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
         <Typography
           variant="overline"

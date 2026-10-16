@@ -15,14 +15,18 @@ import TableBody from '@mui/material/TableBody'
 import TableRow from '@mui/material/TableRow'
 import TableCell from '@mui/material/TableCell'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CancelIcon from '@mui/icons-material/Cancel'
+import PendingIcon from '@mui/icons-material/Pending'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
-import type { BatchForm } from '@/src/shared/data/batchForm'
+import type { BatchForm, TargetData } from '@/src/shared/data/batchForm'
+import { BATCH_STATUSES, TARGET_TYPES } from '@/src/shared/data/batchForm'
 import { isLiveMode } from '@/src/shared/data/mockData'
 import { getLiveBatchRecord } from '@/src/v2/live/liveBatchStore'
 import { statusToDisplay } from '@/src/shared/api/adapters'
 import { SectionCard, Stat, KvGroup, KvList, withAlpha } from '../ui'
+import { EditableCard, useEditing } from '../cardEdit'
 import SensorChartV2 from '../SensorChartV2'
 import { useProductionMonitoring } from '@/src/shared/lib/productionMonitoring'
 
@@ -142,24 +146,40 @@ const durationStr = (a?: string, b?: string): string => {
   return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-export default function ResumeTab({ form }: { form: BatchForm }) {
+// "2026-04-19" + "10:15" → ISO-ish local timestamp (undefined if incomplete).
+const periodIso = (date: string, time: string): string | undefined =>
+  date ? `${date}T${time || '00:00'}` : undefined
+
+export default function ResumeTab({ form, onChange }: { form: BatchForm; onChange: (v: BatchForm) => void }) {
+  const editStatus = useEditing('resume-status')
+  const editDetails = useEditing('resume-details')
   // Live: pull the real batch record so the summary shows real values ("—" where
   // there is no backend source).
   const rec = isLiveMode() ? getLiveBatchRecord(form.id) : undefined
   const d = rec?.details
   const p = rec?.property
-  const statusText = rec ? statusToDisplay(String(d?.status)) : 'Complete'
-  const progressText = rec ? String(Math.round(d?.progress ?? 0)) : '100'
-  const lengthText = rec ? durationStr(d?.date?.start, d?.date?.end) : '3:00:00'
-  const startText = rec ? fmtDateTime(d?.date?.start) : '15 May, 2023, 08:30:21'
-  const endText = rec ? fmtDateTime(d?.date?.end) : '15 May, 2023, 12:30:21'
-  const targetRows: string[][] = rec
-    ? [
-        ['Target Type', dash(rec.target?.type)],
-        ['Target Value', dash(rec.target?.value)],
-        ['Maximum Temperature Allowed (°C)', dash(d?.max_allowed_temperature)],
-      ]
-    : TARGET_ROWS
+  // Edited values (form) win over the machine record / mock defaults.
+  const statusText = form.status ?? (rec ? statusToDisplay(String(d?.status)) : 'Completed')
+  const progressText = form.progress ?? (rec ? String(Math.round(d?.progress ?? 0)) : '100')
+  const startIso = periodIso(form.period.startDate, form.period.startTime) ?? d?.date?.start
+  const endIso = periodIso(form.period.endDate, form.period.endTime) ?? d?.date?.end
+  const lengthText = durationStr(startIso, endIso)
+  const startText = fmtDateTime(startIso)
+  const endText = fmtDateTime(endIso)
+  const target: TargetData = form.target ?? (rec
+    ? { type: String(rec.target?.type ?? ''), value: String(rec.target?.value ?? ''), maxTemperature: String(d?.max_allowed_temperature ?? '') }
+    : { type: TARGET_ROWS[0][1], value: TARGET_ROWS[1][1], maxTemperature: TARGET_ROWS[2][1] })
+  const targetRows: string[][] = [
+    ['Target Type', dash(target.type)],
+    ['Target Value', dash(target.value)],
+    ['Maximum Temperature Allowed (°C)', dash(target.maxTemperature)],
+  ]
+  // An imported (live) batch comes from the machine: only its period can be corrected.
+  const imported = Boolean(rec)
+  const setPeriod = (key: keyof BatchForm['period'], v: string) => onChange({ ...form, period: { ...form.period, [key]: v } })
+  const setTarget = (key: keyof TargetData, v: string) => onChange({ ...form, target: { ...target, [key]: v } })
+  const StatusIcon = statusText === 'Completed' ? CheckCircleIcon : statusText === 'Cancelled' ? CancelIcon : PendingIcon
+  const statusColor = statusText === 'Completed' ? 'success.main' : statusText === 'Cancelled' ? 'error.main' : 'warning.main'
   const processRows: string[][] = rec
     ? [
         ['Energy', dash(p?.grinding_energy, 'kWh')],
@@ -327,27 +347,74 @@ export default function ResumeTab({ form }: { form: BatchForm }) {
         </Box>
       </Box>
 
-      <SectionCard title="Batch Status" id="resume-status">
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2.5 }}>
-          <Stat label="Status">
-            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'success.main', fontWeight: 500 }}>
-              <CheckCircleIcon sx={{ fontSize: 16 }} /> {statusText}
+      <EditableCard cardId="resume-status" title="Batch Status" id="resume-status">
+        {editStatus ? (
+          <Box>
+            {imported && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                This batch was imported from the machine. Only its period can be corrected.
+              </Typography>
+            )}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(3, 1fr)' }, gap: 2.5 }}>
+              <TextField select size="small" label="Status" value={statusText} disabled={imported} onChange={(e) => onChange({ ...form, status: e.target.value })}>
+                {(BATCH_STATUSES.includes(statusText) ? BATCH_STATUSES : [statusText, ...BATCH_STATUSES]).map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+              </TextField>
+              <TextField size="small" label="Progress (%)" value={progressText} disabled={imported} onChange={(e) => onChange({ ...form, progress: e.target.value })} />
+              <TextField
+                size="small" label="Total Batch Size" value={form.product.weight} disabled={imported}
+                onChange={(e) => onChange({ ...form, product: { ...form.product, weight: e.target.value } })}
+                slotProps={{ input: { endAdornment: <InputAdornment position="end">kg</InputAdornment> } }}
+              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 1 }}>
+                <TextField type="date" size="small" label="Start date" value={form.period.startDate} onChange={(e) => setPeriod('startDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                <TextField type="time" size="small" label="Start time" value={form.period.startTime} onChange={(e) => setPeriod('startTime', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 1 }}>
+                <TextField type="date" size="small" label="End date" value={form.period.endDate} onChange={(e) => setPeriod('endDate', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                <TextField type="time" size="small" label="End time" value={form.period.endTime} onChange={(e) => setPeriod('endTime', e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+              </Box>
+              <Stat label="Batch Length" value={lengthText} />
             </Box>
-          </Stat>
-          <Stat label="Progress (%)" value={progressText} />
-          <Stat label="Batch Length" value={lengthText} />
-          <Stat label="Total Batch Size" value={dash(form.product.weight, 'kg')} />
-          <Stat label="Start Time" value={startText} />
-          <Stat label="End Time" value={endText} />
-        </Box>
-      </SectionCard>
+          </Box>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2.5 }}>
+            <Stat label="Status">
+              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: statusColor, fontWeight: 500 }}>
+                <StatusIcon sx={{ fontSize: 16 }} /> {statusText}
+              </Box>
+            </Stat>
+            <Stat label="Progress (%)" value={progressText} />
+            <Stat label="Batch Length" value={lengthText} />
+            <Stat label="Total Batch Size" value={dash(form.product.weight, 'kg')} />
+            <Stat label="Start Time" value={startText} />
+            <Stat label="End Time" value={endText} />
+          </Box>
+        )}
+      </EditableCard>
 
-      <SectionCard title="Batch Details" id="resume-details">
+      <EditableCard cardId="resume-details" title="Batch Details" id="resume-details" canEdit={!imported}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
-          <KvGroup heading="Target" rows={targetRows} />
+          {editDetails ? (
+            <Box>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.dark' }}>Target</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField select size="small" label="Target Type" value={target.type} onChange={(e) => setTarget('type', e.target.value)}>
+                  {(TARGET_TYPES.includes(target.type) || !target.type ? TARGET_TYPES : [target.type, ...TARGET_TYPES]).map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                </TextField>
+                <TextField size="small" label="Target Value" value={target.value} onChange={(e) => setTarget('value', e.target.value)} />
+                <TextField
+                  size="small" label="Maximum Temperature Allowed" value={target.maxTemperature} onChange={(e) => setTarget('maxTemperature', e.target.value)}
+                  slotProps={{ input: { endAdornment: <InputAdornment position="end">°C</InputAdornment> } }}
+                />
+              </Box>
+            </Box>
+          ) : (
+            <KvGroup heading="Target" rows={targetRows} />
+          )}
+          {/* Process values are measured by the machine — never edited. */}
           <KvGroup heading="Process" rows={processRows} />
         </Box>
-      </SectionCard>
+      </EditableCard>
 
       <SectionCard title="Machine Details" id="resume-machine">
         <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2.5 }}>

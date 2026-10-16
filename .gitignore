@@ -42,3 +42,4 @@ storybook-static
 !vendor/web-components-ts/dist
 !vendor/web-components-ts/dist/**
 _vr.mjs
+.mira-build

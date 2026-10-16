@@ -19,6 +19,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import type { RemarksData, NoteRow } from '@/src/shared/data/batchForm'
 import { maskDate, maskTime } from '@/src/shared/lib/masks'
 import { SectionCard, withAlpha } from '../ui'
+import { EditableCard, useCardEdit } from '../cardEdit'
 import SensorChartV2, { type ChartNote } from '../SensorChartV2'
 
 // Deterministic multi-series sample for the graph (cards mirror the lines).
@@ -62,6 +63,17 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
   const commentRef = useRef<HTMLInputElement>(null)
+  const { editing, start } = useCardEdit()
+  const on = editing === 'remarks-notes'
+  const onConclusion = editing === 'remarks-conclusion'
+
+  // Leaving edit mode drops any half-typed note.
+  const [wasOn, setWasOn] = useState(on)
+  if (wasOn !== on) {
+    setWasOn(on)
+    setEditIdx(null)
+    setDraft({ date: '', time: '', comment: '' })
+  }
 
   const addNote = () => {
     if (!draft.comment.trim()) return
@@ -80,13 +92,15 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
   }
 
   // Clicking the chart starts a note at that time — fill the comment and Add.
+  // It opens the Notes card for editing first (asking if another card is dirty).
   const noteFromChart = (pointIdx: number) => {
+    if (!on) start('remarks-notes')
     setDraft((d) => ({
       ...d,
       date: d.date || todayMasked(),
       time: `${POINT_LABELS[pointIdx]}:00`,
     }))
-    commentRef.current?.focus()
+    window.setTimeout(() => commentRef.current?.focus(), 0)
   }
 
   // Notes that fall inside the chart window appear as numbered markers.
@@ -103,7 +117,7 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <SectionCard title="Notes">
+      <EditableCard cardId="remarks-notes" title="Notes">
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
           Tip: click a point on the graph below to start a note at that time — it shows up as a numbered marker.
         </Typography>
@@ -114,12 +128,12 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
                 <TableCell sx={{ width: 150 }}>DATE</TableCell>
                 <TableCell sx={{ width: 130 }}>TIME</TableCell>
                 <TableCell>COMMENTS</TableCell>
-                <TableCell align="right">ACTIONS</TableCell>
+                <TableCell align="right">{on ? 'ACTIONS' : ''}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {value.notes.map((n, i) =>
-                editIdx === i ? (
+                on && editIdx === i ? (
                   <TableRow key={i} sx={{ bgcolor: 'background.default' }}>
                     <TableCell><TextField size="small" value={editDraft.date} onChange={(e) => setEditDraft({ ...editDraft, date: maskDate(e.target.value) })} placeholder="DD/MM/YYYY" /></TableCell>
                     <TableCell><TextField size="small" value={editDraft.time} onChange={(e) => setEditDraft({ ...editDraft, time: maskTime(e.target.value) })} placeholder="00:00:00" /></TableCell>
@@ -164,23 +178,32 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
                       )}
                       {n.comment}
                     </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="Edit"><IconButton size="small" onClick={() => startEdit(i)} aria-label={`Edit note ${i + 1}`}><EditIcon fontSize="small" /></IconButton></Tooltip>
-                      <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteNote(i)} aria-label={`Delete note ${i + 1}`}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                      {on && (
+                        <>
+                          <Tooltip title="Edit"><IconButton size="small" onClick={() => startEdit(i)} aria-label={`Edit note ${i + 1}`}><EditIcon fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => deleteNote(i)} aria-label={`Delete note ${i + 1}`}><DeleteIcon fontSize="small" /></IconButton></Tooltip>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 )
               )}
-              <TableRow>
+              {on && (
+              <TableRow sx={{ bgcolor: 'background.default' }}>
                 <TableCell><TextField size="small" value={draft.date} onChange={(e) => setDraft({ ...draft, date: maskDate(e.target.value) })} placeholder="DD/MM/YYYY" /></TableCell>
                 <TableCell><TextField size="small" value={draft.time} onChange={(e) => setDraft({ ...draft, time: maskTime(e.target.value) })} placeholder="00:00:00" /></TableCell>
                 <TableCell><TextField size="small" fullWidth inputRef={commentRef} value={draft.comment} onChange={(e) => setDraft({ ...draft, comment: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && addNote()} placeholder="Write here" /></TableCell>
-                <TableCell align="right"><Button variant="contained" size="small" onClick={addNote}>Add</Button></TableCell>
+                <TableCell align="right"><Button variant="outlined" size="small" onClick={addNote} sx={{ whiteSpace: 'nowrap' }}>+ Add note</Button></TableCell>
               </TableRow>
+              )}
+              {!on && value.notes.length === 0 && (
+                <TableRow><TableCell colSpan={4} sx={{ py: 2.5, color: 'text.secondary' }}>No notes yet.</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </Box>
-      </SectionCard>
+      </EditableCard>
 
       <SectionCard title="Graph">
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
@@ -218,14 +241,15 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
         </Box>
       </SectionCard>
 
-      <SectionCard title="Conclusion">
+      <EditableCard cardId="remarks-conclusion" title="Conclusion">
         <TextField
           fullWidth multiline minRows={4}
+          disabled={!onConclusion}
           value={value.conclusion}
           onChange={(e) => onChange({ ...value, conclusion: e.target.value })}
-          placeholder="Write the conclusion of the test here."
+          placeholder={onConclusion ? 'Write the conclusion of the test here.' : 'No conclusion yet.'}
         />
-      </SectionCard>
+      </EditableCard>
     </Box>
   )
 }

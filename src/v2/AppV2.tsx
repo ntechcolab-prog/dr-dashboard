@@ -10,6 +10,7 @@ import AnalysisV2 from './screens/analysis/AnalysisV2'
 import SettingsV2 from './screens/settings/SettingsV2'
 import PlaceholderScreen from './screens/PlaceholderScreen'
 import { isRestricted, isScreenGated, initialScreen } from '@/src/shared/versionGate'
+import { guardedLeave } from './leaveGuard'
 
 const SCREENS = ['dashboard', 'registry', 'analysis', 'settings']
 
@@ -34,7 +35,7 @@ export default function AppV2() {
         <SidebarV2
           open={sidebarOpen}
           active={activeNav}
-          onSelect={setActiveNav}
+          onSelect={(key) => guardedLeave(() => setActiveNav(key))}
           onToggle={() => setSidebarOpen((v) => !v)}
           restricted={restricted}
         />

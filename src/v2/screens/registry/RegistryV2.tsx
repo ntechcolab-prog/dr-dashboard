@@ -92,22 +92,49 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
       setEditing(rec ? batchRecordToForm(rec) : { ...makeDraft(0), id: row.id })
       return
     }
-    setEditing({ ...makeDraft(0), id: row.id })
+    // Mock: seed the editor with the row's own status and period so the Resume
+    // matches the table (the rest of the draft is sample data).
+    const parse = (v: string) => {
+      const m = /^(\d{2})\/(\d{2})\/(\d{4}) - (\d{2}:\d{2})/.exec(v)
+      return m ? { date: `${m[3]}-${m[2]}-${m[1]}`, time: m[4] } : null
+    }
+    const draft = makeDraft(0)
+    const st = parse(row.start)
+    const en = parse(row.end)
+    setEditing({
+      ...draft,
+      id: row.id,
+      status: row.status,
+      period: st && en ? { startDate: st.date, startTime: st.time, endDate: en.date, endTime: en.time } : draft.period,
+    })
   }
 
+  // Every card Save lands here. An existing row keeps its recipe, machine and
+  // source; only the period (in the table's DD/MM/YYYY - HH:MM:SS format) and
+  // an edited status change.
   const onSave = (formData: BatchForm) => {
-    const newRow: RegistryRow = {
-      id: formData.id,
-      product: formData.product.productType.split(' - ')[1] ?? formData.product.productType,
-      start: `${formData.period.startDate} - ${formData.period.startTime}`,
-      end: `${formData.period.endDate} - ${formData.period.endTime}`,
-      line: 'Zeta 10',
-      status: 'In progress',
-      source: 'Manual',
+    const fmt = (date: string, time: string) => {
+      const [y, m, d] = date.split('-')
+      return date ? `${d}/${m}/${y} - ${time.length === 5 ? `${time}:00` : time}` : ''
     }
+    const start = fmt(formData.period.startDate, formData.period.startTime)
+    const end = fmt(formData.period.endDate, formData.period.endTime)
+    const status = formData.status as RegistryRow['status'] | undefined
     setRows((prev) => {
-      const exists = prev.some((r) => r.id === newRow.id)
-      return exists ? prev.map((r) => (r.id === newRow.id ? newRow : r)) : [newRow, ...prev]
+      const old = prev.find((r) => r.id === formData.id)
+      if (old) {
+        return prev.map((r) => (r.id === old.id ? { ...r, start: start || r.start, end: end || r.end, status: status ?? r.status } : r))
+      }
+      const newRow: RegistryRow = {
+        id: formData.id,
+        product: formData.product.productType.split(' - ')[1] ?? formData.product.productType,
+        start,
+        end,
+        line: 'Zeta 10',
+        status: status ?? 'In progress',
+        source: 'Manual',
+      }
+      return [newRow, ...prev]
     })
     if (formData.id.startsWith('BA-')) setSeq((s) => s + 1)
   }
