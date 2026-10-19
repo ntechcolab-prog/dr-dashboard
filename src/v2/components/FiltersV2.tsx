@@ -36,16 +36,25 @@ interface FiltersV2Props {
   actions?: ReactNode
 }
 
+// Sentinel value for the "Select all" row — never part of `selected`.
+const ALL = '__all__'
+
 function MultiSelect({
   label, options, selected, onChange,
 }: { label: string; options: readonly string[]; selected: string[]; onChange: (v: string[]) => void }) {
+  const allSelected = options.length > 0 && options.every((o) => selected.includes(o))
   return (
     <FormControl fullWidth size="small">
       <InputLabel>{label}</InputLabel>
       <Select
         multiple
         value={selected}
-        onChange={(e) => onChange(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+        onChange={(e) => {
+          const next = typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value
+          // "Select all" toggles everything; "Clear all" when every option is already picked.
+          if (next.includes(ALL)) onChange(allSelected ? [] : [...options])
+          else onChange(next)
+        }}
         input={<OutlinedInput label={label} />}
         renderValue={(sel) => (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -53,6 +62,10 @@ function MultiSelect({
           </Box>
         )}
       >
+        <MenuItem value={ALL} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Checkbox checked={allSelected} indeterminate={!allSelected && selected.length > 0} size="small" />
+          <ListItemText primary={allSelected ? 'Clear all' : 'Select all'} secondary={`${selected.length} of ${options.length}`} slotProps={{ secondary: { sx: { fontSize: '0.75rem' } } }} />
+        </MenuItem>
         {options.map((o) => (
           <MenuItem key={o} value={o}>
             <Checkbox checked={selected.includes(o)} size="small" />

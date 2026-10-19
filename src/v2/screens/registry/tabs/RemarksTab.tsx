@@ -242,13 +242,18 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
       </SectionCard>
 
       <EditableCard cardId="remarks-conclusion" title="Conclusion">
-        <TextField
-          fullWidth multiline minRows={4}
-          disabled={!onConclusion}
-          value={value.conclusion}
-          onChange={(e) => onChange({ ...value, conclusion: e.target.value })}
-          placeholder={onConclusion ? 'Write the conclusion of the test here.' : 'No conclusion yet.'}
-        />
+        {onConclusion ? (
+          <TextField
+            fullWidth multiline minRows={4}
+            value={value.conclusion}
+            onChange={(e) => onChange({ ...value, conclusion: e.target.value })}
+            placeholder="Write the conclusion of the test here."
+          />
+        ) : value.conclusion ? (
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{value.conclusion}</Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">No conclusion yet.</Typography>
+        )}
       </EditableCard>
     </Box>
   )
