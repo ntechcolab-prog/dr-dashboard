@@ -24,25 +24,32 @@ import { useProductionMonitoring } from '@/src/shared/lib/productionMonitoring'
 import { gatedEditorSteps } from '@/src/shared/versionGate'
 import { richTextToPlain } from '@/src/v2/components/RichTextField'
 import { setLeaveGuard } from '@/src/v2/leaveGuard'
+import { EDITOR_TABS, type EditorTab } from '@/src/v2/routes'
 import { CardEditProvider, UnsavedDialog, type CardEditApi } from './cardEdit'
 
 const EDITOR_PRINT_ID = 'batch-editor-print-v2'
-// No Period step: start/end are edited in the Resume → Batch Status card (NOTI-6052).
-const STEPS = ['Resume', 'Product', 'Machine', 'Results', 'Remarks', 'Details', 'Reports'] as const
-type Step = (typeof STEPS)[number]
+// The tabs (no Period step: start/end are edited in Resume → Batch Status,
+// NOTI-6052). They are also URL segments — /registry/<id>/<tab> — so the list
+// lives in routes.ts.
+const STEPS = EDITOR_TABS
+type Step = EditorTab
 
 interface Props {
   initial: BatchForm
+  /** Tab named in the URL; missing, unknown or gated → Resume. */
+  tab?: Step
+  /** The user picked a tab: the caller moves the URL, which comes back as `tab`. */
+  onTabChange: (tab: Step) => void
   onBack: () => void
   onSave: (form: BatchForm) => void
   // v0: only the tabs in V0_ALLOWED_EDITOR_STEPS stay enabled (see shared/versionGate).
   restricted?: boolean
 }
 
-export default function BatchEditorV2({ initial, onBack, onSave, restricted = false }: Props) {
+export default function BatchEditorV2({ initial, tab, onTabChange, onBack, onSave, restricted = false }: Props) {
   const disabledSteps: Step[] = gatedEditorSteps(STEPS, restricted)
   const [form, setForm] = useLocalStorage<BatchForm>(`dr-batch-form-${initial.id}`, initial)
-  const [rawStep, setStep] = useState<Step>('Resume')
+  const rawStep: Step = tab && !disabledSteps.includes(tab) ? tab : 'Resume'
   const [saved, setSaved] = useState(false)
 
   const pmOn = useProductionMonitoring()
@@ -188,7 +195,7 @@ export default function BatchEditorV2({ initial, onBack, onSave, restricted = fa
       {/* step tabs */}
       <Tabs
         value={step}
-        onChange={(_, v: Step) => { if (!disabledSteps.includes(v) && v !== step) ask(() => setStep(v)) }}
+        onChange={(_, v: Step) => { if (!disabledSteps.includes(v) && v !== step) ask(() => onTabChange(v)) }}
         variant="scrollable"
         scrollButtons="auto"
       >

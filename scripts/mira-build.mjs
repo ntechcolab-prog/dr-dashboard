@@ -4,8 +4,10 @@
 //
 // The real app needs a server (middleware, /api, the Neon-backed layout, the
 // IRIS login), so this copies the repo to .mira-build/, keeps only the v2 demo
-// (served at / and /batch-book-v2) with the in-memory DEMO_USER layout, and
-// exports it. The working tree and the normal Vercel deploy are never touched.
+// with the in-memory DEMO_USER layout, mounts its route tree at the root (so
+// MIRA gets /, /registry, /registry/<id>/<tab>, … — see src/v2/routes.ts, one
+// HTML each) and exports it. The working tree and the normal Vercel deploy are
+// never touched.
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
@@ -47,8 +49,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   )
 }
 `)
+// The v2 route tree (app/(app)/batch-book-v2/[[...path]]) moves to the root of
+// the build, in place of the IRIS login page. The route file stays the single
+// source — only its mount point changes, from root="/batch-book-v2" to root="".
 rmSync(path.join(work, 'app/page.tsx'))
-writeFileSync(path.join(work, 'app/(app)/page.tsx'), `export { default } from './batch-book-v2/page'\n`)
+const routeDir = 'app/(app)/batch-book-v2/[[...path]]'
+cpSync(path.join(work, routeDir), path.join(work, 'app/(app)/[[...path]]'), { recursive: true })
+rmSync(path.join(work, 'app/(app)/batch-book-v2'), { recursive: true, force: true })
+const pageFile = path.join(work, 'app/(app)/[[...path]]/page.tsx')
+const page = readFileSync(pageFile, 'utf8')
+if (!page.includes('root="/batch-book-v2"')) throw new Error(`${routeDir}/page.tsx: expected root="/batch-book-v2"`)
+writeFileSync(pageFile, page.replace('root="/batch-book-v2"', 'root=""'))
 
 writeFileSync(path.join(work, 'next.config.mjs'), `/** @type {import('next').NextConfig} */
 export default {

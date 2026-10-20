@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
@@ -22,6 +22,8 @@ import { isLiveMode } from '@/src/shared/data/mockData'
 import { getLiveBatchRecord, batchRecordToForm } from '@/src/v2/live/liveBatchStore'
 import { useLocalStorage } from '@/src/shared/lib/useLocalStorage'
 import type { Sheet } from '@/src/shared/lib/exportData'
+import { NEW_BATCH, type AppRoute } from '@/src/v2/routes'
+import type { AppLocation } from '@/src/v2/useAppLocation'
 import BatchEditorV2 from './BatchEditorV2'
 import ExportMenuV2 from './ExportMenuV2'
 import { withAlpha } from './ui'
@@ -30,14 +32,25 @@ import { withAlpha } from './ui'
 // screen (search filter → selection → export, New Batch draft, edit existing);
 // only the presentation is rebuilt on MUI. Batch editor with its tabs lives in
 // BatchEditorV2.
+//
+// Which batch (and tab) is open comes from the route — /registry/<id>/<tab>,
+// /registry/new for a draft (see src/v2/routes.ts) — so a link reopens exactly
+// that view. Opening a row, New Batch, Back and the tabs all navigate.
 const COLUMNS = ['Batch ID', 'Recipe', 'Start Date', 'End Date', 'Machine', 'Status']
 const REGISTRY_PRINT_ID = 'registry-batch-log-print-v2'
 const PAGE_SIZE = 10
 
-export default function RegistryV2({ restricted = false }: { restricted?: boolean }) {
+interface Props {
+  // v0: only the screens in V0_ALLOWED_SCREENS stay enabled (see shared/versionGate).
+  restricted?: boolean
+  /** The app's location (screen = 'registry'): batch and tab open in the editor. */
+  route: AppRoute
+  navigate: AppLocation['navigate']
+}
+
+export default function RegistryV2({ restricted = false, route, navigate }: Props) {
   const [rows, setRows] = useLocalStorage<RegistryRow[]>('dr-registry-rows', REGISTRY_ROWS)
   const [seq, setSeq] = useLocalStorage<number>('dr-batch-seq', 274)
-  const [editing, setEditing] = useState<BatchForm | null>(null)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(0)
@@ -85,12 +98,18 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
     ]
   }
 
-  const newBatch = () => setEditing(makeDraft(seq))
-  const editExisting = (row: RegistryRow) => {
+  const newBatch = () => navigate({ screen: 'registry', batchId: NEW_BATCH })
+  const editExisting = (row: RegistryRow) => navigate({ screen: 'registry', batchId: row.id })
+
+  // The form the editor opens with, for the batch id in the URL. Null when no
+  // row has that id (a stale link, a batch from another session).
+  const formFor = (id: string): BatchForm | null => {
+    if (id === NEW_BATCH) return makeDraft(seq)
+    const row = rows.find((r) => r.id === id)
+    if (!row) return null
     if (isLiveMode()) {
       const rec = getLiveBatchRecord(row.id)
-      setEditing(rec ? batchRecordToForm(rec) : { ...makeDraft(0), id: row.id })
-      return
+      return rec ? batchRecordToForm(rec) : { ...makeDraft(0), id: row.id }
     }
     // Mock: seed the editor with the row's own status and period so the Resume
     // matches the table (the rest of the draft is sample data).
@@ -101,13 +120,22 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
     const draft = makeDraft(0)
     const st = parse(row.start)
     const en = parse(row.end)
-    setEditing({
+    return {
       ...draft,
       id: row.id,
       status: row.status,
       period: st && en ? { startDate: st.date, startTime: st.time, endDate: en.date, endTime: en.time } : draft.period,
-    })
+    }
   }
+  // Resolved once per batch id: /registry/new takes its id from the sequence,
+  // which moves on when the batch is saved — the open draft must not follow.
+  const initial = useOncePerKey(route.batchId, () => (route.batchId ? formFor(route.batchId) : null))
+
+  // Unknown id → back to the list.
+  const missing = route.batchId != null && initial == null
+  useEffect(() => {
+    if (missing) navigate({ screen: 'registry' }, { replace: true })
+  }, [missing, navigate])
 
   // Every card Save lands here. An existing row keeps its recipe, machine and
   // source; only the period (in the table's DD/MM/YYYY - HH:MM:SS format) and
@@ -137,10 +165,22 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
       return [newRow, ...prev]
     })
     if (formData.id.startsWith('BA-')) setSeq((s) => s + 1)
+    // The draft is a row now: its URL becomes the batch's own (same tab).
+    if (route.batchId === NEW_BATCH) navigate({ ...route, batchId: formData.id }, { replace: true })
   }
 
-  if (editing) {
-    return <BatchEditorV2 initial={editing} onBack={() => setEditing(null)} onSave={onSave} restricted={restricted} />
+  if (route.batchId) {
+    if (!initial) return null // redirecting to the list
+    return (
+      <BatchEditorV2
+        initial={initial}
+        tab={route.tab}
+        onTabChange={(tab) => navigate({ ...route, tab }, { replace: true })}
+        onBack={() => navigate({ screen: 'registry' })}
+        onSave={onSave}
+        restricted={restricted}
+      />
+    )
   }
 
   return (
@@ -249,6 +289,13 @@ export default function RegistryV2({ restricted = false }: { restricted?: boolea
       </Card>
     </Box>
   )
+}
+
+// Runs `make` again only when `key` changes — a lazy initializer per key.
+function useOncePerKey<K, T>(key: K, make: () => T): T {
+  const ref = useRef<{ key: K; value: T } | null>(null)
+  if (!ref.current || ref.current.key !== key) ref.current = { key, value: make() }
+  return ref.current.value
 }
 
 function StatusBadge({ status }: { status: RegistryRow['status'] }) {
