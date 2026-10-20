@@ -6,8 +6,6 @@ import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Checkbox from '@mui/material/Checkbox'
 import InputAdornment from '@mui/material/InputAdornment'
 import Table from '@mui/material/Table'
 import TableHead from '@mui/material/TableHead'
@@ -17,7 +15,6 @@ import TableCell from '@mui/material/TableCell'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import CancelIcon from '@mui/icons-material/Cancel'
 import PendingIcon from '@mui/icons-material/Pending'
-import RefreshIcon from '@mui/icons-material/Refresh'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import type { BatchForm, TargetData } from '@/src/shared/data/batchForm'
@@ -25,9 +22,9 @@ import { BATCH_STATUSES, TARGET_TYPES } from '@/src/shared/data/batchForm'
 import { isLiveMode } from '@/src/shared/data/mockData'
 import { getLiveBatchRecord } from '@/src/v2/live/liveBatchStore'
 import { statusToDisplay } from '@/src/shared/api/adapters'
-import { SectionCard, Stat, KvGroup, KvList, withAlpha } from '../ui'
+import { SectionCard, Stat, KvGroup, KvList } from '../ui'
 import { EditableCard, useEditing } from '../cardEdit'
-import SensorChartV2 from '../SensorChartV2'
+import BatchGraph, { GRAPH_WINDOW_START_MIN, GRAPH_WINDOW_END_MIN } from '../BatchGraph'
 import { useProductionMonitoring } from '@/src/shared/lib/productionMonitoring'
 
 const TARGET_ROWS = [
@@ -60,23 +57,6 @@ const MACHINE_TECH = [
   ['Bead filling level', '75%'],
 ]
 
-const SENSORS = [
-  { name: 'Energy', unit: 'kWh', color: '#f19909', stats: [['Min', '0'], ['Max', '2456'], ['Avg', '1050']] },
-  { name: 'Product flow', unit: 'l/Min', color: '#9b7fd4', stats: [['Min', '30'], ['Max', '160'], ['Avg', '90']] },
-  { name: 'Mill current', unit: 'kWh', color: '#e0489b', stats: [['Min', '20'], ['Max', '102'], ['Avg', '48']] },
-]
-const SERIES = [
-  { name: 'Energy', color: '#f19909', data: [3, 5, 7, 8, 9, 9.5, 9, 8, 8.6, 9.4, 7.8, 6] },
-  { name: 'Product flow', color: '#9b7fd4', data: [5, 6.4, 5.4, 7, 6, 5.2, 6.1, 7, 5.8, 5, 4.6, 4] },
-  { name: 'Mill current', color: '#e0489b', data: [3, 3.2, 3.8, 4, 3.4, 4, 4.6, 4.1, 4, 3.4, 3.8, 3.2] },
-]
-const X_LABELS = SERIES[0].data.map((_, i) => {
-  const m = 8 * 60 + i * 30
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-})
-const WINDOW_START_MIN = 8 * 60
-const WINDOW_END_MIN = WINDOW_START_MIN + (SERIES[0].data.length - 1) * 30
-
 // Pull the "HH:MM[am|pm]" out of an event timestamp and map it to a fraction
 // across the chart window (null if it can't be read or falls outside).
 function eventTimeToFrac(s: string): number | null {
@@ -87,8 +67,8 @@ function eventTimeToFrac(s: string): number | null {
   if (ap === 'pm' && h !== 12) h += 12
   if (ap === 'am' && h === 12) h = 0
   const t = h * 60 + Number(m[2])
-  if (t < WINDOW_START_MIN || t > WINDOW_END_MIN) return null
-  return (t - WINDOW_START_MIN) / (WINDOW_END_MIN - WINDOW_START_MIN)
+  if (t < GRAPH_WINDOW_START_MIN || t > GRAPH_WINDOW_END_MIN) return null
+  return (t - GRAPH_WINDOW_START_MIN) / (GRAPH_WINDOW_END_MIN - GRAPH_WINDOW_START_MIN)
 }
 
 // Floating quick-nav (Resume sections). pmOnly entries only in the PM edition.
@@ -101,13 +81,6 @@ const SECTIONS = [
   { id: 'resume-alarms', label: 'Alarms', pmOnly: true },
   { id: 'resume-alerts', label: 'Alerts', pmOnly: true },
   { id: 'resume-log', label: 'Action Log', pmOnly: true },
-]
-
-const GRAPH_TEMPLATES = [
-  { name: 'All sensors', sensors: ['Energy', 'Product flow', 'Mill current'] },
-  { name: 'Energy profile', sensors: ['Energy'] },
-  { name: 'Flow & current', sensors: ['Product flow', 'Mill current'] },
-  { name: 'Mill current', sensors: ['Mill current'] },
 ]
 
 const ALARMS = [
@@ -193,16 +166,9 @@ export default function ResumeTab({ form, onChange }: { form: BatchForm; onChang
     ? [['Manufacturer', dash(rec.machine?.brand ?? 'NETZSCH')], ['Type', dash(rec.machine?.type)]]
     : MACHINE_BASIC
 
-  const [template, setTemplate] = useState(GRAPH_TEMPLATES[0].name)
-  const [showStatus, setShowStatus] = useState(false)
   const [query, setQuery] = useState('')
-  const [hoverSensor, setHoverSensor] = useState<number | null>(null)
   const [eventMarker, setEventMarker] = useState<number | null>(null)
   const [navOpen, setNavOpen] = useState(false)
-
-  const activeTemplate = GRAPH_TEMPLATES.find((t) => t.name === template) ?? GRAPH_TEMPLATES[0]
-  const visibleSeries = SERIES.filter((s) => activeTemplate.sensors.includes(s.name))
-  const visibleSensors = SENSORS.filter((s) => activeTemplate.sensors.includes(s.name))
 
   const pmOn = useProductionMonitoring()
   const sections = SECTIONS.filter((s) => pmOn || !s.pmOnly)
@@ -442,51 +408,7 @@ export default function ResumeTab({ form, onChange }: { form: BatchForm; onChang
       </SectionCard>
 
       <SectionCard title="Graph" id="resume-graph">
-        <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
-          <TextField select size="small" value={template} onChange={(e) => setTemplate(e.target.value)} sx={{ minWidth: 224 }}>
-            {GRAPH_TEMPLATES.map((t) => <MenuItem key={t.name} value={t.name}>{t.name}</MenuItem>)}
-          </TextField>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FormControlLabel
-              control={<Checkbox size="small" checked={showStatus} onChange={(e) => setShowStatus(e.target.checked)} />}
-              label={<Typography variant="caption">Show Machine Status (Range)</Typography>}
-            />
-            <Button size="small" variant="outlined" startIcon={<RefreshIcon fontSize="small" />}>Refresh Data</Button>
-          </Box>
-        </Box>
-
-        <SensorChartV2
-          series={visibleSeries}
-          pointLabels={X_LABELS}
-          max={10}
-          height={320}
-          highlight={hoverSensor}
-          band={showStatus ? [2, 7] : null}
-          markerFrac={eventMarker}
-        />
-
-        <Box sx={{ mt: 2.5, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-          {visibleSensors.map((s, i) => (
-            <Box
-              key={s.name}
-              onMouseEnter={() => setHoverSensor(i)}
-              onMouseLeave={() => setHoverSensor(null)}
-              sx={{ borderRadius: 2, borderLeft: '4px solid', borderColor: s.color, bgcolor: (t) => withAlpha(t.palette.text.secondary, 0.06), p: 1.5, cursor: 'default' }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: s.color }}>{s.name}</Typography>
-                <Typography variant="caption" color="text.disabled">{s.unit}</Typography>
-              </Box>
-              <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
-                {s.stats.map(([k, v]) => (
-                  <Typography key={k} variant="caption" color="text.secondary">
-                    {k} <Box component="span" sx={{ fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{v}</Box>
-                  </Typography>
-                ))}
-              </Box>
-            </Box>
-          ))}
-        </Box>
+        <BatchGraph markerFrac={eventMarker} />
       </SectionCard>
 
       {pmOn && (

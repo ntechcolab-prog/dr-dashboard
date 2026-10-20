@@ -18,37 +18,18 @@ import CheckIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import CloseIcon from '@mui/icons-material/Close'
 import type { RemarksData, NoteRow } from '@/src/shared/data/batchForm'
 import { maskDate, maskTime } from '@/src/shared/lib/masks'
-import { SectionCard, withAlpha } from '../ui'
+import { SectionCard } from '../ui'
 import { EditableCard, useCardEdit } from '../cardEdit'
-import SensorChartV2, { type ChartNote } from '../SensorChartV2'
-
-// Deterministic multi-series sample for the graph (cards mirror the lines).
-const SERIES = [
-  { name: 'Energy', color: '#f19909', data: [3, 5, 7, 8, 9, 10, 9, 8, 9, 10, 8, 6] },
-  { name: 'Product flow', color: '#9b7fd4', data: [4, 6, 5, 7, 6, 5, 6, 7, 6, 5, 4, 4] },
-  { name: 'Mill current', color: '#e0489b', data: [3, 3, 4, 4, 3, 4, 5, 4, 4, 3, 4, 3] },
-  { name: 'Product temp.', color: '#2ea36b', data: [2, 3, 2, 3, 4, 3, 2, 3, 4, 3, 2, 3] },
-]
-const SENSOR_META = [
-  { line: 'Production Line A', machine: 'Machine ABC' },
-  { line: 'Production Line A', machine: 'Machine ABC' },
-  { line: 'Production Line B', machine: 'Machine ABC' },
-  { line: 'Production Line B', machine: 'Machine ABC' },
-]
-const WINDOW_START_MIN = 8 * 60
-const STEP_MIN = 30
-const N_POINTS = SERIES[0].data.length
-const WINDOW_END_MIN = WINDOW_START_MIN + (N_POINTS - 1) * STEP_MIN
-const minutesToLabel = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-const POINT_LABELS = Array.from({ length: N_POINTS }, (_, i) => minutesToLabel(WINDOW_START_MIN + i * STEP_MIN))
+import type { ChartNote } from '../SensorChartV2'
+import BatchGraph, { GRAPH_WINDOW_START_MIN, GRAPH_WINDOW_END_MIN, GRAPH_X_LABELS } from '../BatchGraph'
 
 // "HH:MM[:SS]" → fraction across the chart window (null if outside/unreadable).
 function timeToFrac(time: string): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(time)
   if (!m) return null
   const mins = Number(m[1]) * 60 + Number(m[2])
-  if (mins < WINDOW_START_MIN || mins > WINDOW_END_MIN) return null
-  return (mins - WINDOW_START_MIN) / (WINDOW_END_MIN - WINDOW_START_MIN)
+  if (mins < GRAPH_WINDOW_START_MIN || mins > GRAPH_WINDOW_END_MIN) return null
+  return (mins - GRAPH_WINDOW_START_MIN) / (GRAPH_WINDOW_END_MIN - GRAPH_WINDOW_START_MIN)
 }
 
 const todayMasked = () => {
@@ -58,7 +39,6 @@ const todayMasked = () => {
 
 export default function RemarksTab({ value, onChange }: { value: RemarksData; onChange: (v: RemarksData) => void }) {
   const [draft, setDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
-  const [hoverSensor, setHoverSensor] = useState<number | null>(null)
   const [hoverNote, setHoverNote] = useState<number | null>(null)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
@@ -98,7 +78,7 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
     setDraft((d) => ({
       ...d,
       date: d.date || todayMasked(),
-      time: `${POINT_LABELS[pointIdx]}:00`,
+      time: `${GRAPH_X_LABELS[pointIdx]}:00`,
     }))
     window.setTimeout(() => commentRef.current?.focus(), 0)
   }
@@ -206,39 +186,7 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
       </EditableCard>
 
       <SectionCard title="Graph">
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-          Multi-sensor readings over the batch window. Hover for values · hover a note marker to read it · click to annotate.
-        </Typography>
-        <SensorChartV2
-          series={SERIES}
-          pointLabels={POINT_LABELS}
-          max={12}
-          height={320}
-          highlight={hoverSensor}
-          notes={chartNotes}
-          activeNote={hoverNote}
-          onPlotClick={noteFromChart}
-        />
-        <Box sx={{ mt: 2, display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(5, 1fr)' }, gap: 1.5 }}>
-          {SERIES.map((s, i) => (
-            <Box
-              key={i}
-              onMouseEnter={() => setHoverSensor(i)}
-              onMouseLeave={() => setHoverSensor(null)}
-              sx={{ borderRadius: 2, border: '2px solid', borderColor: s.color, bgcolor: 'background.paper', p: 1.5, cursor: 'default' }}
-            >
-              <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: s.color }}>{s.name}</Typography>
-              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>{SENSOR_META[i].line}</Typography>
-              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>{SENSOR_META[i].machine}</Typography>
-            </Box>
-          ))}
-          <Button
-            variant="outlined"
-            sx={{ borderStyle: 'dashed', borderColor: (t) => withAlpha(t.palette.primary.main, 0.4) }}
-          >
-            + Add sensor
-          </Button>
-        </Box>
+        <BatchGraph notes={chartNotes} activeNote={hoverNote} onPlotClick={noteFromChart} />
       </SectionCard>
 
       <EditableCard cardId="remarks-conclusion" title="Conclusion">
