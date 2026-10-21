@@ -50,6 +50,21 @@ export function timeToFrac(time: string): number | null {
 // d90 reads as small → large), kept apart from the warm sensor colors.
 const RESULT_COLORS = ['#5aa9e6', '#2f6fd6', '#173f8f', '#0b6e99', '#4c5fd5']
 
+const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+
+// One card per Results variable: Min/Max/Avg over every sample of the batch,
+// with the Product → Expected Results target in the unit's spot.
+function resultsCards(results: ResultsData) {
+  return results.variables.map((v, i) => {
+    const vals = results.rows.map((r) => parseNumeric(r.values[v])).filter((x): x is number => x != null)
+    const stats = vals.length
+      ? [['Min', fmt(Math.min(...vals))], ['Max', fmt(Math.max(...vals))], ['Avg', fmt(vals.reduce((a, b) => a + b, 0) / vals.length)]]
+      : [['Min', '—'], ['Max', '—'], ['Avg', '—']]
+    const expected = results.expected?.[v]
+    return { name: v, unit: expected ? `Expected ${expected}` : '', color: RESULT_COLORS[i % RESULT_COLORS.length], stats }
+  })
+}
+
 function resultsOverlay(results: ResultsData): OverlaySeries[] {
   return results.variables
     .map((v, i) => ({
@@ -90,11 +105,23 @@ export default function BatchGraph({
   const [showStatus, setShowStatus] = useState(false)
   const [hoverSensor, setHoverSensor] = useState<number | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [hidden, setHidden] = useState<string[]>([])
+  const toggleSeries = (name: string, visible: boolean) =>
+    setHidden((h) => (visible ? h.filter((n) => n !== name) : h.includes(name) ? h : [...h, name]))
 
   const activeTemplate = GRAPH_TEMPLATES.find((t) => t.name === template) ?? GRAPH_TEMPLATES[0]
   const visibleSeries = SERIES.filter((s) => activeTemplate.sensors.includes(s.name))
   const visibleSensors = SENSORS.filter((s) => activeTemplate.sensors.includes(s.name))
   const overlay = results ? resultsOverlay(results) : []
+  const shownOverlay = showResults ? overlay : []
+  // Cards follow the chart: sensors first, then the results being overlaid —
+  // card i highlights chart series i.
+  const cards = [
+    ...visibleSensors,
+    ...(results && showResults
+      ? resultsCards(results).filter((c) => shownOverlay.some((o) => o.name === c.name))
+      : []),
+  ]
 
   return (
     <>
@@ -138,30 +165,44 @@ export default function BatchGraph({
         notes={notes}
         activeNote={activeNote}
         onPlotClick={onPlotClick}
-        overlay={showResults ? overlay : []}
+        overlay={shownOverlay}
+        hidden={hidden}
+        onToggleSeries={toggleSeries}
       />
 
       <Box sx={{ mt: 2.5, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.5 }}>
-        {visibleSensors.map((s, i) => (
-          <Box
-            key={s.name}
-            onMouseEnter={() => setHoverSensor(i)}
-            onMouseLeave={() => setHoverSensor(null)}
-            sx={{ borderRadius: 2, borderLeft: '4px solid', borderColor: s.color, bgcolor: (t) => withAlpha(t.palette.text.secondary, 0.06), p: 1.5, cursor: 'default' }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: s.color }}>{s.name}</Typography>
-              <Typography variant="caption" color="text.disabled">{s.unit}</Typography>
+        {cards.map((s, i) => {
+          const off = hidden.includes(s.name)
+          return (
+            <Box
+              key={s.name}
+              onMouseEnter={() => !off && setHoverSensor(i)}
+              onMouseLeave={() => setHoverSensor(null)}
+              sx={{ borderRadius: 2, borderLeft: '4px solid', borderColor: s.color, bgcolor: (t) => withAlpha(t.palette.text.secondary, 0.06), p: 1.5, cursor: 'default', opacity: off ? 0.5 : 1 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: s.color }}>{s.name}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="caption" color="text.disabled">{s.unit}</Typography>
+                  <Button
+                    size="small"
+                    onClick={() => { toggleSeries(s.name, off); setHoverSensor(null) }}
+                    sx={{ minWidth: 0, py: 0, px: 0.75, fontSize: '0.6875rem', color: 'text.secondary' }}
+                  >
+                    {off ? 'Show' : 'Hide'}
+                  </Button>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
+                {s.stats.map(([k, v]) => (
+                  <Typography key={k} variant="caption" color="text.secondary">
+                    {k} <Box component="span" sx={{ fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{v}</Box>
+                  </Typography>
+                ))}
+              </Box>
             </Box>
-            <Box sx={{ mt: 1, display: 'flex', gap: 2 }}>
-              {s.stats.map(([k, v]) => (
-                <Typography key={k} variant="caption" color="text.secondary">
-                  {k} <Box component="span" sx={{ fontWeight: 600, color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>{v}</Box>
-                </Typography>
-              ))}
-            </Box>
-          </Box>
-        ))}
+          )
+        })}
       </Box>
     </>
   )

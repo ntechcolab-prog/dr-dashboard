@@ -49,6 +49,8 @@ export default function SensorChartV2({
   activeNote = null,
   markerFrac = null,
   overlay = [],
+  hidden = [],
+  onToggleSeries,
   onPlotClick,
 }: {
   series: SensorSeries[]
@@ -61,6 +63,8 @@ export default function SensorChartV2({
   activeNote?: number | null // note emphasized from outside (e.g. table row hover)
   markerFrac?: number | null // transient vertical guide at a fraction (0..1) of the plot
   overlay?: OverlaySeries[]
+  hidden?: string[] // series names switched off (legend click or a card's Hide)
+  onToggleSeries?: (name: string, visible: boolean) => void
   onPlotClick?: (pointIndex: number) => void // click-to-annotate
 }) {
   const [noteHover, setNoteHover] = useState<number | null>(null)
@@ -73,6 +77,8 @@ export default function SensorChartV2({
   // Live refs so the once-bound zrender click handler always reads fresh values.
   const onPlotClickRef = useRef(onPlotClick)
   onPlotClickRef.current = onPlotClick
+  const onToggleRef = useRef(onToggleSeries)
+  onToggleRef.current = onToggleSeries
   const labelsRef = useRef(pointLabels)
   labelsRef.current = pointLabels
 
@@ -113,6 +119,12 @@ export default function SensorChartV2({
     () => ({
       finished: (_p: unknown, inst?: EChartsType) => {
         if (inst) captureInstance(inst)
+      },
+      // Legend clicks are lifted into `hidden`; otherwise the next notMerge
+      // redraw (any hover re-render) would bring every series back.
+      legendselectchanged: (p: unknown) => {
+        const params = p as { name: string; selected: Record<string, boolean> }
+        onToggleRef.current?.(params.name, params.selected[params.name])
       },
       // Hovering a note's marker line emphasizes it and opens its tooltip.
       mouseover: (p: unknown) => {
@@ -231,7 +243,7 @@ export default function SensorChartV2({
           formatter: (p: { seriesName?: string; value?: unknown; data?: unknown }) => {
             const v = (p.value as [number, number])[1]
             const t = (p.data as { time: string }).time
-            return `${p.seriesName} ${v.toLocaleString('en-US', { maximumFractionDigits: 3 })} · ${t}`
+            return `${p.seriesName} ${v.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} · ${t}`
           },
           color: o.color,
           fontWeight: 600,
@@ -250,7 +262,12 @@ export default function SensorChartV2({
       // series) — kill animation so hover restyles are instant like the original.
       animation: false,
       grid: { left: 8, right: 8, top: 20, bottom: 48, containLabel: true },
-      legend: { bottom: 6, icon: 'roundRect', data: [...series, ...overlay].map((s) => s.name) },
+      legend: {
+        bottom: 6,
+        icon: 'roundRect',
+        data: [...series, ...overlay].map((s) => s.name),
+        selected: Object.fromEntries([...series, ...overlay].map((s) => [s.name, !hidden.includes(s.name)])),
+      },
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'line', lineStyle: { color: iris.faint } },
@@ -279,7 +296,7 @@ export default function SensorChartV2({
       ],
       series: [...seriesOption, ...overlayOption],
     } as EChartsOption
-  }, [series, pointLabels, max, band, notes, markerFrac, overlay, shownNote, primary, fracToIndex])
+  }, [series, pointLabels, max, band, notes, markerFrac, overlay, hidden, shownNote, primary, fracToIndex])
 
   // Card hover (highlight prop) drives ECharts emphasis directly: dispatching
   // `highlight` on the series (which uses focus:'series') blurs the others.
