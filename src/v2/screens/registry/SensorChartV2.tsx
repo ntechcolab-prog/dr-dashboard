@@ -18,6 +18,14 @@ export interface ChartNote {
   comment: string
 }
 
+// Lab samples drawn over the sensor lines (Remarks → "Show Results"): each
+// point sits at a fraction (0..1) of the plot width, on its own right-hand axis.
+export interface OverlaySeries {
+  name: string
+  color: string
+  points: { frac: number; value: number; time: string }[]
+}
+
 // ECharts line chart for the batch sensor readings (Resume + Remarks tabs).
 // curve is linear on every series — this is manufacturing data, so segments must
 // be straight, never smoothed. The core multi-series plot + legend + axis value
@@ -28,6 +36,8 @@ export interface ChartNote {
 //   • transient guide marker → markLine (dashed, arrow head)
 //   • click-to-annotate      → zrender click → convertFromPixel → nearest index
 //   • note tooltip           → HTML overlay positioned via convertToPixel
+//   • results overlay        → extra line series on a hidden 0..1 x axis and a
+//                              log y axis on the right (d10 and d90 differ ~100×)
 export default function SensorChartV2({
   series,
   pointLabels,
@@ -38,6 +48,7 @@ export default function SensorChartV2({
   notes = [],
   activeNote = null,
   markerFrac = null,
+  overlay = [],
   onPlotClick,
 }: {
   series: SensorSeries[]
@@ -49,6 +60,7 @@ export default function SensorChartV2({
   notes?: ChartNote[]
   activeNote?: number | null // note emphasized from outside (e.g. table row hover)
   markerFrac?: number | null // transient vertical guide at a fraction (0..1) of the plot
+  overlay?: OverlaySeries[]
   onPlotClick?: (pointIndex: number) => void // click-to-annotate
 }) {
   const [noteHover, setNoteHover] = useState<number | null>(null)
@@ -198,25 +210,76 @@ export default function SensorChartV2({
       }
     }
 
+    const overlayOption = overlay.map((o) => ({
+      name: o.name,
+      type: 'line' as const,
+      xAxisIndex: 1,
+      yAxisIndex: 1,
+      data: o.points.map((pt) => ({ value: [pt.frac, pt.value], time: pt.time })),
+      smooth: false,
+      symbol: 'circle',
+      symbolSize: 7,
+      lineStyle: { color: o.color, width: 1.5, type: 'dashed' as const },
+      itemStyle: { color: o.color, borderColor: '#fff', borderWidth: 1.5 },
+      // The axis tooltip only follows the category axis, so a sample shows its
+      // value as a label when hovered.
+      emphasis: {
+        focus: 'series' as const,
+        label: {
+          show: true,
+          position: 'top' as const,
+          formatter: (p: { seriesName?: string; value?: unknown; data?: unknown }) => {
+            const v = (p.value as [number, number])[1]
+            const t = (p.data as { time: string }).time
+            return `${p.seriesName} ${v.toLocaleString('en-US', { maximumFractionDigits: 3 })} · ${t}`
+          },
+          color: o.color,
+          fontWeight: 600,
+          fontSize: 11,
+          backgroundColor: 'rgba(255,255,255,0.92)',
+          padding: [2, 4],
+          borderRadius: 4,
+        },
+      },
+      blur: { lineStyle: { opacity: 0.16 }, itemStyle: { opacity: 0.16 } },
+    }))
+    const hasOverlay = overlayOption.length > 0
+
     return {
       // notMerge redraws fully (needed so template switches don't leave stale
       // series) — kill animation so hover restyles are instant like the original.
       animation: false,
       grid: { left: 8, right: 8, top: 20, bottom: 48, containLabel: true },
-      legend: { bottom: 6, icon: 'roundRect', data: series.map((s) => s.name) },
+      legend: { bottom: 6, icon: 'roundRect', data: [...series, ...overlay].map((s) => s.name) },
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'line', lineStyle: { color: iris.faint } },
       },
-      xAxis: {
-        type: 'category',
-        data: pointLabels,
-        boundaryGap: false, // points sit on the edges, like a 'point' scale
-      },
-      yAxis: { type: 'value', min: 0, max },
-      series: seriesOption,
+      xAxis: [
+        {
+          type: 'category',
+          data: pointLabels,
+          boundaryGap: false, // points sit on the edges, like a 'point' scale
+        },
+        // Same width as the category axis, in 0..1 — where overlay samples land.
+        { type: 'value', min: 0, max: 1, show: false, axisPointer: { show: false } },
+      ],
+      yAxis: [
+        { type: 'value', min: 0, max },
+        ...(hasOverlay
+          ? [{
+              type: 'log',
+              position: 'right',
+              name: 'Results',
+              nameTextStyle: { color: iris.muted, align: 'right' },
+              splitLine: { show: false },
+              axisPointer: { show: false },
+            }]
+          : []),
+      ],
+      series: [...seriesOption, ...overlayOption],
     } as EChartsOption
-  }, [series, pointLabels, max, band, notes, markerFrac, shownNote, primary, fracToIndex])
+  }, [series, pointLabels, max, band, notes, markerFrac, overlay, shownNote, primary, fracToIndex])
 
   // Card hover (highlight prop) drives ECharts emphasis directly: dispatching
   // `highlight` on the series (which uses focus:'series') blurs the others.

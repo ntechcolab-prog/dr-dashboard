@@ -16,28 +16,19 @@ import EditIcon from '@mui/icons-material/EditOutlined'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import CheckIcon from '@mui/icons-material/CheckCircleOutlineOutlined'
 import CloseIcon from '@mui/icons-material/Close'
-import type { RemarksData, NoteRow } from '@/src/shared/data/batchForm'
+import type { RemarksData, NoteRow, ResultsData } from '@/src/shared/data/batchForm'
 import { maskDate, maskTime } from '@/src/shared/lib/masks'
 import { SectionCard } from '../ui'
 import { EditableCard, useCardEdit } from '../cardEdit'
 import type { ChartNote } from '../SensorChartV2'
-import BatchGraph, { GRAPH_WINDOW_START_MIN, GRAPH_WINDOW_END_MIN, GRAPH_X_LABELS } from '../BatchGraph'
-
-// "HH:MM[:SS]" → fraction across the chart window (null if outside/unreadable).
-function timeToFrac(time: string): number | null {
-  const m = /^(\d{1,2}):(\d{2})/.exec(time)
-  if (!m) return null
-  const mins = Number(m[1]) * 60 + Number(m[2])
-  if (mins < GRAPH_WINDOW_START_MIN || mins > GRAPH_WINDOW_END_MIN) return null
-  return (mins - GRAPH_WINDOW_START_MIN) / (GRAPH_WINDOW_END_MIN - GRAPH_WINDOW_START_MIN)
-}
+import BatchGraph, { GRAPH_X_LABELS, timeToFrac } from '../BatchGraph'
 
 const todayMasked = () => {
   const d = new Date()
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-export default function RemarksTab({ value, onChange }: { value: RemarksData; onChange: (v: RemarksData) => void }) {
+export default function RemarksTab({ value, onChange, results }: { value: RemarksData; onChange: (v: RemarksData) => void; results: ResultsData }) {
   const [draft, setDraft] = useState<NoteRow>({ date: '', time: '', comment: '' })
   const [hoverNote, setHoverNote] = useState<number | null>(null)
   const [editIdx, setEditIdx] = useState<number | null>(null)
@@ -186,7 +177,7 @@ export default function RemarksTab({ value, onChange }: { value: RemarksData; on
       </EditableCard>
 
       <SectionCard title="Graph">
-        <BatchGraph notes={chartNotes} activeNote={hoverNote} onPlotClick={noteFromChart} />
+        <BatchGraph notes={chartNotes} activeNote={hoverNote} onPlotClick={noteFromChart} results={results} />
       </SectionCard>
 
       <EditableCard cardId="remarks-conclusion" title="Conclusion">

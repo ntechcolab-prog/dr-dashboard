@@ -223,7 +223,7 @@ export default function BatchEditorV2({ initial, tab, onTabChange, onBack, onSav
             />}
           {step === 'Machine' && <MachineFormTab value={view.machine} onChange={(v) => update('machine', v)} />}
           {step === 'Results' && <ResultsTab value={view.results} onChange={(v) => update('results', v)} />}
-          {step === 'Remarks' && pmOn && <RemarksTab value={view.remarks} onChange={(v) => update('remarks', v)} />}
+          {step === 'Remarks' && pmOn && <RemarksTab value={view.remarks} onChange={(v) => update('remarks', v)} results={view.results} />}
           {step === 'Details' && <LogsTab />}
           {/* Reports are actions (create a report), not a form — saved right away. */}
           {step === 'Reports' && <ReportsTab value={form.reports} onChange={(v) => {
