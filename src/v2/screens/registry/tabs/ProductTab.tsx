@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -17,7 +16,6 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import UploadIcon from '@mui/icons-material/FileUploadOutlined'
 import type { ProductData, ResultsData } from '@/src/shared/data/batchForm'
 import { ensureVariable, useResultVariables } from '@/src/shared/lib/resultVariables'
-import { useProductTargets } from '@/src/shared/lib/productTargets'
 import VariableField from '@/src/v2/components/VariableField'
 import { withAlpha } from '../ui'
 import { EditableCard, useEditing } from '../cardEdit'
@@ -40,9 +38,8 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
   const [varDraft, setVarDraft] = useState('')
   const [valDraft, setValDraft] = useState('')
 
-  // Variables and per-product targets come from Settings › Production.
+  // Options come from the catalog in Settings › Production.
   const [catalog, setCatalog] = useResultVariables()
-  const [products] = useProductTargets()
   const editInfo = useEditing('product-info')
   const editExpected = useEditing('product-expected')
   const editFiles = useEditing('product-attachments')
@@ -69,12 +66,6 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
     withTargets({ [varDraft]: valDraft.trim() })
     setVarDraft('')
     setValDraft('')
-  }
-
-  // Loading a product overwrites the targets it defines and keeps the batch's others.
-  const loadProduct = (product: string) => {
-    const p = products.find((x) => x.product === product)
-    if (p) withTargets(p.expected)
   }
 
   const setExpected = (v: string, val: string) =>
@@ -120,22 +111,6 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
           Results tab, where the target is shown next to what was measured. The variable list is managed
           in Settings › Production.
         </Typography>
-
-        {editExpected && products.length > 0 && (
-          <TextField
-            select
-            size="small"
-            value=""
-            onChange={(e) => loadProduct(e.target.value)}
-            sx={{ mt: 2, width: 280 }}
-            slotProps={{ select: { displayEmpty: true }, htmlInput: { 'aria-label': 'Load targets from a product' } }}
-          >
-            <MenuItem value="" disabled><em>Load targets from a product…</em></MenuItem>
-            {products.map((p) => (
-              <MenuItem key={p.product} value={p.product}>{p.product}</MenuItem>
-            ))}
-          </TextField>
-        )}
 
         <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 420 }}>
