@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -16,10 +16,14 @@ import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import UploadIcon from '@mui/icons-material/FileUploadOutlined'
 import type { ProductData, ResultsData } from '@/src/shared/data/batchForm'
-import { RESULT_VARIABLES } from '@/src/shared/data/batchForm'
+import { findVariable, useResultVariables } from '@/src/shared/lib/resultVariables'
 import { withAlpha } from '../ui'
 import { EditableCard, useEditing } from '../cardEdit'
 import RichTextField from '@/src/v2/components/RichTextField'
+
+// A pick from the catalog, or a name the user typed that isn't in it yet.
+type VarOption = { name: string; create?: boolean }
+const filterVars = createFilterOptions<VarOption>()
 
 interface Props {
   value: ProductData
@@ -38,7 +42,9 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
   const [varDraft, setVarDraft] = useState('')
   const [valDraft, setValDraft] = useState('')
 
-  const available = RESULT_VARIABLES.filter((v) => !(v in expected))
+  // Options come from the catalog in Settings › Production.
+  const [catalog, setCatalog] = useResultVariables()
+  const available: VarOption[] = catalog.filter((v) => !(v.name in expected)).map((v) => ({ name: v.name }))
   const editInfo = useEditing('product-info')
   const editExpected = useEditing('product-expected')
   const editFiles = useEditing('product-attachments')
@@ -48,7 +54,11 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
   const addExpected = () => {
     const typed = varDraft.trim()
     if (!typed) return
-    const name = results.variables.find((x) => x.toLowerCase() === typed.toLowerCase()) ?? typed
+    const known = findVariable(catalog, typed)
+    // A name typed here that isn't in the catalog joins it, so other batches can pick it too.
+    if (!known) setCatalog((prev) => [...prev, { name: typed, unit: '' }])
+    const canonical = known?.name ?? typed
+    const name = results.variables.find((x) => x.toLowerCase() === canonical.toLowerCase()) ?? canonical
     const isNew = !results.variables.includes(name)
     onResultsChange({
       ...results,
@@ -100,7 +110,8 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
       <EditableCard cardId="product-expected" title="Expected Results">
         <Typography variant="body2" color="text.secondary">
           Set the value each variable is expected to reach. Variables added here become columns on the
-          Results tab, where the target is shown next to what was measured.
+          Results tab, where the target is shown next to what was measured. The variable list is managed
+          in Settings › Production.
         </Typography>
 
         <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
@@ -123,7 +134,7 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
                         value={val}
                         onChange={(e) => setExpected(v, e.target.value)}
                         placeholder="0000"
-                        aria-label={`Expected value for ${v}`}
+                        slotProps={{ htmlInput: { 'aria-label': `Expected value for ${v}` } }}
                         sx={{ width: 120 }}
                       />
                     ) : (val || '—')}
@@ -152,22 +163,33 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
               {editExpected && (
               <TableRow sx={{ bgcolor: 'background.default' }}>
                 <TableCell>
-                  <TextField
-                    select={available.length > 0}
+                  <Autocomplete<VarOption, false, false, true>
+                    freeSolo
                     size="small"
                     fullWidth
-                    value={varDraft}
-                    onChange={(e) => setVarDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addExpected()}
-                    placeholder="e.g. d50 — or type to create"
-                    aria-label="Variable"
-                    slotProps={available.length > 0 ? { select: { displayEmpty: true } } : undefined}
-                  >
-                    {available.length > 0 && [
-                      <MenuItem key="__none" value=""><em>Type or pick…</em></MenuItem>,
-                      ...available.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>),
-                    ]}
-                  </TextField>
+                    options={available}
+                    value={null}
+                    inputValue={varDraft}
+                    onInputChange={(_, v, reason) => reason === 'input' && setVarDraft(v)}
+                    onChange={(_, v) => setVarDraft(v === null ? '' : typeof v === 'string' ? v : v.name)}
+                    getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}
+                    filterOptions={(opts, state) => {
+                      const shown = filterVars(opts, state)
+                      const typed = state.inputValue.trim()
+                      if (typed && !findVariable(catalog, typed) && !Object.keys(expected).some((k) => k.toLowerCase() === typed.toLowerCase())) {
+                        shown.push({ name: typed, create: true })
+                      }
+                      return shown
+                    }}
+                    renderOption={({ key, ...props }, o) => (
+                      <li key={key} {...props}>
+                        {o.create ? <>Create&nbsp;<strong>&ldquo;{o.name}&rdquo;</strong></> : o.name}
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField {...params} placeholder="Pick or type a new one" slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, 'aria-label': 'Variable' } }} />
+                    )}
+                  />
                 </TableCell>
                 <TableCell>
                   <TextField
@@ -176,7 +198,7 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
                     onChange={(e) => setValDraft(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && addExpected()}
                     placeholder="0000"
-                    aria-label="Expected value"
+                    slotProps={{ htmlInput: { 'aria-label': 'Expected value' } }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>

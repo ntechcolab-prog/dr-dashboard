@@ -10,6 +10,7 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import { SETTINGS_TABS } from '@/src/shared/data/appData'
 import { GeneralSettingsV2, DataExportSettingsV2 } from './MiscSettingsV2'
 import AvailabilitySettingsV2 from './AvailabilitySettingsV2'
+import ProductionSettingsV2 from './ProductionSettingsV2'
 
 // MUI-native Settings screen. Mirrors the Tailwind SettingsScreen (tabbed:
 // General / Availability / Data Export) and reuses every bit of business logic —
@@ -39,6 +40,8 @@ export default function SettingsV2() {
         <GeneralSettingsV2 />
       ) : tab === 'Availability' ? (
         <AvailabilitySettingsV2 />
+      ) : tab === 'Production' ? (
+        <ProductionSettingsV2 />
       ) : tab === 'Data Export' ? (
         <DataExportSettingsV2 />
       ) : (
