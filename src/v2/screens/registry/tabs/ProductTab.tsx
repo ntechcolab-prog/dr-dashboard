@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -16,14 +16,12 @@ import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import UploadIcon from '@mui/icons-material/FileUploadOutlined'
 import type { ProductData, ResultsData } from '@/src/shared/data/batchForm'
-import { findVariable, useResultVariables } from '@/src/shared/lib/resultVariables'
+import { ensureVariable, useResultVariables } from '@/src/shared/lib/resultVariables'
+import { useProductTargets } from '@/src/shared/lib/productTargets'
+import VariableField from '@/src/v2/components/VariableField'
 import { withAlpha } from '../ui'
 import { EditableCard, useEditing } from '../cardEdit'
 import RichTextField from '@/src/v2/components/RichTextField'
-
-// A pick from the catalog, or a name the user typed that isn't in it yet.
-type VarOption = { name: string; create?: boolean }
-const filterVars = createFilterOptions<VarOption>()
 
 interface Props {
   value: ProductData
@@ -42,32 +40,41 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
   const [varDraft, setVarDraft] = useState('')
   const [valDraft, setValDraft] = useState('')
 
-  // Options come from the catalog in Settings › Production.
+  // Variables and per-product targets come from Settings › Production.
   const [catalog, setCatalog] = useResultVariables()
-  const available: VarOption[] = catalog.filter((v) => !(v.name in expected)).map((v) => ({ name: v.name }))
+  const [products] = useProductTargets()
   const editInfo = useEditing('product-info')
   const editExpected = useEditing('product-expected')
   const editFiles = useEditing('product-attachments')
 
   // Adding a target also creates the variable on the Results tab (if it is not
   // there yet), so the column the operator will type into already exists.
+  const withTargets = (targets: Record<string, string>) => {
+    let { variables, rows } = results
+    const next = { ...expected }
+    for (const [typed, val] of Object.entries(targets)) {
+      const canonical = ensureVariable(catalog, setCatalog, typed)
+      const name = variables.find((x) => x.toLowerCase() === canonical.toLowerCase()) ?? canonical
+      if (!variables.includes(name)) {
+        variables = [...variables, name]
+        rows = rows.map((r) => ({ ...r, values: { ...r.values, [name]: '' } }))
+      }
+      next[name] = val
+    }
+    onResultsChange({ ...results, variables, rows, expected: next })
+  }
+
   const addExpected = () => {
-    const typed = varDraft.trim()
-    if (!typed) return
-    const known = findVariable(catalog, typed)
-    // A name typed here that isn't in the catalog joins it, so other batches can pick it too.
-    if (!known) setCatalog((prev) => [...prev, { name: typed, unit: '' }])
-    const canonical = known?.name ?? typed
-    const name = results.variables.find((x) => x.toLowerCase() === canonical.toLowerCase()) ?? canonical
-    const isNew = !results.variables.includes(name)
-    onResultsChange({
-      ...results,
-      variables: isNew ? [...results.variables, name] : results.variables,
-      rows: isNew ? results.rows.map((r) => ({ ...r, values: { ...r.values, [name]: '' } })) : results.rows,
-      expected: { ...expected, [name]: valDraft.trim() },
-    })
+    if (!varDraft.trim()) return
+    withTargets({ [varDraft]: valDraft.trim() })
     setVarDraft('')
     setValDraft('')
+  }
+
+  // Loading a product overwrites the targets it defines and keeps the batch's others.
+  const loadProduct = (product: string) => {
+    const p = products.find((x) => x.product === product)
+    if (p) withTargets(p.expected)
   }
 
   const setExpected = (v: string, val: string) =>
@@ -113,6 +120,22 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
           Results tab, where the target is shown next to what was measured. The variable list is managed
           in Settings › Production.
         </Typography>
+
+        {editExpected && products.length > 0 && (
+          <TextField
+            select
+            size="small"
+            value=""
+            onChange={(e) => loadProduct(e.target.value)}
+            sx={{ mt: 2, width: 280 }}
+            slotProps={{ select: { displayEmpty: true }, htmlInput: { 'aria-label': 'Load targets from a product' } }}
+          >
+            <MenuItem value="" disabled><em>Load targets from a product…</em></MenuItem>
+            {products.map((p) => (
+              <MenuItem key={p.product} value={p.product}>{p.product}</MenuItem>
+            ))}
+          </TextField>
+        )}
 
         <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 420 }}>
@@ -163,33 +186,7 @@ export default function ProductTab({ value, onChange, results, onResultsChange }
               {editExpected && (
               <TableRow sx={{ bgcolor: 'background.default' }}>
                 <TableCell>
-                  <Autocomplete<VarOption, false, false, true>
-                    freeSolo
-                    size="small"
-                    fullWidth
-                    options={available}
-                    value={null}
-                    inputValue={varDraft}
-                    onInputChange={(_, v, reason) => reason === 'input' && setVarDraft(v)}
-                    onChange={(_, v) => setVarDraft(v === null ? '' : typeof v === 'string' ? v : v.name)}
-                    getOptionLabel={(o) => (typeof o === 'string' ? o : o.name)}
-                    filterOptions={(opts, state) => {
-                      const shown = filterVars(opts, state)
-                      const typed = state.inputValue.trim()
-                      if (typed && !findVariable(catalog, typed) && !Object.keys(expected).some((k) => k.toLowerCase() === typed.toLowerCase())) {
-                        shown.push({ name: typed, create: true })
-                      }
-                      return shown
-                    }}
-                    renderOption={({ key, ...props }, o) => (
-                      <li key={key} {...props}>
-                        {o.create ? <>Create&nbsp;<strong>&ldquo;{o.name}&rdquo;</strong></> : o.name}
-                      </li>
-                    )}
-                    renderInput={(params) => (
-                      <TextField {...params} placeholder="Pick or type a new one" slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, 'aria-label': 'Variable' } }} />
-                    )}
-                  />
+                  <VariableField value={varDraft} onChange={setVarDraft} catalog={catalog} exclude={Object.keys(expected)} />
                 </TableCell>
                 <TableCell>
                   <TextField

@@ -39,3 +39,17 @@ export function findVariable(list: ResultVariable[], name: string): ResultVariab
   const key = name.trim().toLowerCase()
   return list.find((v) => v.name.toLowerCase() === key)
 }
+
+/** The catalog's spelling of a typed name; a name it doesn't know joins it
+ *  (no unit yet), so other batches and products can pick it too. */
+export function ensureVariable(
+  list: ResultVariable[],
+  setList: (fn: (prev: ResultVariable[]) => ResultVariable[]) => void,
+  typed: string,
+): string {
+  const name = typed.trim()
+  const known = findVariable(list, name)
+  if (known) return known.name
+  setList((prev) => (findVariable(prev, name) ? prev : [...prev, { name, unit: '' }]))
+  return name
+}
